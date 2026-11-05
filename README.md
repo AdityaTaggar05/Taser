@@ -65,3 +65,4 @@ Original design authority: `temporal_pincer_mvp_specification.md`.
 
 Presentation changes requested after the original specification: hide partner objectives and box ghosts on individual boards, and hide spatial weld-point markers on every board. The underlying puzzle rules and combined view remain available.
 # Taser
+# Taser
