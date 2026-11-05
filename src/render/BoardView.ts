@@ -16,7 +16,7 @@ export class BoardView {
     return this.keep(this.scene.add.text(x,y,value,{fontFamily:'monospace',fontSize:size,color}).setOrigin(0.5).setDepth(3));
   }
   private at(c: Coord): [number,number] { return [this.ox+(c[0]-0.5)*this.tile,this.oy-(c[1]-0.5)*this.tile]; }
-  render(engine: GameEngine, rect: BoardRect, pack: EnvironmentPack, previous?: StepSnapshot, animate = false) {
+  render(engine: Pick<GameEngine, 'level' | 'state' | 'lastShoves' | 'exitOpen' | 'nextBoxes'>, rect: BoardRect, pack: EnvironmentPack, previous?: StepSnapshot, animate = false) {
     this.objects.forEach(o => o.destroy()); this.objects = []; this.graphics.clear(); this.frame.clear();
     const g = this.graphics, l = engine.level, s = engine.state, p = pack.palette;
     this.tile = Math.min((rect.width-52)/l.width,(rect.height-104)/l.height,112);
@@ -103,7 +103,8 @@ export class BoardView {
       }
     };
     if(this.index===2){drawPlayer(1,.75);drawPlayer(2,.75);}else drawPlayer(this.index===0?1:2);
-    this.text(rect.x+rect.width/2,rect.y+rect.height-17,this.index===0?'P1  ·  WASD + SPACE':this.index===1?'P2  ·  ARROWS + ENTER':s.step<l.weldStep?(rect.width<300?'MATCH BOXES AT TURN 4':'MATCH BOX IDENTITIES AT THE WELD'):(rect.width<300?'DOTTED = NEXT BOX POSITION':'DOTTED LINE = NEXT BOX POSITION'),rect.width<240?8:10);
+    this.text(rect.x+rect.width/2,rect.y+rect.height-17,this.index===0?'P1  ·  WASD / ARROWS  ·  SPACE TO WAIT':this.index===1?'P2  ·  WASD / ARROWS  ·  SPACE TO WAIT':s.step<l.weldStep?(rect.width<300?'MATCH BOXES AT TURN 4':'MATCH BOX IDENTITIES AT THE WELD'):(rect.width<300?'DOTTED = NEXT BOX POSITION':'DOTTED LINE = NEXT BOX POSITION'),rect.width<240?8:10);
   }
+  destroy(){this.objects.forEach(o=>o.destroy());this.graphics.destroy();this.frame.destroy();}
   private laserSegments(tiles: Coord[]) { for(let i=1;i<tiles.length;i++){const [x,y]=this.at(tiles[i-1]),[nx,ny]=this.at(tiles[i]);this.graphics.lineBetween(x,y,nx,ny);} }
 }
