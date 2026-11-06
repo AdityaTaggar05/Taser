@@ -10,6 +10,7 @@ export class PublicationOverlay {
   private stored?: StoredLevel;
   private error?: string;
   private recoverable = false;
+  private freezeTimer?: number;
 
   constructor(
     parent: HTMLElement,
@@ -32,6 +33,26 @@ export class PublicationOverlay {
             <h2 id="publication-title">Building your publication</h2>
             <p class="publication-name"></p>
           </div>
+          <div class="publication-graph-stage">${verificationNetwork()}</div>
+          <div class="publication-result" role="status" aria-live="polite" aria-atomic="true">
+            <div class="publication-seal" aria-hidden="true">
+              <svg viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="35" />
+                <path d="m23 40 12 12 23-25" />
+              </svg>
+            </div>
+            <div>
+              <strong class="publication-verdict"></strong>
+              <p id="publication-status"></p>
+            </div>
+          </div>
+          <footer class="publication-footer">
+            <button type="button" data-publication="close">Continue in editor</button>
+            <button type="button" data-publication="refresh" hidden>Refresh verification ↻</button>
+            <button type="button" data-publication="published" hidden>
+              View published level ↗
+            </button>
+          </footer>
           <ol class="publication-pipeline" aria-label="Publication workflow">
             <li>
               <span class="publication-number">01</span>
@@ -66,26 +87,6 @@ export class PublicationOverlay {
               <span class="publication-block-state"></span>
             </li>
           </ol>
-          <div class="publication-graph-stage">${verificationNetwork()}</div>
-          <div class="publication-result" role="status" aria-live="polite" aria-atomic="true">
-            <div class="publication-seal" aria-hidden="true">
-              <svg viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="35" />
-                <path d="m23 40 12 12 23-25" />
-              </svg>
-            </div>
-            <div>
-              <strong class="publication-verdict"></strong>
-              <p id="publication-status"></p>
-            </div>
-          </div>
-          <footer class="publication-footer">
-            <button type="button" data-publication="close">Continue in editor</button>
-            <button type="button" data-publication="refresh" hidden>Refresh verification ↻</button>
-            <button type="button" data-publication="published" hidden>
-              View published level ↗
-            </button>
-          </footer>
         </section>
       </div>
     `;
@@ -99,6 +100,7 @@ export class PublicationOverlay {
         this.actions.published();
       }
     });
+    this.dialog.addEventListener('cancel', () => this.clearFreeze());
     parent.append(this.dialog);
   }
 
@@ -120,27 +122,42 @@ export class PublicationOverlay {
   submitting() {
     this.stage = 'submitting';
     this.recoverable = true;
+    this.clearFreeze();
+    // Presentation dwell only: the request and verification continue immediately.
+    this.freezeTimer = window.setTimeout(() => {
+      this.freezeTimer = undefined;
+      this.render();
+    }, 2500);
     this.render();
   }
 
   update(stored: StoredLevel) {
     this.stored = stored;
+    if (stored.certification?.status === 'rejected') this.clearFreeze();
     this.recoverable = true;
     this.error = undefined;
     this.render();
   }
 
   fail(message: string) {
+    this.clearFreeze();
     this.error = message;
     this.render();
   }
 
   hide() {
+    this.clearFreeze();
     if (this.dialog.open) this.dialog.close();
   }
 
   destroy() {
+    this.clearFreeze();
     this.dialog.remove();
+  }
+
+  private clearFreeze() {
+    if (this.freezeTimer !== undefined) window.clearTimeout(this.freezeTimer);
+    this.freezeTimer = undefined;
   }
 
   private el<T extends HTMLElement = HTMLElement>(selector: string) {
@@ -148,7 +165,11 @@ export class PublicationOverlay {
   }
 
   private render() {
-    const progress = publicationProgress(this.stage, this.stored, this.error);
+    const progress = publicationProgress(
+      this.stage,
+      this.freezeTimer === undefined ? this.stored : undefined,
+      this.error,
+    );
     this.dialog.dataset.verified = String(progress.verified);
     this.dialog.dataset.published = String(progress.published);
     this.dialog.dataset.issue = String(progress.rejected || !!this.error);

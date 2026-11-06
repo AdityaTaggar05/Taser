@@ -22,6 +22,9 @@
   place-items: center;
 }
 .publication-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   min-width: 0;
   width: min(1180px, 100%);
   padding: 22px 32px;
@@ -37,9 +40,15 @@
   letter-spacing: 2px;
 }
 .publication-workflow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-width: 0;
 }
 .publication-graph-stage {
+  flex: 1;
+  width: 100%;
+  --graph-travel: min(70vw, 900px);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
@@ -69,22 +78,22 @@
 }
 .publication-network svg {
   display: block;
-  height: clamp(180px, 33vh, 320px);
+  height: clamp(180px, 30vh, 320px);
   width: 100%;
   overflow: visible;
   margin: 0;
 }
 .publication-overlay[open] .network-entering {
-  animation: network-scene-in 0.55s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation: network-scene-in 1.35s cubic-bezier(0.22, 0.65, 0.25, 1) both;
 }
 .publication-overlay[open] .network-leaving {
   pointer-events: none;
-  animation: network-scene-out 0.45s ease-in both;
+  animation: network-scene-out 1.25s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
 @keyframes network-scene-in {
   from {
     opacity: 0;
-    transform: translateX(100px);
+    transform: translateX(var(--graph-travel));
   }
   to {
     opacity: 1;
@@ -98,7 +107,7 @@
   }
   to {
     opacity: 0;
-    transform: translateX(-100px);
+    transform: translateX(calc(-1 * var(--graph-travel)));
   }
 }
 .network-orbit {
@@ -241,7 +250,7 @@
   gap: 14px;
   list-style: none;
   padding: 4px 0 12px;
-  margin: 0;
+  margin: 24px 0 0;
 }
 .publication-pipeline li {
   position: relative;
@@ -464,6 +473,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .network-leaving {
+    display: none;
+  }
   .publication-overlay[open] .network-entering,
   .publication-overlay[open] .network-leaving,
   .publication-overlay[open] .network-signals path,
