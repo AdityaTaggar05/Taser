@@ -8,7 +8,7 @@ export class CoopClient {
   private retry:ReturnType<typeof setTimeout>|undefined;
   private stopped=false;
   private token:string|null=null;
-  constructor(private changed:(previous:SessionState|null)=>void,private getTicket:()=>Promise<string>,private authRequired:()=>void,private customLevelId?:string) {
+  constructor(private changed:(previous:SessionState|null)=>void,private getTicket:()=>Promise<string>,private authRequired:()=>void,private customLevelId?:string,private player?:1|2) {
     try{this.token=sessionStorage.getItem('weldpoint:seat');}catch{/* Memory-only reconnect still works. */}
     this.connect();
   }
@@ -21,7 +21,7 @@ export class CoopClient {
     const url=new URL('/co-op',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
     const ws=new WebSocket(url);this.socket=ws;
     const handshake=setTimeout(()=>{if(this.socket===ws)ws.close();},8000);
-    ws.onopen=()=>ws.send(JSON.stringify({type:'join',token:this.token,ticket,customLevelId:this.customLevelId}));
+    ws.onopen=()=>ws.send(JSON.stringify({type:'join',token:this.token,ticket,customLevelId:this.customLevelId,player:this.player}));
     ws.onmessage=e=>{
       if(this.stopped||this.socket!==ws)return;
       let message:ServerMessage;try{message=JSON.parse(e.data);}catch{return;}
@@ -31,7 +31,7 @@ export class CoopClient {
       }else if(message.type==='auth_required'){clearTimeout(handshake);this.destroy();this.authRequired();return;
       }else if(message.type==='state'){
         clearTimeout(handshake);
-        const previous=this.state;this.state=message;this.customLevelId=message.customLevelId;this.status='connected';this.notice=null;this.changed(previous);
+        const previous=this.state;this.state=message;this.player=message.player;this.customLevelId=message.customLevelId;this.status='connected';this.notice=null;this.changed(previous);
       }else if(message.type==='error'){this.notice=message.message;this.changed(this.state);}
       else if(message.type==='full'){clearTimeout(handshake);this.status='full';this.notice=message.message;this.changed(this.state);}
     };

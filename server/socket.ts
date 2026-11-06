@@ -44,6 +44,10 @@ export function attachCoop(server:EventEmitter,auth:AuthService,loadPublished?:P
         if(!identity){reject(ws,peer);return;}
         identities.set(ws,{identity,peer});
         const requested=typeof m.customLevelId==='string'&&/^[a-f0-9-]{36}$/.test(m.customLevelId)?m.customLevelId:undefined;
+        if(m.customLevelId!==undefined&&!requested){peer.send({type:'full',message:'Invalid published level link. Return home and choose a chamber.'});peer.close();return;}
+        if(m.player!==1&&m.player!==2){peer.send({type:'full',message:'Choose P1 or P2 before joining.'});peer.close();return;}
+        const player=m.player;
+        room.expire();
         joining=true;
         void (async()=>{
           if(store){
@@ -53,7 +57,7 @@ export function attachCoop(server:EventEmitter,auth:AuthService,loadPublished?:P
           }
           if(closing||ws.readyState!==WebSocket.OPEN)return;
           if(!auth.isActive(identity.key)){reject(ws,peer);return;}
-          joined=room.join(peer,identity.user.id,token,requested)!==null;
+          joined=room.join(peer,identity.user.id,token,requested,player)!==null;
         })().catch(()=>{peer.send({type:'full',message:'The archived chamber could not be loaded. Check its availability and retry.'});peer.close();}).finally(()=>{joining=false;if(requested)loading.delete(requested);});return;
       }
       const entry=identities.get(ws);if(!entry||!auth.isActive(entry.identity.key)){reject(ws,peer);return;}

@@ -9,6 +9,7 @@ import { KEY_MOVES } from './input/TurnBuffer';
 import { Hud } from './ui/Hud';
 import { GameAudio } from './ui/audio';
 import { HomeScreen } from './ui/HomeScreen';
+import {PublishedLevels} from './ui/PublishedLevels';
 import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
 import { RemoteView } from './network/RemoteView';
@@ -52,8 +53,9 @@ const auth=new AuthClient(()=>{
   signin.update();editor.setUser(auth.user);syncScreen();refresh();void loadCatalog();
 });
 const signin=new SignInScreen(auth);
-const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},community:()=>{location.hash='community';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
 const levelApi=new LevelClient(auth);
+const library=new PublishedLevels(levelApi,{home:()=>{location.hash='';},play:(id,player)=>{location.hash='play/'+(id?id+'/':'')+'p'+player;},fullscreen});
 const editor=new EditorScreen(levelApi,{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
 let catalogUser:string|null=null,catalogRequest=0;
 async function loadCatalog(){
@@ -65,14 +67,17 @@ async function revealSolution(){
   try{const solution=await levelApi.solution(key);if(client?.state?.publicationKey===key&&auth.user?.id===user)hud.showSolution(solution);}catch(error){client?.showNotice((error as Error).message);}
 }
 function syncScreen(){
-  const custom=/^#play\/([a-f0-9-]{36})$/.exec(location.hash)?.[1];
-  const next=!!auth.user&&(location.hash==='#play'||!!custom);
+  const route=/^#play(?:\/([a-f0-9-]{36}))?(?:\/p([12]))?$/.exec(location.hash);
+  const custom=route?.[1],player=route?.[2]?Number(route[2]) as 1|2:undefined;
+  const choosing=!!auth.user&&!!route&&!player;
+  const browsing=!!auth.user&&(location.hash==='#community'||choosing);
+  const next=!!auth.user&&!!route&&!!player;
   const nextEditing=!!auth.user&&location.hash==='#create';
   if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
-  hud.root.hidden=!playing;home.show(!playing&&!editing&&!!auth.user);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':auth.user?'home':'signin';
-  if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),custom);}
+  hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!!auth.user);library.show(browsing,choosing,custom);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing?'library':auth.user?'home':'signin';
+  if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),custom,player);}
   scene?.redraw();refresh();
 }
 function receive(previous:SessionState|null){
@@ -118,7 +123,7 @@ window.addEventListener('keydown',e=>{
   if(editing){editor.key(e);return;}
   const target=e.target as HTMLElement;if(target.matches('input,textarea,select'))return;
   if(!playing){
-    if(!auth.user||home.dialogOpen)return;
+    if(!auth.user||home.dialogOpen||home.root.hidden)return;
     if(e.code==='KeyF'){e.preventDefault();void fullscreen();}
     if(e.code==='Enter'&&target.tagName!=='BUTTON'&&target.tagName!=='A'){e.preventDefault();location.hash='play';}
     return;
@@ -137,5 +142,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();library.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();

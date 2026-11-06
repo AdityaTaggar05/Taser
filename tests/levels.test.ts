@@ -32,3 +32,18 @@ it('requires authenticated same-origin author requests and rejects non-winning s
     expect((await a.request('levels',{level:levels[0],padding:'x'.repeat(66_000)})).status).toBe(413);
   }finally{await f.close();}
 });
+it('exposes community metadata only after archive confirmation and keeps failed writes out of discovery',async()=>{
+  const archive=new MemoryArchive(),store=new LevelStore(':memory:',archive);
+  const original=archive.put.bind(archive);let release!:()=>void,started!:()=>void;
+  const submitted=new Promise<void>(resolve=>started=resolve),confirmation=new Promise<void>(resolve=>release=resolve);
+  try{
+    const draft=await store.save('atlas','Atlas',levels[0]);
+    archive.put=async record=>{if(record.category==='community'){started();await confirmation;throw new Error('Archive confirmation failed');}return original(record);};
+    const pending=store.publish('atlas',draft.id,draft.revision);const rejected=expect(pending).rejects.toThrow('Archive confirmation failed');await submitted;
+    expect(store.community()).toEqual([]);expect(store.forPlay(draft.id)).toBeNull();release();await rejected;
+    expect(store.community()).toEqual([]);expect(store.forPlay(draft.id)).toBeNull();
+    archive.put=original;await store.publish('atlas',draft.id,draft.revision);
+    expect(store.community()).toHaveLength(1);expect(store.forPlay(draft.id)?.ref?.entityKey).toMatch(/^0x/);
+    expect(store.community()[0]).not.toHaveProperty('level');expect(store.community()[0]).not.toHaveProperty('solutionP1');
+  }finally{release?.();store.close();}
+});

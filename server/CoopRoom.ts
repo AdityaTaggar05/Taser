@@ -27,9 +27,17 @@ export class CoopRoom {
   campaignSnapshot(index:number){return this.campaign[index];}
   updateCampaign(campaign:PublishedSnapshot[]){if(!this.empty||!campaign.length)return;this.campaign=campaign;this.levelIndex=0;this.publication=campaign[0];this.customId=undefined;this.customRevision=undefined;this.engine=new GameEngine(this.publication.level);}
   private catalog():CampaignSummary[]{return this.campaign.map((s,i)=>({id:s.id??String(s.level.id),slot:s.slot??s.level.id,entityKey:s.ref?.entityKey??'',name:s.level.name,subtitle:s.level.subtitle,ownerName:'WeldPoint',revision:s.revision,publishedRevision:s.revision,updatedAt:0,width:s.level.width,height:s.level.height,totalSteps:s.level.totalSteps}));}
-  join(peer:Peer, accountId:string, token?:string,requestedLevel?:string): Player|null {
+  join(peer:Peer, accountId:string, token?:string,requestedLevel?:string,requestedPlayer?:Player): Player|null {
     this.expire();
-    const returning=this.seats.some(s=>s?.accountId===accountId);
+    if(requestedPlayer!==undefined&&requestedPlayer!==1&&requestedPlayer!==2){peer.send({type:'full',message:'Choose P1 or P2 before joining.'});peer.close();return null;}
+    let index=token?this.seats.findIndex(s=>s?.token===token):-1;
+    if(index>=0&&this.seats[index]!.accountId!==accountId){peer.send({type:'error',message:'This seat belongs to another account.'});peer.close();return null;}
+    if(index<0)index=this.seats.findIndex(s=>s?.accountId===accountId);
+    const returning=index>=0;
+    if(returning&&requestedPlayer!==undefined&&index!==requestedPlayer-1){peer.send({type:'full',message:'Your account already holds the other role. Resume that role or wait for its reservation to expire.'});peer.close();return null;}
+    if(index>=0&&this.seats[index]?.peer){peer.send({type:'full',message:'This player is already connected in another tab. Use a separate tab without duplicating it.'});peer.close();return null;}
+    if(index<0)index=requestedPlayer===undefined?this.seats.findIndex(s=>s===null):requestedPlayer-1;
+    if(index<0||this.seats[index]&&!returning){peer.send({type:'full',message:requestedPlayer?`P${requestedPlayer} is occupied or reconnecting. Return home to choose another role, or wait here for it to become free.`:'Both player slots are occupied or reconnecting. This playtest supports two players.'});peer.close();return null;}
     if(requestedLevel&&!returning){
       if(this.seats.some(Boolean)&&requestedLevel!==this.customId&&requestedLevel!==this.publication.id){peer.send({type:'full',message:'The shared room is playing another chamber. Both players must return home before starting this level.'});peer.close();return null;}
       if(!this.seats.some(Boolean)){
@@ -37,14 +45,6 @@ export class CoopRoom {
         this.publication=published;this.engine=new GameEngine(published.level);this.levelIndex=published.slot?this.campaign.findIndex(s=>s.id===published.id):-1;this.customId=this.levelIndex<0?requestedLevel:undefined;this.customRevision=published.revision;this.pending=[null,null];this.revision++;
       }
     }else if(!this.seats.some(Boolean)&&this.customId){this.levelIndex=0;this.customId=undefined;this.customRevision=undefined;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.revision++;}
-    let index=token?this.seats.findIndex(s=>s?.token===token):-1;
-    if(index>=0&&this.seats[index]!.accountId!==accountId){peer.send({type:'error',message:'This seat belongs to another account.'});peer.close();return null;}
-    if(index<0)index=this.seats.findIndex(s=>s?.accountId===accountId);
-    if(index>=0 && this.seats[index]?.peer) {
-      peer.send({type:'full',message:'This player is already connected in another tab. Use a separate tab without duplicating it.'});peer.close();return null;
-    }
-    if(index<0) index=this.seats.findIndex(s=>s===null);
-    if(index<0){peer.send({type:'full',message:'Both player slots are occupied or reconnecting. This playtest supports two players.'});peer.close();return null;}
     const seat=this.seats[index];
     this.seats[index]={accountId,token:seat?.token??this.makeToken(),peer,expiresAt:0};
     peer.send({type:'welcome',token:this.seats[index]!.token});

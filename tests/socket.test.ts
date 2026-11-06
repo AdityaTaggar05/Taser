@@ -11,7 +11,7 @@ it('joins two real sockets, synchronizes a turn and resumes a disconnected seat'
   async function connect(account:typeof atlas,token?:string){
     const ws=new WebSocket(`ws://127.0.0.1:${port}/co-op`);clients.push(ws);
     const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));
-    await once(ws,'open');ws.send(JSON.stringify({type:'join',token,ticket:await account.ticket()}));
+    await once(ws,'open');ws.send(JSON.stringify({type:'join',token,ticket:await account.ticket(),player:account===atlas?1:2}));
     await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);
     return {ws,messages,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};
   }
@@ -34,7 +34,7 @@ it('joins two real sockets, synchronizes a turn and resumes a disconnected seat'
 it('rejects unauthenticated joins and reused tickets, and closes live play on logout',async()=>{
   const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
   async function socket(ticket?:string){
-    const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',raw=>messages.push(JSON.parse(raw.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket}));return {ws,messages};
+    const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',raw=>messages.push(JSON.parse(raw.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket,player:1}));return {ws,messages};
   }
   try{
     const anonymous=await socket();await expect.poll(()=>anonymous.messages.some(m=>m.type==='auth_required')).toBe(true);await expect.poll(()=>anonymous.ws.readyState).toBe(WebSocket.CLOSED);
@@ -49,8 +49,8 @@ it('loads a server-published custom level over real authenticated sockets withou
   try{
     const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
     const {levels}=await import('../server/data/campaign');const created=await atlas.request('levels',{level:levels[0]});const id=created.data.id;expect((await atlas.request(`levels/${id}/publish`,{revision:1})).status).toBe(200);
-    async function connect(account:typeof atlas){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:id}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
-    const a=await connect(atlas),b=await connect(nova);await expect.poll(()=>a.state().partnerConnected).toBe(true);expect(a.state().customLevelId).toBe(id);expect(a.state().level?.solutionP1).toEqual([]);expect(a.state().level?.solutionP2).toEqual([]);expect(a.state().level?.initialBoxesP2).toEqual([]);expect(b.state().level?.switchesP1).toEqual([]);
+    async function connect(account:typeof atlas){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:id,player:account===atlas?2:1}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
+    const a=await connect(nova),b=await connect(atlas);await expect.poll(()=>a.state().partnerConnected).toBe(true);expect(a.state().player).toBe(1);expect(b.state().player).toBe(2);expect(a.state().customLevelId).toBe(id);expect(a.state().level?.solutionP1).toEqual([]);expect(a.state().level?.solutionP2).toEqual([]);expect(a.state().level?.initialBoxesP2).toEqual([]);expect(b.state().level?.switchesP1).toEqual([]);
     a.ws.send(JSON.stringify({type:'move',direction:'U',revision:a.state().revision}));b.ws.send(JSON.stringify({type:'move',direction:'D',revision:b.state().revision}));await expect.poll(()=>a.state().history.at(-1)?.step).toBe(1);
   }finally{for(const ws of clients)ws.terminate();close();await f.close();}
 },10_000);
@@ -64,7 +64,7 @@ it('keeps campaign witnesses private until both accounts actually win the publis
     // Numeric completion from the old release does not authorize a different encrypted publication.
     f.auth.recordCompletion([novaId],1);
     expect((await b.request(`levels/solution/${campaign.entityKey}`)).status).toBe(403);
-    async function connect(account:typeof a){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:campaign.id}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
+    async function connect(account:typeof a){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:campaign.id,player:account===a?1:2}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
     const p1=await connect(a),p2=await connect(b);await expect.poll(()=>p1.state().partnerConnected).toBe(true);
     expect(p1.state().level?.solutionP1).toEqual([]);expect(p1.state().level?.initialBoxesP2).toEqual([]);expect(p2.state().level?.switchesP1).toEqual([]);expect(p1.state().solutionAvailable).toBe(false);expect(p1.state().levelIndex).toBe(0);
     for(let k=0;k<levels[0].totalSteps;k++){
@@ -74,5 +74,27 @@ it('keeps campaign witnesses private until both accounts actually win the publis
     expect(p2.state().history.at(-1)?.status).toBe('VICTORY');expect(p1.state().solutionAvailable).toBe(true);expect(p2.state().solutionAvailable).toBe(true);
     expect((await b.request(`levels/solution/${campaign.entityKey}`)).data.solutionP2).toEqual(levels[0].solutionP2);
     expect((await b.request(`levels/campaign/${campaign.id}/template`)).status).toBe(200);
+  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+},10_000);
+
+it('requires explicit roles for game sockets and never substitutes an occupied role',async()=>{
+  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
+  try{
+    const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
+    const id=(await atlas.request('levels/catalog')).data.campaign[0].id;
+    async function connect(account:typeof atlas,player?:unknown,customLevelId:string|null=id){
+      const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];
+      ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');
+      ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:customLevelId??undefined,player}));
+      await expect.poll(()=>messages.some(m=>m.type==='state'||m.type==='full')).toBe(true);return {ws,messages};
+    }
+    for(const invalid of [undefined,0,3,'2',{},true]){
+      const bad=await connect(atlas,invalid);expect(bad.messages.some(m=>m.type==='state')).toBe(false);await expect.poll(()=>bad.ws.readyState).toBe(WebSocket.CLOSED);
+    }
+    const missingRole=await connect(atlas,undefined,null);expect(missingRole.messages.some(m=>m.type==='state')).toBe(false);
+    const badLink=await connect(atlas,1,'missing');expect(badLink.messages.some(m=>m.type==='state')).toBe(false);
+    const p2=await connect(atlas,2);expect(p2.messages.find(m=>m.type==='state')).toMatchObject({player:2});
+    const collision=await connect(nova,2);expect(collision.messages.find(m=>m.type==='full')).toMatchObject({message:expect.stringContaining('P2 is occupied')});expect(collision.messages.some(m=>m.type==='state')).toBe(false);
+    const p1=await connect(nova,1);expect(p1.messages.find(m=>m.type==='state')).toMatchObject({player:1,partnerConnected:true});
   }finally{for(const ws of clients)ws.terminate();close();await f.close();}
 },10_000);
