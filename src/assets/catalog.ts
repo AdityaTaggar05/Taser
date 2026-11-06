@@ -1,4 +1,4 @@
-import raw from '../../public/themes/modern-gray/manifest.json';
+import raw from './modern-gray.json';
 import deploymentValue from './deployment.json';
 import {ROLE_IDS,validateTheme,validateDeployment,spriteUrl,type Deployment,type ThemeManifest,type AssetRole} from './schema';
 export interface ThemePack {

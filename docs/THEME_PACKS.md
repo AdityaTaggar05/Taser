@@ -15,7 +15,7 @@ Gameplay, the title chamber, editor objects and palette, avatars, wallet and sta
 
 ## Add a pack
 
-1. Add `public/themes/<id>/manifest.json` and its declared PNGs. Follow `src/assets/schema.ts`; use the current manifest as the complete semantic inventory.
+1. Add `public/themes/<id>/manifest.json` and its declared PNGs, with an identical manifest under `src/assets/<id>.json` for bundling. Vite serves public files verbatim and rejects module imports from that directory during development. Follow `src/assets/schema.ts`; use the current manifest as the complete semantic inventory. Validate the two manifest copies remain byte-identical.
 2. Validate every sheet's byte count, SHA-256 and PNG dimensions. Keep version numbers immutable after publication.
 3. Add one `makePack(manifest, deployment)` entry in `src/assets/catalog.ts`, include it in `registeredThemes`, and map its ID in `environments`. Each pack has its own deployment reference. Keep legacy `foundry`/`orbital` aliases so archived levels remain compatible.
 4. Upload the exact pack collection and verify every file through a public read gateway. The manifest and atlas paths under one immutable Swarm reference form the release. Configure the upload CLI for that pack; its current default is `modern-gray`.
@@ -25,7 +25,7 @@ No core engine or screen edits should be necessary for a complete pack. New game
 
 ## Current pack and publication
 
-`npm run assets:prepare` reproducibly copies the 28 selected original PNGs from the sibling `output/` art folders and builds the modern-gray manifest. Rejected exploration images are excluded. It currently defines 556 sprite frames and 74 animations.
+`npm run assets:prepare` reproducibly copies the 28 selected original PNGs from the sibling `output/` art folders and builds identical public and bundled modern-gray manifests. Rejected exploration images are excluded. It currently defines 556 sprite frames and 74 animations.
 
 `npm run assets:check` validates local files without network writes. Configure `SWARM_BEE_URL`, `SWARM_POSTAGE_BATCH_ID`, optional `SWARM_AUTH_TOKEN` and public `SWARM_GATEWAY_URL` in ignored `.env.local`. The Bee service must expose the postage lookup and collection upload APIs; a read-only gateway is insufficient.
 

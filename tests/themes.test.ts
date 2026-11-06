@@ -1,11 +1,17 @@
 import {describe,it,expect} from 'vitest';
 import raw from '../public/themes/modern-gray/manifest.json';
+import bundledManifest from '../src/assets/modern-gray.json';
+import {readFile} from 'node:fs/promises';
 import {validateTheme,validateDeployment,spriteUrl,REQUIRED_ANIMATIONS} from '../src/assets/schema';
 import {prepareUpload,makeTar,uploadCollection,verifyRemote,digest,type UploadBundle} from '../scripts/lib/swarm-theme';
 import {resolve} from 'node:path';
 const copy=()=>structuredClone(raw);
 const deployment={reference:null,gateway:'https://gateway.example',verifiedAt:null,manifestSha256:null};
 describe('theme contract',()=>{
+  it('bundles the exact public release manifest through the Vite source graph',async()=>{
+    expect(bundledManifest).toEqual(raw);
+    expect(await readFile(resolve('src/assets/modern-gray.json'))).toEqual(await readFile(resolve('public/themes/modern-gray/manifest.json')));
+  });
   it('contains every approved player sequence and gameplay/UI role',()=>{
     const pack=validateTheme(copy());expect(Object.keys(pack.sheets)).toHaveLength(28);expect(Object.keys(pack.sprites)).toHaveLength(556);
     expect(REQUIRED_ANIMATIONS).toHaveLength(74);expect(pack.presentation.boxIdentityLabels).toBe(false);expect(pack.animations['fx.weld'].visibility).toBe('after-success-only');
