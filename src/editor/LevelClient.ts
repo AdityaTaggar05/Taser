@@ -8,6 +8,7 @@ export class LevelClient {
   private observed<T extends ArchiveReference>(rows:T[]){this.references=rows.slice(0,12);this.listeners.forEach(listener=>listener());return rows;}
   clearReferences(){this.references=[];}
   activity(signal?:AbortSignal){return this.auth.levelRequest<import('../network/arkiv').ArkivFeed>('/activity',undefined,signal);}
+  moves(sessionId:string,sequences:number[],signal?:AbortSignal){return this.auth.levelRequest<import('../network/arkiv').MoveSequenceFeed>(`/moves/${sessionId}?sequences=${sequences.join(',')}`,undefined,signal);}
   constructor(private auth:AuthClient){}
   async mine(){return (await this.auth.levelRequest<{levels:LevelSummary[]}>()).levels;}
   async community(){return this.observed((await this.auth.levelRequest<{levels:LevelSummary[]}>('/community')).levels);}

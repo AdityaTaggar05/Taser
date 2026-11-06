@@ -12,6 +12,7 @@ import { HomeScreen } from './ui/HomeScreen';
 import {PartyLobby} from './ui/PartyLobby';
 import {joinIntent} from './network/routes';
 import {ArkivPanel} from './ui/ArkivPanel';
+import {MoveSequence} from './ui/MoveSequence';
 import {PublishedLevels} from './ui/PublishedLevels';
 import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
@@ -43,6 +44,7 @@ function refresh(){
   hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,client?.status??'connecting',client?.notice??null);
   hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,!!client?.canStudy,!!client?.otherPerspective);
   explorer.context(client?.state?.publicationKey);
+  moveSequence.context(auth.user?.id??null,client?.state?.party?.id,client?.state?.moveSequences??[],inspection??client?.state?.history.at(-1)?.step??0,playing&&!inLobby);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
   applyThemeInterface(pack,auth.user,client?.status,!!client?.state?.partnerReady);
 }
@@ -73,6 +75,7 @@ const signin=new SignInScreen(auth);
 const home=new HomeScreen({play:()=>{location.hash='coop';},solo:()=>{location.hash='solo';},create:()=>{location.hash='create';},community:()=>{location.hash='coop/community';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
 const levelApi=new LevelClient(auth);
 const explorer=new ArkivPanel(levelApi);
+const moveSequence=new MoveSequence(levelApi,hud.root.querySelector('.timeline-row')!,step=>{inspection=step;scene?.redraw();refresh();});
 const library=new PublishedLevels(levelApi,{home:()=>{location.hash='';},fullscreen});
 const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'})});
 const editor=new EditorScreen(levelApi,{
@@ -105,7 +108,7 @@ function syncScreen(){
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
   if(!editing)playtestEngine=null;
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!!auth.user);library.show(browsing,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing?'library':auth.user?'home':'signin';
-  explorer.show(!!auth.user&&(playing||editing||browsing),auth.user?.id??null);
+  explorer.show(!!auth.user&&(editing||browsing),auth.user?.id??null);
   connectingParty=intent?.kind==='invite'||intent?.kind==='create'&&intent.mode==='coop';
   if(playing&&intent){client=new CoopClient(receive,async()=>{await artworkAvailable;return auth.ticket();},()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
   scene?.redraw();refresh();
@@ -213,5 +216,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();explorer.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();explorer.destroy();moveSequence.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();
