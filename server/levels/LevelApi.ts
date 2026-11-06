@@ -14,6 +14,11 @@ export class LevelApi {
       if(!match)throw new LevelError(404,'Unknown level endpoint.');
       const identity=this.auth.authorize(req,match[1],req.method!=='GET'),path=match[2]??'',admin=campaignPublisher(identity.user,this.auth.demoEnabled);
       if(req.method==='GET'){
+        const moves=/^moves\/([a-f0-9-]{36})$/.exec(path);
+        if(moves){const raw=url.searchParams.get('sequences')??'';const sequences=raw?raw.split(',').map(Number):[];
+          if(raw.length>512||sequences.length>32||sequences.some(n=>!Number.isSafeInteger(n)||n<1)||new Set(sequences).size!==sequences.length)throw new LevelError(400,'Invalid move sequence.');
+          json(200,await this.store.moveSequence(identity.user.id,moves[1],sequences));return;
+        }
         if(path==='activity'){json(200,this.store.activityFeed(identity.user.id));return;}
         if(path==='catalog'||path==='community'||path.startsWith('runs/'))await this.store.refreshAvailability();
         const runs=/^runs\/([a-f0-9-]{36})\/([12])$/.exec(path);if(runs){json(200,{runs:this.store.runs(runs[1],Number(runs[2]) as 1|2)});return;}

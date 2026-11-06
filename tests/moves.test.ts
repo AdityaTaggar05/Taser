@@ -56,3 +56,31 @@ it('does not record an unusable solo replay, but records accepted turns that end
   const short=new CoopRoom(()=>crypto.randomUUID(),Date.now,45_000,undefined,undefined,undefined,undefined,undefined,{solo:{player:1,moves:['D']},turn:(_,sequence)=>turns.push(sequence)});
   const human=new TestPeer();short.join(human,'a',undefined,undefined,1);short.receive(human,{type:'move',direction:'U',revision:human.state.revision});expect(human.state.history.at(-1)?.status).toBe('OUT_OF_TIME');expect(turns).toEqual([1]);
 });
+
+it('queries confirmed paired moves only for their audience and requested session sequences',async()=>{
+  const archive=new MemoryArchive(),store=new LevelStore(':memory:',archive);await store.seed(levels);const snapshot=store.campaignSnapshots()[0];
+  const query=archive.queryMoves.bind(archive);let queries=0;
+  archive.queryMoves=async records=>{if(records.length)queries++;return query(records);};
+  try{
+    store.captureMove(snapshot,'session-a',1,1,['U','D'],['a','b'],'coop');
+    store.captureMove(snapshot,'session-a',2,2,['W','R'],['a','b'],'coop');
+    store.captureMove(snapshot,'session-b',1,1,['L','R'],['other'],'coop');await store.drain();await store.flushMoves();
+    const feed=await store.moveSequence('a','session-a',[1,2]);
+    expect(feed.moves.map(m=>[m.turn,m.inputs,m.state])).toEqual([[1,['U','D'],'confirmed'],[2,['W','R'],'confirmed']]);expect(queries).toBe(1);
+    expect((await store.moveSequence('other','session-a',[1,2])).moves).toEqual([]);expect(queries).toBe(1);
+    expect((await store.moveSequence('a','session-b',[1])).moves).toEqual([]);
+    expect((await store.moveSequence('a','session-a',[2])).moves.map(m=>m.sequence)).toEqual([2]);
+    expect(JSON.stringify(feed)).not.toMatch(/ownerId|audience|sessionId|levelKey|ciphertext/);
+    const entry=[...archive.entries].find(([,e])=>e.record.category==='move'&&e.record.move.sessionId==='session-a')!;archive.entries.delete(entry[0]);
+    const missing=await store.moveSequence('a','session-a',[1,2]);expect(missing.moves[0]).toMatchObject({state:'unavailable'});expect(missing.moves[0].inputs).toBeUndefined();
+  }finally{await store.drain();store.close();}
+});
+
+it('exposes only active committed sequence IDs across undo and reset',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID()),a=new TestPeer(),b=new TestPeer();room.join(a,'a');room.join(b,'b');
+  const move=(peer:TestPeer,direction:string)=>room.receive(peer,{type:'move',direction,revision:peer.state.revision});
+  move(a,'U');expect(a.state.moveSequences).toEqual([]);move(b,'D');expect(a.state.moveSequences).toEqual([1]);
+  room.receive(a,{type:'undo',revision:a.state.revision});expect(a.state.moveSequences).toEqual([]);
+  move(a,'U');move(b,'D');expect(a.state.moveSequences).toEqual([2]);
+  room.receive(a,{type:'reset',revision:a.state.revision});expect(a.state.moveSequences).toEqual([]);
+});

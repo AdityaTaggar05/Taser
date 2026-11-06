@@ -47,3 +47,15 @@ it('exposes community metadata only after archive confirmation and keeps failed 
     expect(store.community()[0]).not.toHaveProperty('level');expect(store.community()[0]).not.toHaveProperty('solutionP1');
   }finally{release?.();store.close();}
 });
+
+it('authenticates and bounds the paired move query endpoint',async()=>{
+  const {authFixture}=await import('./authFixture');const f=await authFixture();try{
+    const a=f.browser(),b=f.browser(),anonymous=f.browser(),session='11111111-1111-4111-8111-111111111111';
+    const user=(await a.login()).data.user;await b.login('nova');
+    f.levels.captureMove(f.levels.campaignSnapshots()[0],session,1,1,['U','D'],[user.id],'solo');await f.levels.drain();
+    expect((await anonymous.request(`levels/moves/${session}?sequences=1`)).status).toBe(401);
+    expect((await a.request(`levels/moves/${session}?sequences=1`)).data.moves[0].inputs).toEqual(['U','D']);
+    expect((await b.request(`levels/moves/${session}?sequences=1`)).data.moves).toEqual([]);
+    for(const sequences of ['-1','1,1','NaN','1.5',Array.from({length:33},(_,i)=>i+1).join(',')])expect((await a.request(`levels/moves/${session}?sequences=${sequences}`)).status).toBe(400);
+  }finally{await f.close();}
+});

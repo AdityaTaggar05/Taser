@@ -1,6 +1,7 @@
 import type {DatabaseSync} from 'node:sqlite';
-import {ArchiveError,type ArchiveWrite,type LevelArchive,type ArchiveRef} from './archive';
-import type {ArkivActivity,ArkivFeed} from '../../src/network/arkiv';
+import {ArchiveError,type ArchiveWrite,type LevelArchive,type ArchiveRef,type MoveRecord} from './archive';
+import {canonicalJSON} from './canonical';
+import type {MoveSequenceFeed,PairedMove,ArkivActivity,ArkivFeed} from '../../src/network/arkiv';
 interface Row {id:string;record:string;audience:string;label:string;state:ArkivActivity['state'];ref:string|null;error:string|null}
 /** Durable private outbox. The archive remains responsible for signing and reconciliation. */
 export class ActivityStore {
@@ -25,6 +26,22 @@ export class ActivityStore {
     }
   }
   pendingMoves(){return this.db.prepare("SELECT id FROM arkiv_activity WHERE id LIKE 'move:%' AND ref IS NULL ORDER BY rowid LIMIT 4").all().map(r=>String(r.id));}
+  async moves(accountId:string,sessionId:string,sequences:number[]):Promise<MoveSequenceFeed>{
+    if(!sequences.length)return {storage:this.archive.mode,moves:[]};
+    const rows=this.db.prepare(`SELECT a.* FROM arkiv_activity a WHERE json_extract(a.record,'$.category')='move'
+      AND json_extract(a.record,'$.move.sessionId')=? AND json_extract(a.record,'$.move.sequence') IN (${sequences.map(()=>'?').join(',')})
+      AND EXISTS (SELECT 1 FROM json_each(a.audience) WHERE value=?) ORDER BY json_extract(a.record,'$.move.sequence') LIMIT 32`)
+      .all(sessionId,...sequences,accountId) as unknown as Row[];
+    const confirmed=rows.filter(row=>!!row.ref),found=await this.archive.queryMoves(confirmed.map(row=>JSON.parse(row.record) as MoveRecord));
+    return {storage:this.archive.mode,moves:rows.map(row=>{
+      const record=JSON.parse(row.record) as MoveRecord,status=this.archive.writeStatus?.(record),ref=row.ref?JSON.parse(row.ref) as ArchiveRef:undefined;
+      const remote=found.find(entry=>entry.record.id===record.id);
+      if(remote&&(remote.ref.entityKey!==ref?.entityKey||canonicalJSON(remote.record)!==canonicalJSON(record)))throw new ArchiveError(503,'Move evidence differs from the recorded turn.');
+      const state:PairedMove['state']=ref?(remote?'confirmed':'unavailable'):status?.state==='failed'||row.state==='failed'?'failed':'pending';
+      return {sequence:record.move.sequence,turn:record.move.turn,state,...(remote?{inputs:remote.record.move.inputs}:{}),
+        ...(ref?.txHash||status?.txHash?{txHash:ref?.txHash||status?.txHash}:{}),...(ref?{entityKey:ref.entityKey}:{})};
+    })};
+  }
   feed(accountId:string):ArkivFeed {
     // Audience lookup is enforced in SQLite, before limiting; another user's activity never crosses the API boundary.
     const rows=this.db.prepare('SELECT a.* FROM arkiv_activity a WHERE EXISTS (SELECT 1 FROM json_each(a.audience) WHERE value=?) ORDER BY a.rowid DESC LIMIT 60').all(accountId) as unknown as Row[];

@@ -18,7 +18,7 @@ export class CoopRoom {
   private customId:string|undefined;private customRevision:number|undefined;
   private inputs:[Direction[],Direction[]]=[[],[]];
   private pending:[Direction|null,Direction|null]=[null,null];
-  private moveSequence=0;
+  private moveSequence=0;private moveSequences:number[]=[];
   private revision=0;private studyEnabled=false;private studyAttempt=0;private studyLocked:[boolean,boolean]=[false,false];
   constructor(private makeToken:()=>string, private now=()=>Date.now(), readonly reconnectMs=45_000, private completed:(ids:string[],levelId:number)=>void=()=>{},private loadPublished:PublishedLevelLoader=()=>null,
     private campaign:PublishedSnapshot[]=levels.map(level=>({level,revision:1})),
@@ -48,7 +48,7 @@ export class CoopRoom {
       if(this.seats.some(Boolean)&&requestedLevel!==this.customId&&requestedLevel!==this.publication.id){peer.send({type:'full',message:'The shared room is playing another chamber. Both players must return home before starting this level.'});peer.close();return null;}
       if(!this.seats.some(Boolean)){
         const published=this.loadPublished(requestedLevel);if(!published){peer.send({type:'full',message:'This custom level is not published or is unavailable. Return home and choose another level.'});peer.close();return null;}
-        this.publication=published;this.engine=new GameEngine(published.level);this.levelIndex=published.slot?this.campaign.findIndex(s=>s.id===published.id):-1;this.customId=this.levelIndex<0?requestedLevel:undefined;this.customRevision=published.revision;this.pending=[null,null];this.inputs=[[],[]];this.revision++;
+        this.publication=published;this.engine=new GameEngine(published.level);this.levelIndex=published.slot?this.campaign.findIndex(s=>s.id===published.id):-1;this.customId=this.levelIndex<0?requestedLevel:undefined;this.customRevision=published.revision;this.pending=[null,null];this.inputs=[[],[]];this.moveSequences=[];this.revision++;
       }
     }else if(!this.seats.some(Boolean)&&this.customId){this.levelIndex=0;this.customId=undefined;this.customRevision=undefined;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.revision++;}
     const seat=this.seats[index];
@@ -65,13 +65,13 @@ export class CoopRoom {
   /** Intentional menu exit: release now rather than reserve a disconnected seat. */
   release(peer:Peer) {
     const index=this.seats.findIndex(s=>s?.peer===peer);if(index<0)return;
-    this.clearStudy();this.seats[index]=null;this.pending=[null,null];this.engine.reset();this.inputs=[[],[]];this.revision++;
+    this.clearStudy();this.seats[index]=null;this.pending=[null,null];this.engine.reset();this.inputs=[[],[]];this.moveSequences=[];this.revision++;
     this.broadcast();
   }
   expire() {
     let expired=false;
     this.seats=this.seats.map(s=>{if(s&&!s.peer&&s.expiresAt<=this.now()){expired=true;return null;}return s;}) as typeof this.seats;
-    if(expired){this.clearStudy();this.customId=undefined;this.customRevision=undefined;this.levelIndex=0;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.pending=[null,null];this.inputs=[[],[]];this.revision++;this.broadcast();}
+    if(expired){this.clearStudy();this.customId=undefined;this.customRevision=undefined;this.levelIndex=0;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.pending=[null,null];this.inputs=[[],[]];this.moveSequences=[];this.revision++;this.broadcast();}
   }
   receive(peer:Peer, value:unknown) {
     const index=this.seats.findIndex(s=>s?.peer===peer); if(index<0)return;
@@ -94,7 +94,7 @@ export class CoopRoom {
       if(this.pending[0]&&this.pending[1]){
         const a=this.pending[0],b=this.pending[1],step=this.engine.state.step;
         this.engine.executeStep(a,b);
-        if(this.engine.state.step!==step){this.inputs[0].push(a);this.inputs[1].push(b);this.options.turn?.(this.publication,++this.moveSequence,this.engine.state.step,[a,b],this.seats.flatMap(s=>s?[s.accountId]:[]));}
+        if(this.engine.state.step!==step){this.inputs[0].push(a);this.inputs[1].push(b);this.moveSequences.push(++this.moveSequence);this.options.turn?.(this.publication,this.moveSequence,this.engine.state.step,[a,b],this.seats.flatMap(s=>s?[s.accountId]:[]));}
         if(this.engine.state.status==='VICTORY'){
           const humans=this.seats.flatMap((seat,i)=>seat?[{id:seat.accountId,role:(i+1) as Player}]:[]);
           const ids=humans.map(h=>h.id);
@@ -111,9 +111,9 @@ export class CoopRoom {
       if(command.type==='level') {
         if(this.options.fixedLevel){peer.send({type:'error',message:'Return to the menu to choose another challenge.'});return;}
         if(command.index<0||command.index>=this.campaign.length){peer.send({type:'error',message:'Unknown chamber.'});return;}
-        this.customId=undefined;this.customRevision=undefined;this.levelIndex=command.index;this.publication=this.campaign[this.levelIndex];this.engine=new GameEngine(this.publication.level);this.inputs=[[],[]];if(this.studyEnabled)this.startStudy();
-      } else if(command.type==='reset'){this.engine.reset();this.inputs=[[],[]];if(this.studyEnabled)this.startStudy();}
-      else{this.engine.undo();this.inputs[0].length=this.engine.state.step;this.inputs[1].length=this.engine.state.step;}
+        this.customId=undefined;this.customRevision=undefined;this.levelIndex=command.index;this.publication=this.campaign[this.levelIndex];this.engine=new GameEngine(this.publication.level);this.inputs=[[],[]];this.moveSequences=[];if(this.studyEnabled)this.startStudy();
+      } else if(command.type==='reset'){this.engine.reset();this.inputs=[[],[]];this.moveSequences=[];if(this.studyEnabled)this.startStudy();}
+      else{this.engine.undo();this.inputs[0].length=this.engine.state.step;this.inputs[1].length=this.engine.state.step;this.moveSequences.length=this.engine.state.step;}
       this.pending=[null,null];this.revision++;
     }
     this.broadcast();
@@ -130,6 +130,7 @@ export class CoopRoom {
     const player=(index+1) as Player,other=(2-index) as Player;
     return {
       ...(this.studyEnabled&&!this.studyLocked[index]?{study:{attempt:this.studyAttempt,player:other,level:this.publicLevel(other)}}:{}),
+      moveSequences:[...this.moveSequences],
       type:'state', player, revision:this.revision,levelIndex:this.levelIndex,
       level:this.publicLevel(player),campaign:this.catalog(),publicationKey:this.publication.ref?.entityKey,solutionAvailable:!!this.publication.ref&&this.revealed(this.seats[index]!.accountId,this.publication.ref.entityKey),
       ...(this.customId?{customLevelId:this.customId,customRevision:this.customRevision}:{}),
@@ -143,7 +144,7 @@ export class CoopRoom {
   }
   returnToLobby(revision:unknown){
     if(revision!==this.revision||isLive(this.engine.state.status))return false;
-    this.clearStudy();this.engine.reset();this.inputs=[[],[]];this.pending=[null,null];this.revision++;return true;
+    this.clearStudy();this.engine.reset();this.inputs=[[],[]];this.moveSequences=[];this.pending=[null,null];this.revision++;return true;
   }
   notify(){this.broadcast();}
   private broadcast(){this.seats.forEach((s,i)=>{if(s?.peer)s.peer.send(this.snapshot(i));});}

@@ -11,7 +11,7 @@ import {getGasPrice} from 'viem/actions';
 import {privateKeyToAccount} from 'viem/accounts';
 import {LevelEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
-import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveWrite,type WriteStatus,type ArchiveRef,type ArchivedLevel} from './archive';
+import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveWrite,type WriteStatus,type ArchiveRef,type ArchivedLevel,type MoveRecord,type ArchivedMove} from './archive';
 import {canonicalJSON} from './canonical';
 
 const NATIVE='0x4400000000000000000000000000000000000044';
@@ -95,6 +95,20 @@ export class ArkivArchive implements LevelArchive {
       }
       throw new ArchiveError(503,'Arkiv archive exceeds the current scan budget. No partial catalog was loaded.');
     }catch(error){throw this.safe(error,'Arkiv catalog query failed.');}
+  }
+  async queryMoves(records:MoveRecord[]):Promise<ArchivedMove[]>{
+    if(!records.length)return [];
+    if(records.length>32)throw new ArchiveError(400,'Too many moves requested.');
+    try{
+      await this.identity();
+      const result=await this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
+        .where(and(eq('namespace',this.options.namespace),eq('category','move'),or(...records.map(record=>eq('record_id',record.id))))).limit(100).fetch();
+      const seen=new Set<string>(),found:ArchivedMove[]=[];
+      for(const row of result.entities){const record=await this.decode(row);
+        if(record.category!=='move'||seen.has(record.id)||!records.some(expected=>canonicalJSON(expected)===canonicalJSON(record)))throw new ArchiveError(503,'Move query returned inconsistent evidence.');
+        seen.add(record.id);found.push({record,ref:{entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()}});
+      }return found;
+    }catch(error){throw this.safe(error,'Arkiv move query unavailable. Please retry.');}
   }
   writeStatus(record:ArchiveWrite):WriteStatus|undefined {
     const p=this.plan(`${record.category}:${record.id}:${record.revision}`);if(!p)return;

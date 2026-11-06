@@ -236,3 +236,24 @@ it('serves account-scoped transaction activity over authenticated HTTP without e
     expect(JSON.stringify(response.data)).not.toMatch(/inputs|http-match|levelKey|ownerId/);expect((await b.request('levels/activity')).data.activities).toEqual([]);expect((await anonymous.request('levels/activity')).status).toBe(401);
   }finally{await f.close();}
 });
+
+it('queries move evidence through the real SDK with publisher, namespace and record scope',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'taser-move-query-')),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey),encryptionKey=generateKey(),cipher=new LevelCipher(encryptionKey,'test');
+  const move:import('../server/arkiv/archive').MoveRecord={id:'a'.repeat(64),revision:1,category:'move',ownerId:'a',ownerName:'',updatedAt:0,lifetimeDays:2,move:{sessionId:'session',levelKey:'0x'+'b'.repeat(64),turn:1,sequence:1,mode:'coop',inputs:['U','D']}};
+  const ciphertext=bytesToHex(await cipher.encrypt(move));let captured='';
+  const row={key:'0x'+'c'.repeat(64),creator:account.address,owner:account.address,creationFlags:1,expiresAt:'0xffffff',attributes:[
+    {name:'arkiv.schema',type:'str',value:'weldpoint_levels_v1'},{name:'namespace',type:'str',value:'test'},{name:'record_id',type:'str',value:move.id},
+    {name:'revision',type:'u64',value:'0x1'},{name:'category',type:'str',value:'move'},{name:'content_type',type:'str',value:CONTENT_TYPE},{name:'ciphertext',type:'bytes',value:ciphertext}]};
+  const transport=custom({async request({method,params}){
+    if(method==='eth_chainId')return '0x76edaf';if(method==='eth_getBlockByNumber')return {hash:'0x'+'00'.repeat(32)};
+    if(method==='arkiv_query'){captured=(params as unknown as [string])[0];return {data:[row],blockNumber:'0x64'};}
+    throw new Error('Unexpected RPC');
+  }},{retryCount:0});
+  const archive=new ArkivArchive({accessKey:'test',privateKey,encryptionKey,namespace:'test',databasePath:join(directory,'journal.sqlite'),maxTxFee:'0',dailyBudget:'0'},transport);
+  try{
+    const found=await archive.queryMoves([move]);expect(found[0].record.move.inputs).toEqual(['U','D']);
+    expect(captured).toContain("category = str('move')");expect(captured).toContain("namespace = str('test')");expect(captured).toContain(move.id);expect(captured.toLowerCase()).toContain(account.address.toLowerCase());
+    await expect(archive.queryMoves([{...move,move:{...move.move,inputs:['L','R']}}])).rejects.toThrow('inconsistent');
+    row.creator=privateKeyToAccount(generatePrivateKey()).address;await expect(archive.queryMoves([move])).rejects.toThrow('Untrusted');
+  }finally{archive.close();rmSync(directory,{recursive:true,force:true});}
+});

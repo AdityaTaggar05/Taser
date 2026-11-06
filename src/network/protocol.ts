@@ -9,6 +9,7 @@ export interface SessionState {
   study?:{attempt:number;player:Player;level:LevelConfig};
   customLevelId?:string;customRevision?:number;level?:LevelConfig;
   campaign?:import('../editor/types').CampaignSummary[];publicationKey?:string;solutionAvailable?:boolean;
+  moveSequences?:number[];
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;

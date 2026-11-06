@@ -140,6 +140,7 @@ export class LevelStore {
     try{const record=JSON.parse(String(row.record)) as ArchiveRecord;const ref=await this.activity.publish(this.activity.enqueue(record,[record.ownerId],`Winning run · P${record.run!.role}`));if(!this.closed)this.project({record,ref});return 'confirmed' as const;}
     catch(error){if(!this.closed)this.db.prepare("UPDATE game_runs SET error=? WHERE id=?").run(error instanceof ArchiveError?error.message:'Arkiv run publication is pending.',id);return 'pending' as const;}
   });}
+  moveSequence(accountId:string,sessionId:string,sequences:number[]){return this.activity.moves(accountId,sessionId,sequences);}
   activityFeed(accountId:string){return this.activity.feed(accountId);}
   captureMove(snapshot:PublishedSnapshot,sessionId:string,sequence:number,turn:number,inputs:[import('../../src/core/types').Direction,import('../../src/core/types').Direction],audience:string[],mode:'solo'|'coop'){
     if(!snapshot.ref)throw new LevelError(503,'Move has no published revision.');
