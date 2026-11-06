@@ -2,7 +2,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,openSync,closeSync,writeFileSync,readFileSync,unlinkSync,chmodSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {createHash,randomBytes} from 'node:crypto';
-import {createPublicClient,createWalletClient,ExpirationTime,ENTITY_EVENTS_ABI,type TxParams} from '@arkiv-network/sdk';
+import {createPublicClient,createWalletClient,ExpirationTime,ENTITY_EVENTS_ABI,type TxParams,type WalletArkivClient} from '@arkiv-network/sdk';
 import {rabdi} from '@arkiv-network/sdk/chains';
 import {asc,eq,and,or,gt} from '@arkiv-network/sdk/query';
 import {key,u64} from '@arkiv-network/sdk/schema';
@@ -13,8 +13,10 @@ import {LevelEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
 import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from './archive';
 import {canonicalJSON} from './canonical';
-import {creationExpiration} from './expiration';
+import {creationExpiration,HEART_EXTENSION} from './expiration';
 
+interface ExtensionIntent {entityKey:Hex;expiresAt:string}
+const isExtension=(plan:Plan)=>plan.operation.startsWith('heart:');
 const NATIVE='0x4400000000000000000000000000000000000044';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 interface Plan {
@@ -67,7 +69,7 @@ export class ArkivArchive implements LevelArchive {
   private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
   private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:creationExpiration(record),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
-    if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
+    if(row.$owner.toLowerCase()!==this.signer.toLowerCase()||row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||
       !['draft','community','campaign','run'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
       (expected&&row.ciphertext.value.toLowerCase()!==expected.ciphertext.toLowerCase()))throw new ArchiveError(503,'Untrusted Arkiv level publication.');
@@ -76,6 +78,39 @@ export class ArkivArchive implements LevelArchive {
   private async decode(row:Awaited<ReturnType<typeof this.entity>>){this.trusted(row);return this.cipher.decrypt(hexToBytes(row.ciphertext.value),{id:row.record_id.value,revision:Number(row.revision.value),category:row.category.value});}
   async head(){try{await this.identity();return await this.reader.getBlockNumber({cacheTime:0});}catch(error){throw this.safe(error,'Arkiv availability could not be checked.');}}
   async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
+  async inspect(ref:ArchiveRef):Promise<ArchivedLevel>{
+    try{await this.identity();const row=await this.entity(ref.entityKey),record=await this.decode(row);
+      if(row.$expiresAt<=await this.reader.getBlockNumber({cacheTime:0}))throw new ArchiveError(410,'This publication has expired.');
+      return {record,ref:{...ref,expiresAt:row.$expiresAt.toString()}};
+    }catch(error){throw this.safe(error,'Arkiv publication could not be checked. It may be expired or unavailable.');}
+  }
+  extend(ref:ArchiveRef,accountId:string):Promise<ArchiveRef>{
+    const task=this.queue.then(async()=>{
+      try{
+        const operation=`heart:${ref.entityKey.toLowerCase()}:${hash(accountId)}`;
+        let plan=this.plan(operation);
+        if(!plan){
+          await this.reconcilePending();
+          const waiting=this.db.prepare("SELECT body FROM arkiv_writes WHERE operation LIKE 'heart:%' AND phase='prepared'").all();
+          if(waiting.some(row=>(JSON.parse(String(row.body)) as ExtensionIntent).entityKey.toLowerCase()===ref.entityKey.toLowerCase()))throw new ArchiveError(503,'An earlier heart for this publication is awaiting confirmation. Retry shortly.');
+          const live=await this.inspect(ref);
+          if(!['community','campaign'].includes(live.record.category))throw new ArchiveError(400,'Only published levels can receive hearts.');
+          const body=JSON.stringify({entityKey:ref.entityKey as Hex,expiresAt:(BigInt(live.ref.expiresAt)+HEART_EXTENSION.minLifetime).toString()} satisfies ExtensionIntent);
+          const genesis=await this.identity();
+          this.db.prepare("INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,'0','','prepared',?)").run(operation,hash(body),body,genesis);
+          plan=this.plan(operation)!;
+        }
+        // Verified operation IDs are permanent even if a later read becomes unavailable.
+        if(plan.phase==='verified')return {entityKey:plan.entity_key!,txHash:plan.tx_hash!,expiresAt:plan.expires_at!};
+        if(plan.phase!=='prepared')return await this.reconcile(plan);
+        await this.reconcilePending();return await this.submit(plan);
+      }catch(error){throw this.safe(error,'Arkiv heart could not be confirmed. Retry this same heart to reconcile it.');}
+    });this.queue=task.catch(()=>{});return task;
+  }
+  private invoke(wallet:WalletArkivClient,plan:Plan,params?:TxParams){
+    if(isExtension(plan)){const intent=JSON.parse(plan.body) as ExtensionIntent;return wallet.extendEntity({entityKey:intent.entityKey,expiration:ExpirationTime.atBlock(BigInt(intent.expiresAt))},params);}
+    return wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan),params);
+  }
   async list():Promise<ArchivedLevel[]>{
     try{
       await this.identity();const found:ArchivedLevel[]=[];let last:Hex|undefined;
@@ -126,7 +161,7 @@ export class ArkivArchive implements LevelArchive {
     }},{retryCount:0});
     const unsigned={...this.account,signTransaction:async()=>{throw new Error('Signing blocked');}} as LocalAccount;
     const wallet=createWalletClient({account:unsigned,chain:this.chain,transport});
-    try{await wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan));}catch(error){
+    try{await this.invoke(wallet,plan);}catch(error){
       let cause:unknown=error;for(let depth=0;cause&&depth<30;depth++){
         if(cause===stop&&estimate>0n&&calldata)return {estimate,calldata};
         cause=typeof cause==='object'?(cause as {cause?:unknown}).cause:undefined;
@@ -144,6 +179,10 @@ export class ArkivArchive implements LevelArchive {
         .where(and(eq('namespace',this.options.namespace),eq('record_id',record.id),eq('revision',u64(record.revision)),eq('category',record.category))).limit(2).fetch();
       if(prior.entities.length>1)throw new ArchiveError(409,'Duplicate archive revisions require reconciliation.');
       if(prior.entities.length===1){const row=prior.entities[0],existing=await this.decode(row);if(canonicalJSON(existing)!==canonicalJSON(record))throw new ArchiveError(409,'The remote archive revision has different content.');return {entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()};}
+      return await this.submit(plan);
+    }catch(error){throw this.safe(error,'Arkiv write could not be confirmed. Check the durable journal; do not submit another copy.');}
+  }
+  private async submit(plan:Plan):Promise<ArchiveRef>{
       const blocked=this.db.prepare("SELECT operation FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed','reverted') AND operation!=? LIMIT 1").get(plan.operation);
       if(blocked)throw new ArchiveError(503,'An earlier Arkiv write needs reconciliation. New writes are paused.');
       const {estimate,calldata}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n;
@@ -169,12 +208,11 @@ export class ArkivArchive implements LevelArchive {
         return rpc.request(args as never);
       }},{retryCount:0})});
       const params:TxParams={nonce,gas,gasPrice};
-      try{await wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan),params);}catch{
+      try{await this.invoke(wallet,plan,params);}catch{
         // An unknown response is not a failed write. Reconcile the original saved hash only.
         if(!this.plan(plan.operation)?.tx_hash)throw new ArchiveError(503,'Arkiv signing failed before broadcast. No transaction was sent.');
       }
       return await this.reconcile(this.plan(plan.operation)!);
-    }catch(error){throw this.safe(error,'Arkiv write could not be confirmed. Check the durable journal; do not submit another copy.');}
   }
   private async reconcile(plan:Plan):Promise<ArchiveRef>{
     if(!plan.tx_hash||!plan.signed||!plan.calldata||plan.nonce===null)throw new ArchiveError(503,'Arkiv write requires operator reconciliation.');
@@ -184,12 +222,13 @@ export class ArkivArchive implements LevelArchive {
     const signed=parseTransaction(raw),canonical=await this.reader.getBlock({blockNumber:receipt.blockNumber});
     if(canonical.hash!==receipt.blockHash||tx.hash!==txHash||tx.from.toLowerCase()!==this.signer.toLowerCase()||tx.to?.toLowerCase()!==NATIVE.toLowerCase()||tx.input!==plan.calldata||tx.nonce!==plan.nonce||tx.gas!==BigInt(plan.gas!)||tx.gasPrice!==BigInt(plan.gas_price!)||signed.data!==tx.input||signed.nonce!==tx.nonce||signed.chainId!==7794095)throw new Error();
     if(receipt.status!=='success'){this.db.prepare("UPDATE arkiv_writes SET phase='reverted' WHERE operation=?").run(plan.operation);throw new ArchiveError(503,'Arkiv transaction reverted. Automatic retries are disabled; reconcile it before further writes.');}
-    const events=receipt.logs.filter(log=>log.address.toLowerCase()===NATIVE.toLowerCase()).flatMap(log=>{try{const event=decodeEventLog({abi:ENTITY_EVENTS_ABI,data:log.data,topics:log.topics});return event.eventName==='EntityCreated'?[event.args]:[];}catch{return [];}});
+    const events=receipt.logs.filter(log=>log.address.toLowerCase()===NATIVE.toLowerCase()).flatMap(log=>{try{const event=decodeEventLog({abi:ENTITY_EVENTS_ABI,data:log.data,topics:log.topics});if(event.eventName!=='EntityCreated'&&event.eventName!=='ExpiryExtended')return [];return (isExtension(plan)?event.eventName==='ExpiryExtended':event.eventName==='EntityCreated')?[event.args]:[];}catch{return [];}});
     if(events.length!==1||events[0].owner.toLowerCase()!==this.signer.toLowerCase())throw new Error();
+    if(isExtension(plan)){const intent=JSON.parse(plan.body) as ExtensionIntent;if(events[0].entityKey.toLowerCase()!==intent.entityKey.toLowerCase()||events[0].expiresAt!==BigInt(intent.expiresAt))throw new Error();}
     const ref={entityKey:events[0].entityKey,txHash,expiresAt:events[0].expiresAt.toString()};
     this.db.prepare("UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?").run(ref.entityKey,ref.expiresAt,plan.operation);
-    const entity=await this.entity(ref.entityKey);this.trusted(entity,plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
-    const record=await this.decode(entity);if(canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
+    const entity=await this.entity(ref.entityKey);this.trusted(entity,isExtension(plan)?undefined:plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
+    const record=await this.decode(entity);if(!isExtension(plan)&&canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
     this.db.prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?").run(plan.operation);return ref;
   }
   async reconcilePending(){for(const p of this.db.prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')").all() as unknown as Plan[])await this.reconcile(p);}

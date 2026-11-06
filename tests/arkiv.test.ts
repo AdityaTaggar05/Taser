@@ -4,7 +4,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import {custom,bytesToHex,encodeEventTopics,encodeAbiParameters,keccak256,parseTransaction,type Hex,type TransactionSerialized} from 'viem';
+import {custom,bytesToHex,encodeEventTopics,encodeAbiParameters,decodeFunctionData,decodeAbiParameters,parseAbi,parseAbiParameters,keccak256,parseTransaction,type Hex,type TransactionSerialized} from 'viem';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {str,u64,bytes} from '@arkiv-network/sdk/schema';
 import {ENTITY_EVENTS_ABI} from '@arkiv-network/sdk';
@@ -64,7 +64,7 @@ it('enforces campaign publishing and template access on authenticated server end
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
 function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   const directory=mkdtempSync(join(tmpdir(),'taser-writer-')),path=join(directory,'journal.sqlite'),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
-  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true;
+  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true,expiresAt=3700n;
   const entityKey=('0x'+'ab'.repeat(32)) as Hex,blockHash=('0x'+'cd'.repeat(32)) as Hex;
   const transport=custom({async request({method,params}){
     if(method==='eth_chainId')return '0x76edaf';
@@ -87,16 +87,20 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   vi.spyOn(reader,'getBlock').mockImplementation(async args=>({hash:args?.blockNumber===0n?'0x'+'00'.repeat(32):blockHash,gasLimit:30_000_000n,number:100n}) as never);
   vi.spyOn(reader,'getTransactionReceipt').mockImplementation(async()=>{
     if(!raw||!receiptAvailable)throw new Error('Receipt not available');
-    return {status:'success',transactionHash:keccak256(raw),blockNumber:100n,blockHash,logs:[{address:'0x4400000000000000000000000000000000000044',topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[7_884_100n,1])}]} as never;
+    const db=new DatabaseSync(path),plan=db.prepare('SELECT operation,body FROM arkiv_writes WHERE tx_hash=?').get(keccak256(raw))!;db.close();
+    const extension=String(plan.operation).startsWith('heart:');
+    if(extension)expiresAt=BigInt(JSON.parse(String(plan.body)).expiresAt);
+    const log=extension?{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'ExpiryExtended',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'}],[expiresAt])}:{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[3700n,1])};
+    return {status:'success',transactionHash:keccak256(raw),blockNumber:100n,blockHash,logs:[{address:'0x4400000000000000000000000000000000000044',...log}]} as never;
   });
   vi.spyOn(reader,'getTransaction').mockImplementation(async()=>{const tx=parseTransaction(raw!);return {...tx,hash:keccak256(raw!),from:account.address,input:tx.data} as never;});
   vi.spyOn(reader,'getEntity').mockImplementation(async()=>{
     if(!readbackAvailable)throw new Error('Readback unavailable');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
-    return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:7_884_100n,
+    return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:expiresAt,
       namespace:str('test'),record_id:str(record().id),revision:u64(1),category:str('community'),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
   });
-  return {archive,path,reader,get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
+  return {archive,path,reader,get raw(){return raw!;},get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
 }
 it('journals signed bytes before forwarding and reconciles a lost reply without a second send',async()=>{
   const f=writerFixture();try{
@@ -205,4 +209,46 @@ it('loads supported level and run categories from a mixed archive across pages a
     rows[3].creator=account.address;rows[3].attributes.find(a=>a.name==='ciphertext')!.value='0x00';
     await expect(archive.list()).rejects.toThrow('authentication');
   }finally{archive.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+it('encodes two-hour level creation in the real SDK native transaction',async()=>{
+  const f=writerFixture();try{
+    f.receipt(true);await f.archive.put(record());
+    const decoded=decodeFunctionData({abi:parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),data:parseTransaction(f.raw).data!});
+    const [create]=decodeAbiParameters(parseAbiParameters('(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)'),decoded.args![0][0].operationData);
+    expect(create.minLifetime).toBe(3600n);expect(create.expiresAt).toBe(0n);expect(create.creationFlags).toBe(1);
+  }finally{f.close();}
+});
+it('extends from the real expiry, reconciles lost replies and deduplicates each account',async()=>{
+  const f=writerFixture();try{
+    f.receipt(true);const ref=await f.archive.put(record());f.receipt(false);
+    await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('could not be confirmed');expect(f.sends).toBe(2);
+    await expect(f.archive.extend(ref,'nova')).rejects.toThrow();expect(f.sends).toBe(2);
+    f.receipt(true);expect((await f.archive.extend(ref,'atlas')).expiresAt).toBe('5500');expect(f.sends).toBe(2);
+    expect((await f.archive.inspect(ref)).ref.expiresAt).toBe('5500');
+    expect((await f.archive.extend(ref,'atlas')).expiresAt).toBe('5500');expect(f.sends).toBe(2);
+    expect((await f.archive.extend(ref,'nova')).expiresAt).toBe('7300');expect(f.sends).toBe(3);
+    const decoded=decodeFunctionData({abi:parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),data:parseTransaction(f.raw).data!});
+    const [extension]=decodeAbiParameters(parseAbiParameters('(bytes32 entityKey, uint64 expiresAt, uint64 minLifetime)'),decoded.args![0][0].operationData);
+    expect(extension.expiresAt).toBe(7300n);expect(extension.minLifetime).toBe(0n);
+  }finally{f.close();}
+});
+it('preserves extension receipt confirmation after failed readback and never sends again',async()=>{
+  const f=writerFixture();try{
+    f.receipt(true);const ref=await f.archive.put(record());
+    const original=vi.mocked(f.reader.getEntity).getMockImplementation()!;let calls=0;
+    vi.mocked(f.reader.getEntity).mockImplementation(async(...args)=>{if(++calls>1)throw new Error('unavailable');return original(...args);});
+    await expect(f.archive.extend(ref,'atlas')).rejects.toThrow();expect(f.sends).toBe(2);
+    vi.mocked(f.reader.getEntity).mockImplementation(original);
+    expect((await f.archive.extend(ref,'atlas')).expiresAt).toBe('5500');expect(f.sends).toBe(2);
+  }finally{f.close();}
+});
+it('rejects expired hearts and fee-exceeding extensions without broadcasting',async()=>{
+  const f=writerFixture();try{
+    f.receipt(true);const ref=await f.archive.put(record());
+    vi.spyOn(f.reader,'getBlockNumber').mockResolvedValue(3700n);
+    await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('expired');expect(f.sends).toBe(1);
+    vi.mocked(f.reader.getBlockNumber).mockResolvedValue(100n);vi.spyOn(f.reader,'getBalance').mockResolvedValue(0n);
+    await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('fee');expect(f.sends).toBe(1);
+  }finally{f.close();}
 });
