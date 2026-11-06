@@ -114,14 +114,19 @@ export class GameEngine {
     }
     if (isLive(s.status) && s.step === l.weldStep) {
       const identityMatch = s.boxesP1.every((box,i) => sameCoord(box,s.boxesP2[i]));
-      const targetsMatch = l.weldTargets.every((target,i) => sameCoord(target,s.boxesP1[i]));
+      const targetsMatch = !l.weldTargets?.length || l.weldTargets.every((target,i) => sameCoord(target,s.boxesP1[i]));
       const switchHeld = !l.midpointSwitchRequired || hasCoord(s.boxesP1,l.midpointSwitchRequired);
       if (identityMatch && targetsMatch && switchHeld) { s.status = 'WELD_SUCCESS'; s.message = 'CAUSALITY WELDED. Your partner’s history is now your future.'; }
       else { s.status = 'PARADOX_WELD'; s.message = 'Weld failed. Matching box identities must meet at the required coordinates. Undo to repair history.'; }
     }
-    if (isLive(s.status) && s.step === l.totalSteps) {
-      if (sameCoord(s.p1Pos,l.exitP1) && sameCoord(s.p2Pos,l.exitP2) && this.exitOpen(1,s) && this.exitOpen(2,s)) { s.status = 'VICTORY'; s.message = 'Timeline secured. Both operators made it home.'; }
-      else { s.status = 'OUT_OF_TIME'; s.message = 'Time expired. Both operators must occupy their open exits on the final turn.'; }
+    if (isLive(s.status) && s.step > l.weldStep) {
+      if (sameCoord(s.p1Pos,l.exitP1) && sameCoord(s.p2Pos,l.exitP2) && this.exitOpen(1,s) && this.exitOpen(2,s)) {
+        s.status = 'VICTORY';
+        s.message = s.step < l.totalSteps ? 'Timeline secured. Both operators extracted mid-flight.' : 'Timeline secured. Both operators made it home.';
+      } else if (s.step === l.totalSteps) {
+        s.status = 'OUT_OF_TIME';
+        s.message = 'Time expired. Both operators must occupy their open exits simultaneously.';
+      }
     }
     this.stateStack.push(s); return s;
   }

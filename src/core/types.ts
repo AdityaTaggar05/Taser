@@ -4,7 +4,7 @@ export type GameStatus = 'PLAYING_PHASE_1' | 'WELD_SUCCESS' | 'PLAYING_PHASE_2' 
 export interface LevelConfig {
   id: number; name: string; subtitle: string; width: number; height: number;
   totalSteps: number; weldStep: number; walls: Coord[]; iceTiles?: Coord[];
-  weldTargets: Coord[]; midpointSwitchRequired?: Coord; switchesP1: Coord[]; switchesP2: Coord[];
+  weldTargets?: Coord[]; midpointSwitchRequired?: Coord; switchesP1: Coord[]; switchesP2: Coord[];
   laserEmitter?: { pos: Coord; dir: Direction }; laserReceiverP1?: Coord; hasMirrorBox?: boolean;
   exitP1: Coord; exitP2: Coord; initialP1: Coord; initialP2: Coord;
   initialBoxesP1: Coord[]; initialBoxesP2: Coord[]; solutionP1: Direction[]; solutionP2: Direction[];

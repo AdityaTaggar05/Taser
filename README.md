@@ -37,7 +37,7 @@ For players on different networks, run this Node service on a reachable host. A 
 - **Turns 1–4:** coordinate box positions with your partner. A shove moves the box while you stay put. Spatial weld markers and partner box ghosts are hidden.
 - **Turn 4:** corresponding box identities must match at the level's required unmarked weld coordinates. The corner chamber also requires its midpoint switch.
 - **Turns 5–8:** boxes replay your partner's history in reverse. Dotted trajectories show the next positions of your boxes. Reach both open exits exactly on turn 8.
-- **Backspace / Z:** undo for both players. **R:** reset for both. **1–5:** select a chamber for both. Either connected player can use these shared controls during this playtest.
+- **Backspace / Z:** undo for both players. **R:** reset for both. **1–9, 0:** select a chamber for both (1–10). Either connected player can use these shared controls during this playtest.
 - **H:** local guide. **F:** browser fullscreen. Theme, sound, hints and timeline review are local to each browser.
 - Clicking recorded turns reviews only your own history. Return to live to choose moves. A new shared turn, undo, reset or chamber change returns the view to live.
 - Hints show only your role's reference input. Completion markers persist locally when storage is available.
@@ -52,7 +52,7 @@ Closing both tabs reserves both seats until the grace period expires. Reopening 
 
 - `src/core/types.ts`: serializable level and simulation contracts.
 - `src/core/engine.ts`: deterministic simulation with no Phaser, DOM or networking dependencies. The multiplayer server uses this same engine for validation, turns, replay and undo.
-- `src/core/level.ts` and `src/data/levels.json`: validation/import boundary and five authored puzzles. Coordinates remain 1-indexed, bottom-left Cartesian; box indices are stable identities.
+- `src/core/level.ts` and `src/data/levels.json`: validation/import boundary and thirteen authored puzzles. Coordinates remain 1-indexed, bottom-left Cartesian; box indices are stable identities.
 - `server/CoopRoom.ts`: transport-independent room, assigned roles, pending moves, revisions, shared controls and reconnect reservations. A future party service can own one instance per party.
 - `server/socket.ts`: bounded WebSocket messages, role binding, same-origin browser connections, heartbeat and reconnect cleanup.
 - `server/index.ts`: production HTTP/static and WebSocket service.

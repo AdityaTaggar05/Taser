@@ -76,7 +76,8 @@ it('rejects malformed protocol messages without changing the timeline',()=>{
 describe('server-authoritative level playthroughs',()=>{
   for(let index=0;index<levels.length;index++)it(`both clients win chamber ${index+1}`,()=>{
     const {room,a,b}=setup();send(room,a,{type:'level',index});const l=levels[index];
-    for(let k=0;k<l.totalSteps;k++){
+    for(let k=0;k<l.solutionP1.length;k++){
+      if(frame(a).status==='VICTORY')break;
       send(room,a,{type:'move',direction:l.solutionP1[k]});expect(frame(a).step).toBe(k);
       send(room,b,{type:'move',direction:l.solutionP2[k]});expect(frame(a).step).toBe(k+1);expect(frame(b).step).toBe(k+1);
       expect(a.state.revision).toBe(b.state.revision);

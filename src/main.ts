@@ -76,7 +76,8 @@ window.addEventListener('keydown',e=>{
   if(e.repeat)return;
   if(e.code==='Backspace'||e.code==='KeyZ'){e.preventDefault();command('undo');}
   if(e.code==='KeyR')command('reset');if(e.code==='KeyF'){e.preventDefault();void fullscreen();}
-  if(/^Digit[1-5]$/.test(e.code))level(Number(e.code.slice(-1))-1);
+  if(/^Digit[1-9]$/.test(e.code))level(Number(e.code.slice(-1))-1);
+  if(e.code==='Digit0')level(9);
 });
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
