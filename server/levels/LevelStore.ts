@@ -20,6 +20,7 @@ import {
   type ArchiveRef,
   type ArchivedLevel,
 } from '../arkiv/archive';
+import { ActivityStore } from '../arkiv/ActivityStore';
 import { canonicalJSON } from '../arkiv/canonical';
 import {
   RULES_HASH,
@@ -82,6 +83,9 @@ export interface PublishedSnapshot {
 /** SQLite is a private projection and write-recovery cache. Arkiv confirms every saved revision. */
 export class LevelStore {
   readonly betting: BettingService;
+  private activity: ActivityStore;
+  private flushingMoves = false;
+  private availabilityRequest: Promise<void> | undefined;
   private closed = false;
   private observedHead = 0n;
   private availabilityAt = 0;
@@ -114,6 +118,7 @@ export class LevelStore {
       CREATE TABLE IF NOT EXISTS level_scores(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,mode TEXT NOT NULL,name TEXT NOT NULL,turns INTEGER NOT NULL,achieved_at INTEGER NOT NULL,role INTEGER NOT NULL,PRIMARY KEY(account_id,entity_key,mode));
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
     this.betting = new BettingService(this.db, this.archive);
+    this.activity = new ActivityStore(this.db, this.archive);
     if (
       !this.db
         .prepare('PRAGMA table_info(custom_levels)')
@@ -172,7 +177,10 @@ export class LevelStore {
     return this.latest('community')
       .sort((a, b) => b.record.updatedAt - a.record.updatedAt)
       .slice(0, 100)
-      .map(({ record: r }) => ({
+      .map(({ record: r, ref }) => ({
+        entityKey: ref.entityKey,
+        txHash: ref.txHash,
+        storage: this.storage,
         id: r.id,
         name: r.level.name,
         subtitle: r.level.subtitle,
@@ -444,7 +452,12 @@ export class LevelStore {
           updatedAt: row.updated_at,
           level,
         };
-      this.project({ record, ref: await this.archive.put(record) });
+      this.project({
+        record,
+        ref: await this.activity.publish(
+          this.activity.enqueue(record, [ownerId], `Draft revision ${record.revision}`),
+        ),
+      });
       return this.get(ownerId, id);
     });
   }
@@ -659,7 +672,13 @@ export class LevelStore {
       if (proof.mode !== this.registry.mode)
         throw new Error('The verification mode changed before publication.');
       const record = { ...payload.publication, certification: { proof, salt: payload.input.salt } };
-      const ref = await this.archive.put(record);
+      const ref = await this.activity.publish(
+        this.activity.enqueue(
+          record,
+          [record.ownerId],
+          `${row.target === 'campaign' ? 'Campaign' : 'Community'} publication · revision ${record.revision}`,
+        ),
+      );
       if (this.closed) return;
       this.project({ record, ref });
       this.db
@@ -738,6 +757,8 @@ export class LevelStore {
         slot: r.campaignSlot!,
         entityKey: ref.entityKey,
         verification: r.certification?.proof.mode ?? ('legacy' as const),
+        txHash: ref.txHash,
+        storage: this.storage,
       }))
       .sort((a, b) => a.slot - b.slot);
   }
@@ -1000,8 +1021,16 @@ export class LevelStore {
 
   async refreshAvailability() {
     if (Date.now() - this.availabilityAt < 10_000) return;
-    this.observedHead = (await this.archive.head?.()) ?? 0n;
-    this.availabilityAt = Date.now();
+    if (this.availabilityRequest) return this.availabilityRequest;
+    this.availabilityRequest = (async () => {
+      this.observedHead = (await this.archive.head?.()) ?? 0n;
+      this.availabilityAt = Date.now();
+    })();
+    try {
+      await this.availabilityRequest;
+    } finally {
+      this.availabilityRequest = undefined;
+    }
   }
 
   runs(levelId: string, role: 1 | 2) {
@@ -1029,6 +1058,8 @@ export class LevelStore {
             createdAt: record.updatedAt,
             entityKey: ref.entityKey,
             expiresAt: ref.expiresAt,
+            txHash: ref.txHash,
+            storage: this.storage,
           },
         ];
       })
@@ -1123,7 +1154,9 @@ export class LevelStore {
       if (row.status === 'confirmed') return 'confirmed' as const;
       try {
         const record = JSON.parse(String(row.record)) as ArchiveRecord;
-        const ref = await this.archive.put(record);
+        const ref = await this.activity.publish(
+          this.activity.enqueue(record, [record.ownerId], `Winning run · P${record.run!.role}`),
+        );
         if (!this.closed) this.project({ record, ref });
         return 'confirmed' as const;
       } catch (error) {
@@ -1138,7 +1171,60 @@ export class LevelStore {
       }
     });
   }
-
+  moveSequence(accountId: string, sessionId: string, sequences: number[]) {
+    return this.activity.moves(accountId, sessionId, sequences);
+  }
+  activityFeed(accountId: string) {
+    return this.activity.feed(accountId);
+  }
+  captureMove(
+    snapshot: PublishedSnapshot,
+    sessionId: string,
+    sequence: number,
+    turn: number,
+    inputs: [import('../../src/core/types').Direction, import('../../src/core/types').Direction],
+    audience: string[],
+    mode: 'solo' | 'coop',
+  ) {
+    if (!snapshot.ref) throw new LevelError(503, 'Move has no published revision.');
+    const record: import('../arkiv/archive').MoveRecord = {
+      id: createHash('sha256')
+        .update(JSON.stringify([sessionId, sequence]))
+        .digest('hex'),
+      revision: 1,
+      category: 'move',
+      ownerId: audience[0],
+      ownerName: '',
+      updatedAt: Date.now(),
+      lifetimeDays: 2,
+      move: {
+        levelKey: snapshot.ref.entityKey,
+        sessionId,
+        turn,
+        sequence,
+        mode,
+        inputs: [...inputs],
+      },
+    };
+    this.activity.enqueue(record, audience, `Turn ${turn} · move pair ${sequence}`);
+    void this.flushMoves().catch(() => {});
+  }
+  async flushMoves() {
+    if (this.flushingMoves || this.closed) return;
+    this.flushingMoves = true;
+    try {
+      for (const id of this.activity.pendingMoves()) {
+        if (this.closed) return;
+        try {
+          await this.serial(() => this.activity.publish(id));
+        } catch {
+          break;
+        }
+      }
+    } finally {
+      this.flushingMoves = false;
+    }
+  }
   async flushRuns() {
     for (const row of this.db
       .prepare("SELECT id FROM game_runs WHERE status='pending' ORDER BY rowid LIMIT 4")
@@ -1150,6 +1236,7 @@ export class LevelStore {
   }
 
   async drain() {
+    while (this.flushingMoves) await this.queue;
     await this.queue;
     await this.betting.drain();
   }

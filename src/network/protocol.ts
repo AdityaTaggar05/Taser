@@ -24,6 +24,7 @@ export interface SessionState {
   campaign?: import('../editor/types').CampaignSummary[];
   publicationKey?: string;
   solutionAvailable?: boolean;
+  moveSequences?: number[];
   history: PlayerFrame[];
   nextBoxes: Coord[] | null;
   shove: number | null;
@@ -32,8 +33,15 @@ export interface SessionState {
   partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;
 }
+export const JOIN_TIMEOUT_MS = 60_000;
+export type JoinProgress = {
+  type: 'joining';
+  stage: 'availability' | 'level' | 'replay' | 'party';
+  storage: 'arkiv' | 'test' | 'unconfigured';
+};
 export type ServerMessage =
   | SessionState
+  | JoinProgress
   | { type: 'welcome'; token: string; sessionId?: string }
   | { type: 'error'; message: string }
   | { type: 'full'; message: string }

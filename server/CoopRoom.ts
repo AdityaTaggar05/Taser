@@ -23,6 +23,13 @@ interface Seat {
   expiresAt: number;
 }
 export interface RoomOptions {
+  turn?: (
+    snapshot: PublishedSnapshot,
+    sequence: number,
+    turn: number,
+    inputs: [Direction, Direction],
+    ids: string[],
+  ) => void;
   solo?: { player: Player; moves: Direction[] };
   fixedLevel?: boolean;
   win?: (
@@ -41,6 +48,8 @@ export class CoopRoom {
   private customRevision: number | undefined;
   private inputs: [Direction[], Direction[]] = [[], []];
   private pending: [Direction | null, Direction | null] = [null, null];
+  private moveSequence = 0;
+  private moveSequences: number[] = [];
   private revision = 0;
   private studyEnabled = false;
   private studyAttempt = 0;
@@ -217,6 +226,7 @@ export class CoopRoom {
         this.customRevision = published.revision;
         this.pending = [null, null];
         this.inputs = [[], []];
+        this.moveSequences = [];
         this.revision++;
       }
     } else if (!this.seats.some(Boolean) && this.customId) {
@@ -253,6 +263,7 @@ export class CoopRoom {
     this.pending = [null, null];
     this.engine.reset();
     this.inputs = [[], []];
+    this.moveSequences = [];
     this.revision++;
     this.broadcast();
   }
@@ -275,6 +286,7 @@ export class CoopRoom {
       this.engine = new GameEngine(this.publication.level);
       this.pending = [null, null];
       this.inputs = [[], []];
+      this.moveSequences = [];
       this.revision++;
       this.broadcast();
     }
@@ -326,6 +338,14 @@ export class CoopRoom {
         if (this.engine.state.step !== step) {
           this.inputs[0].push(a);
           this.inputs[1].push(b);
+          this.moveSequences.push(++this.moveSequence);
+          this.options.turn?.(
+            this.publication,
+            this.moveSequence,
+            this.engine.state.step,
+            [a, b],
+            this.seats.flatMap((s) => (s ? [s.accountId] : [])),
+          );
         }
         if (this.engine.state.status === 'VICTORY') {
           const humans = this.seats.flatMap((seat, i) =>
@@ -371,15 +391,18 @@ export class CoopRoom {
         this.publication = this.campaign[this.levelIndex];
         this.engine = new GameEngine(this.publication.level);
         this.inputs = [[], []];
+        this.moveSequences = [];
         if (this.studyEnabled) this.startStudy();
       } else if (command.type === 'reset') {
         this.engine.reset();
         this.inputs = [[], []];
+        this.moveSequences = [];
         if (this.studyEnabled) this.startStudy();
       } else {
         this.engine.undo();
         this.inputs[0].length = this.engine.state.step;
         this.inputs[1].length = this.engine.state.step;
+        this.moveSequences.length = this.engine.state.step;
       }
       this.pending = [null, null];
       this.revision++;
@@ -416,6 +439,7 @@ export class CoopRoom {
       ...(this.studyEnabled && !this.studyLocked[index]
         ? { study: { attempt: this.studyAttempt, player: other, level: this.publicLevel(other) } }
         : {}),
+      moveSequences: [...this.moveSequences],
       type: 'state',
       player,
       revision: this.revision,
@@ -458,6 +482,7 @@ export class CoopRoom {
     this.clearStudy();
     this.engine.reset();
     this.inputs = [[], []];
+    this.moveSequences = [];
     this.pending = [null, null];
     this.revision++;
     return true;

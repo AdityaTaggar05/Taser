@@ -3,6 +3,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { Peer, PublishedLevelLoader } from './CoopRoom';
 import type { AuthService, SessionIdentity } from './auth/AuthService';
 import { LevelError, type LevelStore } from './levels/LevelStore';
+import { JOIN_TIMEOUT_MS } from '../src/network/protocol';
 import { Sessions } from './game/Sessions';
 export function attachCoop(
   server: EventEmitter,
@@ -54,6 +55,7 @@ export function attachCoop(
       },
       close: () => ws.close(1000),
     };
+    let joinTimer: ReturnType<typeof setTimeout> | undefined;
     let joined = false,
       joining = false,
       count = 0,
@@ -90,12 +92,17 @@ export function attachCoop(
         }
         identities.set(ws, { identity, peer });
         joining = true;
+        joinTimer = setTimeout(() => {
+          peer.send({ type: 'full', message: 'Loading the chamber took too long. Please retry.' });
+          ws.close(1013, 'Join timeout');
+        }, JOIN_TIMEOUT_MS);
         void sessions
           .join(
             peer,
             identity.user,
             m.intent,
             typeof m.token === 'string' && m.token.length <= 128 ? m.token : undefined,
+            () => !closing && ws.readyState === WebSocket.OPEN && auth.isActive(identity.key),
           )
           .then(() => {
             if (closing || ws.readyState !== WebSocket.OPEN || !auth.isActive(identity.key)) {
@@ -114,7 +121,10 @@ export function attachCoop(
             });
             peer.close();
           })
-          .finally(() => (joining = false));
+          .finally(() => {
+            clearTimeout(joinTimer);
+            joining = false;
+          });
         return;
       }
       const entry = identities.get(ws);
@@ -131,6 +141,7 @@ export function attachCoop(
     });
     ws.on('close', () => {
       clearTimeout(timer);
+      clearTimeout(joinTimer);
       alive.delete(ws);
       identities.delete(ws);
       if (!closing) sessions.disconnect(peer);
@@ -147,6 +158,7 @@ export function attachCoop(
         .then(() => store.flushRuns())
         .then(() => store.flushCertifications())
         .then(() => store.betting.flush())
+        .then(() => store.flushMoves())
         .catch(() => {})
         .finally(() => (flushing = false));
     }

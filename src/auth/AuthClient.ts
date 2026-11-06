@@ -32,15 +32,19 @@ export class AuthClient {
   get user() {
     return this.state.user;
   }
-
-  private async request<T>(action: string, body?: unknown): Promise<T> {
+  private async request<T>(action: string, body?: unknown, signal?: AbortSignal): Promise<T> {
     const response = await fetch(`/api/auth/${this.context}/${action}`, {
       method: body === undefined ? 'GET' : 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
       headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(action.startsWith('levels') ? 90_000 : 15_000),
+      signal: signal
+        ? AbortSignal.any([
+            signal,
+            AbortSignal.timeout(action.startsWith('levels') ? 90_000 : 15_000),
+          ])
+        : AbortSignal.timeout(action.startsWith('levels') ? 90_000 : 15_000),
     });
     const value = await response.json();
     if (!response.ok) {
@@ -101,8 +105,8 @@ export class AuthClient {
   bettingRequest<T>(path = '', body?: unknown) {
     return this.request<T>('betting' + path, body);
   }
-  levelRequest<T>(path = '', body?: unknown) {
-    return this.request<T>('levels' + path, body);
+  levelRequest<T>(path = '', body?: unknown, signal?: AbortSignal) {
+    return this.request<T>('levels' + path, body, signal);
   }
 
   async ticket() {

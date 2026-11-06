@@ -42,8 +42,13 @@ export class Sessions {
     private auth: AuthService,
     private store: LevelStore,
   ) {}
-
-  async join(peer: Peer, user: PlayerProfile, value: unknown, token?: string) {
+  async join(
+    peer: Peer,
+    user: PlayerProfile,
+    value: unknown,
+    token?: string,
+    isActive: () => boolean = () => true,
+  ) {
     if (!value || typeof value !== 'object')
       throw new LevelError(400, 'Choose Solo, create a party, or enter an invite code.');
     const intent = value as JoinIntent;
@@ -64,16 +69,25 @@ export class Sessions {
         throw new LevelError(503, 'The server has reached its session limit.');
       this.creating.add(user.id);
       try {
+        peer.send({ type: 'joining', stage: 'availability', storage: this.store.storage });
         await this.store.refreshAvailability();
+        if (this.closed || !isActive()) throw new LevelError(409, 'Party creation was cancelled.');
         const snapshot = this.store.forPlay(intent.levelId);
         if (!snapshot) throw new LevelError(404, 'Published chamber unavailable or expired.');
-        await this.store.validateSnapshot(snapshot);
+        peer.send({
+          type: 'joining',
+          stage: intent.mode === 'solo' ? 'replay' : 'level',
+          storage: this.store.storage,
+        });
+        // echo validates the selected level before loading its replay; do not read the level twice.
         const echo =
           intent.mode === 'solo'
             ? await this.store.echo(snapshot, intent.player === 1 ? 2 : 1, intent.runId)
             : undefined;
-        if (this.closed) throw new LevelError(503, 'Game service is closing.');
+        if (intent.mode === 'coop') await this.store.validateSnapshot(snapshot);
+        if (this.closed || !isActive()) throw new LevelError(409, 'Party creation was cancelled.');
         this.checkAccount(user.id);
+        peer.send({ type: 'joining', stage: 'party', storage: this.store.storage });
         const id = randomUUID();
         let code: string;
         do {
@@ -95,6 +109,9 @@ export class Sessions {
           (ids, key) => this.store.recordWin(ids, key),
           (id, key) => this.store.canReveal(id, key),
           {
+            turn: (publication, sequence, turn, inputs, ids) => {
+              this.store.captureMove(publication, id, sequence, turn, inputs, ids, intent.mode);
+            },
             fixedLevel: true,
             solo: echo ? { player: intent.player, moves: echo.moves } : undefined,
             win: (publication, humans, moves) => {
@@ -162,6 +179,7 @@ export class Sessions {
         throw new LevelError(404, 'This session has ended. Return home to start another.');
       role = member.role;
     } else throw new LevelError(400, 'Unknown game session request.');
+    if (this.closed || !isActive()) throw new LevelError(409, 'Party creation was cancelled.');
     const selected = session!;
     let member = selected.members.get(user.id);
     if (member?.peer)

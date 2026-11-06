@@ -1,7 +1,7 @@
 import { ImmediateTestRegistry } from './certificationFixture';
 import { it, expect } from 'vitest';
 import { LevelStore } from '../server/levels/LevelStore';
-import { MemoryArchive, type ArchiveRecord } from '../server/arkiv/archive';
+import { MemoryArchive, type ArchiveWrite } from '../server/arkiv/archive';
 import { levels } from '../server/data/campaign';
 import { CoopRoom, type Peer } from '../server/CoopRoom';
 import type { ServerMessage, SessionState } from '../src/network/protocol';
@@ -43,7 +43,7 @@ it('recovers pending runs, deduplicates and removes expired publications and run
     fail = false;
   const archive = new MemoryArchive(),
     put = archive.put.bind(archive);
-  const records: ArchiveRecord[] = [];
+  const records: ArchiveWrite[] = [];
   archive.head = async () => head;
   archive.put = async (record) => {
     records.push(structuredClone(record));

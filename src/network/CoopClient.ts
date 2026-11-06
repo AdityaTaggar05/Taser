@@ -1,9 +1,50 @@
-import type { ClientCommand, ServerMessage, SessionState, JoinIntent } from './protocol';
+import {
+  JOIN_TIMEOUT_MS,
+  type ClientCommand,
+  type ServerMessage,
+  type SessionState,
+  type JoinIntent,
+  type JoinProgress,
+} from './protocol';
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'full';
 export class CoopClient {
   state: SessionState | null = null;
   status: ConnectionStatus = 'connecting';
   notice: string | null = null;
+  private progress: JoinProgress | undefined;
+  private phase: 'sign-in' | 'connecting' = 'sign-in';
+  private startedAt = Date.now();
+  private loadingTimer: ReturnType<typeof setInterval> | undefined;
+  private handshake: ReturnType<typeof setTimeout> | undefined;
+  get loadingMessage() {
+    if (this.status === 'connected' || this.status === 'full') return null;
+    const source = this.progress?.storage === 'arkiv' ? 'Arkiv' : 'the archive';
+    const step = this.progress
+      ? {
+          availability: `Checking chamber availability on ${source}…`,
+          level: `Reading and verifying the chamber from ${source}…`,
+          replay: `Loading and verifying the chamber and replay from ${source}…`,
+          party: 'Creating your private session…',
+        }[this.progress.stage]
+      : this.phase === 'sign-in'
+        ? 'Verifying your sign-in…'
+        : 'Connecting to the game server…';
+    const elapsed = Math.floor((Date.now() - this.startedAt) / 1000);
+    return `${step}${elapsed >= 1 ? ` (${elapsed}s)` : ''}${this.progress && this.progress.stage !== 'party' ? ' This is a read; no transaction is being sent.' : ''}`;
+  }
+  private stopLoading() {
+    clearInterval(this.loadingTimer);
+    clearTimeout(this.handshake);
+  }
+  retryJoin() {
+    if (this.stopped || this.status !== 'full') return;
+    const socket = this.socket;
+    this.socket = null;
+    socket?.close();
+    clearTimeout(this.retry);
+    this.notice = null;
+    void this.connect();
+  }
   private viewingOther = false;
   private studySelectionPending = false;
   private socket: WebSocket | null = null;
@@ -27,6 +68,14 @@ export class CoopClient {
 
   private async connect() {
     if (this.stopped) return;
+    this.stopLoading();
+    this.notice = null;
+    this.progress = undefined;
+    this.phase = 'sign-in';
+    this.startedAt = Date.now();
+    this.loadingTimer = setInterval(() => {
+      if (!this.stopped) this.changed(this.state);
+    }, 1000);
     this.studySelectionPending = false;
     this.status = this.state ? 'reconnecting' : 'connecting';
     this.changed(this.state);
@@ -43,11 +92,20 @@ export class CoopClient {
       return;
     }
     if (this.stopped) return;
+    this.phase = 'connecting';
+    this.changed(this.state);
     const url = new URL('/co-op', location.href);
     url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(url);
     this.socket = ws;
-    const handshake = setTimeout(() => ws.close(), 20_000);
+    const handshake = (this.handshake = setTimeout(() => {
+      if (this.stopped || this.socket !== ws) return;
+      this.stopLoading();
+      this.status = 'full';
+      this.notice = 'Loading the chamber took too long. Please retry.';
+      this.changed(this.state);
+      ws.close();
+    }, JOIN_TIMEOUT_MS + 5000));
     ws.onopen = () =>
       ws.send(JSON.stringify({ type: 'join', ticket, token: this.token, intent: this.intent }));
     ws.onmessage = (event) => {
@@ -58,7 +116,10 @@ export class CoopClient {
       } catch {
         return;
       }
-      if (m.type === 'welcome') {
+      if (m.type === 'joining') {
+        this.progress = m;
+        this.changed(this.state);
+      } else if (m.type === 'welcome') {
         this.token = m.token;
         if (m.sessionId) {
           this.intent = { kind: 'resume', id: m.sessionId };
@@ -72,7 +133,7 @@ export class CoopClient {
         this.destroy();
         this.authRequired();
       } else if (m.type === 'state') {
-        clearTimeout(handshake);
+        this.stopLoading();
         const previous = this.state,
           newAttempt = m.study?.attempt !== previous?.study?.attempt;
         if (!m.study || newAttempt) {
@@ -85,7 +146,7 @@ export class CoopClient {
         this.notice = null;
         this.changed(previous);
       } else if (m.type === 'full') {
-        clearTimeout(handshake);
+        this.stopLoading();
         this.status = 'full';
         this.notice = m.message;
         this.changed(this.state);
@@ -107,6 +168,9 @@ export class CoopClient {
         this.changed(this.state);
         return;
       }
+      this.progress = undefined;
+      this.phase = 'connecting';
+      this.startedAt = Date.now();
       this.status = 'reconnecting';
       this.changed(this.state);
       this.retry = setTimeout(() => void this.connect(), 1500);
@@ -185,6 +249,7 @@ export class CoopClient {
 
   destroy() {
     this.stopped = true;
+    this.stopLoading();
     clearTimeout(this.retry);
     this.socket?.close();
   }

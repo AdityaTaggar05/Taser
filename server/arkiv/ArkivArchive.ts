@@ -45,8 +45,12 @@ import {
   ArchiveError,
   type LevelArchive,
   type ArchiveRecord,
+  type ArchiveWrite,
+  type WriteStatus,
   type ArchiveRef,
   type ArchivedLevel,
+  type MoveRecord,
+  type ArchivedMove,
 } from './archive';
 import { canonicalJSON } from './canonical';
 import {
@@ -55,7 +59,7 @@ import {
   validateThemePublication,
   type ThemePublication,
 } from './ThemePublication';
-type Publication = ArchiveRecord | ThemePublication;
+type Publication = ArchiveWrite | ThemePublication;
 import { creationExpiration, HEART_EXTENSION } from './expiration';
 
 interface ExtensionIntent {
@@ -209,7 +213,7 @@ export class ArkivArchive implements LevelArchive {
   }
 
   private values(plan: Plan) {
-    const r = JSON.parse(plan.body) as ArchiveRecord;
+    const r = JSON.parse(plan.body) as ArchiveWrite;
     return {
       namespace: this.options.namespace,
       record_id: r.id,
@@ -260,7 +264,7 @@ export class ArkivArchive implements LevelArchive {
     return task;
   }
   private optionsFor(plan: Plan) {
-    const record = JSON.parse(plan.body) as ArchiveRecord;
+    const record = JSON.parse(plan.body) as ArchiveWrite;
     return {
       expiration: creationExpiration(record),
       flags: { readonly: true, permissionlessExtension: false },
@@ -276,7 +280,7 @@ export class ArkivArchive implements LevelArchive {
       row.$creationFlags.permissionlessExtension ||
       row.namespace.value !== this.options.namespace ||
       row.content_type.value !== CONTENT_TYPE ||
-      !['draft', 'community', 'campaign', 'run', 'attempt'].includes(row.category.value) ||
+      !['draft', 'community', 'campaign', 'run', 'attempt', 'move'].includes(row.category.value) ||
       row.revision.value < 1n ||
       row.revision.value > BigInt(Number.MAX_SAFE_INTEGER) ||
       (expected && row.ciphertext.value.toLowerCase() !== expected.ciphertext.toLowerCase())
@@ -314,7 +318,9 @@ export class ArkivArchive implements LevelArchive {
   async read(ref: ArchiveRef): Promise<ArchiveRecord> {
     try {
       await this.identity();
-      return await this.decode(await this.entity(ref.entityKey, ref.schema === 'attempt'));
+      const record = await this.decode(await this.entity(ref.entityKey, ref.schema === 'attempt'));
+      if (record.category === 'move') throw new ArchiveError(404, 'Not a level publication.');
+      return record;
     } catch (error) {
       throw this.safe(error, 'Arkiv level could not be read. It may be expired or unavailable.');
     }
@@ -324,6 +330,7 @@ export class ArkivArchive implements LevelArchive {
       await this.identity();
       const row = await this.entity(ref.entityKey, ref.schema === 'attempt'),
         record = await this.decode(row);
+      if (record.category === 'move') throw new ArchiveError(404, 'Not a level publication.');
       if (row.$expiresAt <= (await this.reader.getBlockNumber({ cacheTime: 0 })))
         throw new ArchiveError(410, 'This publication has expired.');
       return { record, ref: { ...ref, expiresAt: row.$expiresAt.toString() } };
@@ -489,13 +496,19 @@ export class ArkivArchive implements LevelArchive {
         const result = await query.fetch();
         for (const row of result.entities) {
           const record = await this.decode(row);
+          if (record.category === 'move') continue;
+          const plan = this.plan(`${record.category}:${record.id}:${record.revision}`);
           found.push({
             record,
             ref: {
               ...(attempts ? { schema: 'attempt' as const } : {}),
               entityKey: row.$key,
               expiresAt: row.$expiresAt.toString(),
-              txHash: '',
+              txHash:
+                plan?.phase === 'verified' &&
+                plan.entity_key?.toLowerCase() === row.$key.toLowerCase()
+                  ? (plan.tx_hash ?? '')
+                  : '',
             },
           });
         }
@@ -512,8 +525,55 @@ export class ArkivArchive implements LevelArchive {
       throw this.safe(error, 'Arkiv catalog query failed.');
     }
   }
-
-  put(record: ArchiveRecord): Promise<ArchiveRef> {
+  async queryMoves(records: MoveRecord[]): Promise<ArchivedMove[]> {
+    if (!records.length) return [];
+    if (records.length > 32) throw new ArchiveError(400, 'Too many moves requested.');
+    try {
+      await this.identity();
+      const result = await this.reader
+        .select('*')
+        .from(LevelEntities, { onMismatch: 'throw' })
+        .createdBy(this.account.address)
+        .where(
+          and(
+            eq('namespace', this.options.namespace),
+            eq('category', 'move'),
+            or(...records.map((record) => eq('record_id', record.id))),
+          ),
+        )
+        .limit(100)
+        .fetch();
+      const seen = new Set<string>(),
+        found: ArchivedMove[] = [];
+      for (const row of result.entities) {
+        const record = await this.decode(row);
+        if (
+          record.category !== 'move' ||
+          seen.has(record.id) ||
+          !records.some((expected) => canonicalJSON(expected) === canonicalJSON(record))
+        )
+          throw new ArchiveError(503, 'Move query returned inconsistent evidence.');
+        seen.add(record.id);
+        found.push({
+          record,
+          ref: { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() },
+        });
+      }
+      return found;
+    } catch (error) {
+      throw this.safe(error, 'Arkiv move query unavailable. Please retry.');
+    }
+  }
+  writeStatus(record: ArchiveWrite): WriteStatus | undefined {
+    const p = this.plan(`${record.category}:${record.id}:${record.revision}`);
+    if (!p) return;
+    return {
+      state: p.phase === 'verified' ? 'confirmed' : p.phase === 'reverted' ? 'failed' : 'pending',
+      ...(p.tx_hash ? { txHash: p.tx_hash } : {}),
+      ...(p.phase === 'verified' && p.entity_key ? { entityKey: p.entity_key } : {}),
+    };
+  }
+  put(record: ArchiveWrite): Promise<ArchiveRef> {
     const task = this.queue.then(() => this.write(record));
     this.queue = task.catch(() => {});
     return task;

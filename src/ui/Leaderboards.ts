@@ -59,7 +59,41 @@ export class Leaderboards {
     this.id = /^#leaderboard\/([a-f0-9-]{36})$/.exec(hash)?.[1];
     this.page = 0;
     this.mode = 'coop';
-    this.root.innerHTML = `<header class="published-header"><button data-board="home">← Home</button><span>WELDPOINT / LEADERBOARDS</span><button data-board="fullscreen" aria-label="Fullscreen">⛶</button></header><section class="published-content"><p class="archive-kicker">VERIFIED ON THE TIMELINE</p><h1>Global leaderboard</h1><p class="archive-intro"></p><nav class="leaderboard-links"><a href="#leaderboard">Global standings ↗</a><a href="#coop/community">Browse chambers ↗</a></nav><div class="level-lifetime" hidden><p class="expiry-clock"></p><p class="expiry-block"></p><button data-board="heart">♡ Heart · add 1 hour</button><span class="heart-count"></span></div><div class="archive-tabs" hidden><button data-mode="coop" aria-pressed="true">Co-op</button><button data-mode="solo" aria-pressed="false">Solo</button></div><button class="archive-refresh" data-board="refresh">Refresh ↻</button><p class="leaderboard-personal"></p><div class="leaderboard-table"></div><nav class="leaderboard-pages" aria-label="Leaderboard pages"><button data-board="previous">← Previous</button><span class="leaderboard-page"></span><button data-board="next">Next →</button></nav><p class="archive-status" role="status" aria-live="polite"></p></section>`;
+    this.root.innerHTML = /* HTML */ `
+      <header class="published-header">
+        <button data-board="home">← Home</button>
+        <span>WELDPOINT / LEADERBOARDS</span>
+        <button data-board="fullscreen" aria-label="Fullscreen">⛶</button>
+      </header>
+      <section class="published-content">
+        <p class="archive-kicker">VERIFIED ON THE TIMELINE</p>
+        <h1>Global leaderboard</h1>
+        <p class="archive-intro"></p>
+        <nav class="leaderboard-links">
+          <a href="#leaderboard">Global standings ↗</a>
+          <a href="#coop/community">Browse chambers ↗</a>
+        </nav>
+        <div class="level-lifetime" hidden>
+          <p class="expiry-clock"></p>
+          <p class="expiry-block"></p>
+          <button data-board="heart">♡ Heart · add 1 hour</button>
+          <span class="heart-count"></span>
+        </div>
+        <div class="archive-tabs" hidden>
+          <button data-mode="coop" aria-pressed="true">Co-op</button>
+          <button data-mode="solo" aria-pressed="false">Solo</button>
+        </div>
+        <button class="archive-refresh" data-board="refresh">Refresh ↻</button>
+        <p class="leaderboard-personal"></p>
+        <div class="leaderboard-table"></div>
+        <nav class="leaderboard-pages" aria-label="Leaderboard pages">
+          <button data-board="previous">← Previous</button>
+          <span class="leaderboard-page"></span>
+          <button data-board="next">Next →</button>
+        </nav>
+        <p class="archive-status" role="status" aria-live="polite"></p>
+      </section>
+    `;
     this.root.querySelector('[data-board=home]')!.addEventListener('click', this.actions.home);
     this.root
       .querySelector('[data-board=fullscreen]')!

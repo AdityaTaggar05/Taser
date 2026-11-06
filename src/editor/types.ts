@@ -14,6 +14,9 @@ export interface LevelSummary {
   readonly?: boolean;
   certification?: import('../certification/model').CertificationInfo;
   verification?: 'legacy' | import('../certification/model').CertificationMode;
+  entityKey?: string;
+  txHash?: string;
+  storage?: 'arkiv' | 'test' | 'unconfigured';
 }
 export interface StoredLevel extends LevelSummary {
   level: LevelConfig;
@@ -68,4 +71,6 @@ export interface RunSummary {
   createdAt: number;
   entityKey: string;
   expiresAt: string;
+  txHash?: string;
+  storage?: 'arkiv' | 'test' | 'unconfigured';
 }

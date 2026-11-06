@@ -26,11 +26,38 @@ export interface ArchiveRecord {
     salt: `0x${string}`;
   };
 }
+export interface MoveRecord {
+  id: string;
+  revision: 1;
+  category: 'move';
+  ownerId: string;
+  ownerName: string;
+  updatedAt: number;
+  lifetimeDays: 2;
+  move: {
+    levelKey: string;
+    sessionId: string;
+    turn: number;
+    sequence: number;
+    mode: 'coop' | 'solo';
+    inputs: [import('../../src/core/types').Direction, import('../../src/core/types').Direction];
+  };
+}
+export type ArchiveWrite = ArchiveRecord | MoveRecord;
+export interface WriteStatus {
+  state: 'pending' | 'confirmed' | 'failed';
+  txHash?: string;
+  entityKey?: string;
+}
 export interface ArchiveRef {
   schema?: 'attempt';
   entityKey: string;
   txHash: string;
   expiresAt: string;
+}
+export interface ArchivedMove {
+  record: MoveRecord;
+  ref: ArchiveRef;
 }
 export interface ArchivedLevel {
   record: ArchiveRecord;
@@ -40,7 +67,9 @@ export interface LevelArchive {
   readonly mode: 'arkiv' | 'test' | 'unconfigured';
   list(): Promise<ArchivedLevel[]>;
   listAttempts?(): Promise<ArchivedLevel[]>;
-  put(record: ArchiveRecord): Promise<ArchiveRef>;
+  put(record: ArchiveWrite): Promise<ArchiveRef>;
+  queryMoves(records: MoveRecord[]): Promise<ArchivedMove[]>;
+  writeStatus?(record: ArchiveWrite): WriteStatus | undefined;
   read(ref: ArchiveRef): Promise<ArchiveRecord>;
   inspect(ref: ArchiveRef): Promise<ArchivedLevel>;
   extend(ref: ArchiveRef, accountId: string): Promise<ArchiveRef>;
@@ -60,13 +89,16 @@ export class ArchiveError extends Error {
 export class MemoryArchive implements LevelArchive {
   readonly mode = 'test';
   head?: () => Promise<bigint>;
-  readonly entries = new Map<string, ArchivedLevel>();
+  readonly entries = new Map<string, { record: ArchiveWrite; ref: ArchiveRef }>();
   private hearts = new Map<string, ArchiveRef>();
   async list() {
     const head = (await this.head?.()) ?? 0n;
     return structuredClone(
       [...this.entries.values()].filter(
-        (entry) => entry.record.category !== 'attempt' && BigInt(entry.ref.expiresAt) > head,
+        (entry): entry is ArchivedLevel =>
+          entry.record.category !== 'attempt' &&
+          entry.record.category !== 'move' &&
+          BigInt(entry.ref.expiresAt) > head,
       ),
     );
   }
@@ -74,12 +106,13 @@ export class MemoryArchive implements LevelArchive {
     const head = (await this.head?.()) ?? 0n;
     return structuredClone(
       [...this.entries.values()].filter(
-        (entry) => entry.record.category === 'attempt' && BigInt(entry.ref.expiresAt) > head,
+        (entry): entry is ArchivedLevel =>
+          entry.record.category === 'attempt' && BigInt(entry.ref.expiresAt) > head,
       ),
     );
   }
 
-  async put(record: ArchiveRecord) {
+  async put(record: ArchiveWrite) {
     const key = `${record.category}:${record.id}:${record.revision}`;
     const existing = this.entries.get(key);
     if (existing) {
@@ -101,12 +134,23 @@ export class MemoryArchive implements LevelArchive {
     this.entries.set(key, structuredClone({ record, ref }));
     return ref;
   }
+  async queryMoves(records: MoveRecord[]) {
+    const ids = new Set(records.map((r) => r.id));
+    const head = (await this.head?.()) ?? 0n;
+    return structuredClone(
+      [...this.entries.values()].filter(
+        (e): e is ArchivedMove =>
+          e.record.category === 'move' && ids.has(e.record.id) && BigInt(e.ref.expiresAt) > head,
+      ),
+    );
+  }
   async inspect(ref: ArchiveRef) {
     const found = [...this.entries.values()].find((e) => e.ref.entityKey === ref.entityKey);
-    if (!found) throw new ArchiveError(503, 'Archived level unavailable.');
+    if (!found || found.record.category === 'move')
+      throw new ArchiveError(503, 'Archived level unavailable.');
     if (BigInt(found.ref.expiresAt) <= ((await this.head?.()) ?? 0n))
       throw new ArchiveError(410, 'This publication has expired.');
-    return structuredClone(found);
+    return structuredClone(found) as ArchivedLevel;
   }
   async read(ref: ArchiveRef) {
     return (await this.inspect(ref)).record;
@@ -148,7 +192,9 @@ export class UnconfiguredArchive implements LevelArchive {
   async list(): Promise<ArchivedLevel[]> {
     return [];
   }
-
+  async queryMoves(): Promise<ArchivedMove[]> {
+    return this.fail();
+  }
   async put(): Promise<ArchiveRef> {
     return this.fail();
   }

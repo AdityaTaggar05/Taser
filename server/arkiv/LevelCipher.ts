@@ -5,7 +5,13 @@ import { createHash } from 'node:crypto';
 import { canonicalJSON } from './canonical';
 import { cleanDraft } from '../../src/core/levelValidation';
 import { verifySolution } from '../../src/editor/solution';
-import { ArchiveError, type ArchiveRecord } from './archive';
+import {
+  ArchiveError,
+  type ArchiveWrite,
+  type ArchiveRecord,
+  type MoveRecord,
+  type LevelCategory,
+} from './archive';
 import { checkInput, validProof } from '../../src/certification/model';
 export { CONTENT_TYPE };
 /** The encrypted envelope binds its public routing fields; no solution digest is published. */
@@ -18,8 +24,7 @@ export class LevelCipher {
   ) {
     this.key = importKey(rawKey);
   }
-
-  async encrypt(record: ArchiveRecord) {
+  async encrypt(record: ArchiveWrite) {
     return encryptBytes(
       await this.key,
       JSON.stringify({ format: 1, chainId: 7794095, namespace: this.namespace, record }),
@@ -28,12 +33,24 @@ export class LevelCipher {
 
   async decrypt(
     ciphertext: Uint8Array,
+    expected: { id: string; revision: number; category: LevelCategory },
+  ): Promise<ArchiveRecord>;
+  async decrypt(
+    ciphertext: Uint8Array,
+    expected: { id: string; revision: number; category: 'move' },
+  ): Promise<MoveRecord>;
+  async decrypt(
+    ciphertext: Uint8Array,
     expected: { id: string; revision: number; category: string },
-  ): Promise<ArchiveRecord> {
+  ): Promise<ArchiveWrite>;
+  async decrypt(
+    ciphertext: Uint8Array,
+    expected: { id: string; revision: number; category: string },
+  ): Promise<ArchiveWrite> {
     try {
       const bytes = await decryptBytes(await this.key, ciphertext);
       const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-      const r = envelope.record as ArchiveRecord;
+      const r = envelope.record as ArchiveWrite;
       if (
         envelope.format !== 1 ||
         envelope.chainId !== 7794095 ||
@@ -42,7 +59,7 @@ export class LevelCipher {
         r.id !== expected.id ||
         r.revision !== expected.revision ||
         r.category !== expected.category ||
-        !['draft', 'community', 'campaign', 'run', 'attempt'].includes(r.category) ||
+        !['draft', 'community', 'campaign', 'run', 'attempt', 'move'].includes(r.category) ||
         !Number.isSafeInteger(r.revision) ||
         r.revision < 1 ||
         typeof r.ownerId !== 'string' ||
@@ -67,6 +84,36 @@ export class LevelCipher {
           r.lifetimeDays !== 2)
       )
         throw new Error();
+      if (r.category === 'move') {
+        const m = r.move;
+        if (
+          r.revision !== 1 ||
+          r.lifetimeDays !== 2 ||
+          !m ||
+          !/^0x[a-fA-F0-9]{64}$/.test(m.levelKey) ||
+          typeof m.sessionId !== 'string' ||
+          m.sessionId.length > 128 ||
+          !Number.isSafeInteger(m.turn) ||
+          m.turn < 1 ||
+          !Number.isSafeInteger(m.sequence) ||
+          m.sequence < 1 ||
+          !['solo', 'coop'].includes(m.mode) ||
+          !Array.isArray(m.inputs) ||
+          m.inputs.length !== 2 ||
+          !m.inputs.every((d) => ['U', 'D', 'L', 'R', 'W'].includes(d))
+        )
+          throw new Error();
+        return {
+          id: r.id,
+          revision: 1,
+          category: 'move',
+          ownerId: r.ownerId,
+          ownerName: r.ownerName,
+          updatedAt: r.updatedAt,
+          lifetimeDays: 2,
+          move: { ...m, inputs: [...m.inputs] },
+        };
+      }
       const level = cleanDraft(r.level);
       if (r.certification) {
         const { proof, salt } = r.certification;

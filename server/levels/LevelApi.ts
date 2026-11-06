@@ -40,6 +40,24 @@ export class LevelApi {
         path = match[2] ?? '',
         admin = campaignPublisher(identity.user, this.auth.demoEnabled);
       if (req.method === 'GET') {
+        const moves = /^moves\/([a-f0-9-]{36})$/.exec(path);
+        if (moves) {
+          const raw = url.searchParams.get('sequences') ?? '';
+          const sequences = raw ? raw.split(',').map(Number) : [];
+          if (
+            raw.length > 512 ||
+            sequences.length > 32 ||
+            sequences.some((n) => !Number.isSafeInteger(n) || n < 1) ||
+            new Set(sequences).size !== sequences.length
+          )
+            throw new LevelError(400, 'Invalid move sequence.');
+          json(200, await this.store.moveSequence(identity.user.id, moves[1], sequences));
+          return;
+        }
+        if (path === 'activity') {
+          json(200, this.store.activityFeed(identity.user.id));
+          return;
+        }
         const pageText = url.searchParams.get('page') ?? '0';
         if (!/^(0|[1-9][0-9]{0,4})$/.test(pageText))
           throw new LevelError(400, 'Invalid leaderboard page.');

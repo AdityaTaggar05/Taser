@@ -8,6 +8,7 @@ export class PartyLobby {
     ready: (ready: boolean) => void;
     start: () => void;
     broadcast: (enabled: boolean) => void;
+    retry: () => void;
   }) {
     this.root.id = 'party-lobby';
     this.root.hidden = true;
@@ -18,9 +19,10 @@ export class PartyLobby {
       </header>
       <section class="published-content">
         <p class="archive-kicker">MEET BEFORE THE TIMELINE</p>
-        <h1>Your party</h1>
+        <h1 class="party-title">Your party</h1>
         <h2 class="party-level"></h2>
-        <p class="party-status" role="status"></p>
+        <p class="party-status" role="status" aria-live="polite"></p>
+        <button data-party="retry" hidden>Retry creating party ↻</button>
         <div class="party-members"></div>
         <section class="party-invite">
           <label for="party-link">INVITE LINK</label>
@@ -63,6 +65,7 @@ export class PartyLobby {
       if (action === 'leave') actions.leave();
       else if (action === 'ready') actions.ready(!this.ready);
       else if (action === 'start') actions.start();
+      else if (action === 'retry') actions.retry();
       else if (action === 'copy') void this.copyInvite();
     });
   }
@@ -84,15 +87,26 @@ export class PartyLobby {
     state: SessionState | null,
     status: ConnectionStatus,
     notice: string | null,
+    loading: string | null = null,
   ) {
     this.root.hidden = !show;
     if (!show) return;
     const party = state?.party;
+    const busy = status === 'connecting' || status === 'reconnecting';
+    this.root.querySelector('.party-title')!.textContent = party
+      ? 'Your party'
+      : status === 'full'
+        ? 'Could not open your party'
+        : status === 'reconnecting'
+          ? 'Reconnecting to your party…'
+          : 'Opening your party…';
+    this.root.querySelector<HTMLElement>('.party-status')!.dataset.loading = String(busy);
+    this.root.querySelector<HTMLElement>('[data-party=retry]')!.hidden = status !== 'full';
     this.root.querySelector('.party-level')!.textContent = state?.level?.name ?? 'Connecting…';
     this.root.querySelector('.party-status')!.textContent =
       notice ??
       (status !== 'connected'
-        ? 'Connecting to your private session…'
+        ? (loading ?? 'Connecting to your private session…')
         : party?.members.length === 2
           ? party.members.every((m) => m.ready)
             ? 'Both operators are Ready. The host can start.'
@@ -103,6 +117,7 @@ export class PartyLobby {
       ? new URL('#invite/' + party.code, location.href).href
       : '';
     this.root.querySelector<HTMLElement>('.party-invite')!.hidden = !party;
+    this.root.querySelector<HTMLElement>('.party-actions')!.hidden = !party;
     const members = this.root.querySelector('.party-members')!;
     members.replaceChildren();
     for (const member of party?.members ?? []) {

@@ -16,7 +16,28 @@ export class WatchScreen {
   constructor(private auth: AuthClient) {
     this.root.id = 'watch';
     this.root.hidden = true;
-    this.root.innerHTML = `<header class="published-header"><a href="#">← Home</a><span>WELDPOINT / LIVE ARENA</span><strong class="watch-balance"></strong></header><section class="published-content"><p class="archive-kicker">WATCH. PREDICT. KEEP HISTORY ALIVE.</p><h1>Live co-op arena</h1><p>Pick a public match or let chance choose. Predictions use test points with no cash value. Boards arrive on a 10-second delay.</p><div class="watch-actions"><button data-watch="random">Watch random match ↗</button><a href="#watch">All matches</a></div><p class="watch-status" role="status" aria-live="polite"></p><div class="watch-detail"></div><div class="watch-matches"></div></section>`;
+    this.root.innerHTML = /* HTML */ `
+      <header class="published-header">
+        <a href="#">← Home</a>
+        <span>WELDPOINT / LIVE ARENA</span>
+        <strong class="watch-balance"></strong>
+      </header>
+      <section class="published-content">
+        <p class="archive-kicker">WATCH. PREDICT. KEEP HISTORY ALIVE.</p>
+        <h1>Live co-op arena</h1>
+        <p>
+          Pick a public match or let chance choose. Predictions use test points with no cash value.
+          Boards arrive on a 10-second delay.
+        </p>
+        <div class="watch-actions">
+          <button data-watch="random">Watch random match ↗</button>
+          <a href="#watch">All matches</a>
+        </div>
+        <p class="watch-status" role="status" aria-live="polite"></p>
+        <div class="watch-detail"></div>
+        <div class="watch-matches"></div>
+      </section>
+    `;
     this.root
       .querySelector('[data-watch=random]')!
       .addEventListener('click', () => void this.random());

@@ -1,4 +1,5 @@
 import './published.css';
+import { explorerLink } from '../network/arkiv';
 import type { LevelClient } from '../editor/LevelClient';
 import type { LevelSummary } from '../editor/types';
 import { verificationLabel } from '../certification/model';
@@ -167,13 +168,18 @@ export class PublishedLevels {
                 ? 'Verified winning runs for this exact chamber revision. Available for about 48 hours.'
                 : 'No matching player runs yet. Try the creator solution first.',
             );
-            for (const run of runs)
+            for (const run of runs) {
+              const row = document.createElement('article');
+              row.className = 'run-entry';
               link(
                 `${run.name} · P${run.role} · ${run.turns} turns · ${run.mode}`,
                 hash.replace(/\/runs$/, '/run/' + run.id),
-                list,
+                row,
                 'run-choice',
               );
+              this.proof(run, row);
+              list.append(row);
+            }
           })
           .catch((error) => status((error as Error).message));
       }
@@ -209,7 +215,25 @@ export class PublishedLevels {
       })
       .catch((error) => status((error as Error).message + ' Use Refresh to retry.'));
   }
-
+  private proof(ref: { entityKey?: string; txHash?: string; storage?: string }, parent: Element) {
+    if (ref.storage !== 'arkiv') return;
+    const links = document.createElement('div');
+    links.className = 'archive-proof-links';
+    for (const [kind, label, value] of [
+      ['entity', 'Archived entity', ref.entityKey],
+      ['tx', 'Publication transaction', ref.txHash],
+    ] as const) {
+      const href = explorerLink(kind, value);
+      if (!href) continue;
+      const a = document.createElement('a');
+      a.textContent = label + ' ↗';
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      links.append(a);
+    }
+    parent.append(links);
+  }
   private card(level: LevelSummary, parent: Element, href: string) {
     const card = document.createElement('article');
     card.className = 'archive-card';
@@ -237,6 +261,7 @@ export class PublishedLevels {
     board.className = 'archive-play';
     board.textContent = 'Leaderboard & hearts ♡';
     card.append(play, board);
+    this.proof(level, card);
     parent.append(card);
   }
 

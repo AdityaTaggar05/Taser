@@ -1,7 +1,43 @@
 import type { AuthClient } from '../auth/AuthClient';
 import type { LevelConfig } from '../core/types';
 import type { LevelSummary, StoredLevel, LevelCatalog, ReferenceSolution } from './types';
+export interface ArchiveReference {
+  name: string;
+  entityKey?: string;
+  txHash?: string;
+  storage?: 'arkiv' | 'test' | 'unconfigured';
+}
 export class LevelClient {
+  references: ArchiveReference[] = [];
+  private listeners = new Set<() => void>();
+  onReferences(listener: () => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  private observed<T extends ArchiveReference>(rows: T[]) {
+    this.references = rows.slice(0, 12);
+    this.listeners.forEach((listener) => listener());
+    return rows;
+  }
+  clearReferences() {
+    this.references = [];
+  }
+  activity(signal?: AbortSignal) {
+    return this.auth.levelRequest<import('../network/arkiv').ArkivFeed>(
+      '/activity',
+      undefined,
+      signal,
+    );
+  }
+  moves(sessionId: string, sequences: number[], signal?: AbortSignal) {
+    return this.auth.levelRequest<import('../network/arkiv').MoveSequenceFeed>(
+      `/moves/${sessionId}?sequences=${sequences.join(',')}`,
+      undefined,
+      signal,
+    );
+  }
   constructor(private auth: AuthClient) {}
 
   async mine() {
@@ -9,17 +45,24 @@ export class LevelClient {
   }
 
   async community() {
-    return (await this.auth.levelRequest<{ levels: LevelSummary[] }>('/community')).levels;
+    return this.observed(
+      (await this.auth.levelRequest<{ levels: LevelSummary[] }>('/community')).levels,
+    );
   }
 
   async runs(id: string, role: 1 | 2) {
-    return (
-      await this.auth.levelRequest<{ runs: import('./types').RunSummary[] }>(`/runs/${id}/${role}`)
-    ).runs;
+    return this.observed(
+      (
+        await this.auth.levelRequest<{ runs: import('./types').RunSummary[] }>(
+          `/runs/${id}/${role}`,
+        )
+      ).runs,
+    );
   }
-
-  catalog() {
-    return this.auth.levelRequest<LevelCatalog>('/catalog');
+  async catalog() {
+    const catalog = await this.auth.levelRequest<LevelCatalog>('/catalog');
+    this.observed(catalog.campaign.map((c) => ({ ...c, storage: catalog.storage })));
+    return catalog;
   }
   globalLeaderboard(page = 0) {
     return this.auth.levelRequest<

@@ -1,3 +1,4 @@
+import { explorerLink } from '../network/arkiv';
 import { KEY_MOVES } from '../input/TurnBuffer';
 import { cleanDraft } from '../core/levelValidation';
 import { computeLaserTiles, isExitOpen, type GameEngine } from '../core/engine';

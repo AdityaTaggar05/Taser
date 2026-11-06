@@ -86,6 +86,9 @@ it('accepts only a matching certificate, persists encrypted proof and makes the 
     const published = store.get('alice', draft.id);
     expect(published.certification?.status).toBe('published');
     expect(store.community()[0].verification).toBe('simulation');
+    expect(store.activityFeed('alice').activities).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'community', state: 'confirmed' })]),
+    );
     await expect(store.save('alice', 'Alice', levels[0], draft.id, 1)).rejects.toThrow('locked');
     await expect(store.verificationInput(id)).rejects.toThrow('unavailable');
     const record = [...archive.entries.values()].find(
@@ -99,6 +102,7 @@ it('accepts only a matching certificate, persists encrypted proof and makes the 
       revision: record.revision,
       category: 'community',
     });
+    if (record.category === 'move') throw new Error('Expected a level publication');
     expect(decoded.certification).toEqual(record.certification);
     const tampered = structuredClone(record);
     tampered.level.name = 'Changed';
@@ -232,6 +236,7 @@ it('verifies the exact archived payload and independently rejects invalid witnes
     const entry = [...archive.entries.values()].find(
       (e) => e.ref.entityKey === input.request.draftKey,
     )!;
+    if (entry.record.category === 'move') throw new Error('Expected an archived draft');
     entry.record.level.name = 'Different archived draft';
     await expect(store.verificationInput(input.request.id)).rejects.toThrow('differs');
   } finally {

@@ -17,6 +17,8 @@ import { GameAudio } from './ui/audio';
 import { HomeScreen } from './ui/HomeScreen';
 import { PartyLobby } from './ui/PartyLobby';
 import { joinIntent } from './network/routes';
+import { ArkivPanel } from './ui/ArkivPanel';
+import { MoveSequence } from './ui/MoveSequence';
 import { PublishedLevels } from './ui/PublishedLevels';
 import { Leaderboards } from './ui/Leaderboards';
 import { TitleBackdrop } from './render/TitleBackdrop';
@@ -34,10 +36,6 @@ import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
 
-let resolveScene!: (scene: ChamberScene) => void;
-const sceneAvailable = new Promise<ChamberScene>((resolve) => {
-  resolveScene = resolve;
-});
 let connectingParty = false;
 
 const artworkStatus = document.createElement('div');
@@ -85,22 +83,37 @@ function view() {
   return client?.state?.level ? new RemoteView(client.state.level, client.state, inspection) : null;
 }
 function refresh() {
+  const artworkReady = !!scene?.artworkReady;
   const inLobby = playing && (client?.state?.party ? !client.state.party.started : connectingParty);
+  const status = client?.status ?? 'connecting';
+  const notice =
+    client?.notice ??
+    client?.loadingMessage ??
+    (!artworkReady && client?.state ? 'Loading chamber artwork…' : null);
   hud.root.hidden = !playing || inLobby;
   lobby.render(
     inLobby,
     client?.state ?? null,
-    client?.status ?? 'connecting',
+    status,
     client?.notice ?? null,
+    client?.loadingMessage ?? null,
   );
   hud.render(
     view(),
     client?.state ?? null,
-    client?.status ?? 'connecting',
-    client?.notice ?? null,
+    status === 'connected' && !artworkReady ? 'connecting' : status,
+    notice,
     completed,
     !!client?.canStudy,
     !!client?.otherPerspective,
+  );
+  explorer.context(client?.state?.publicationKey);
+  moveSequence.context(
+    auth.user?.id ?? null,
+    client?.state?.party?.id,
+    client?.state?.moveSequences ?? [],
+    inspection ?? client?.state?.history.at(-1)?.step ?? 0,
+    playing && !inLobby,
   );
   home.update(audio.enabled, pack.name, completed.size, levels.length, auth.user);
   applyThemeInterface(pack, auth.user, client?.status, !!client?.state?.partnerReady);
@@ -228,6 +241,16 @@ const home = new HomeScreen({
 });
 const watch = new WatchScreen(auth);
 const levelApi = new LevelClient(auth);
+const explorer = new ArkivPanel(levelApi);
+const moveSequence = new MoveSequence(
+  levelApi,
+  hud.root.querySelector('.timeline-row')!,
+  (step) => {
+    inspection = step;
+    scene?.redraw();
+    refresh();
+  },
+);
 const library = new PublishedLevels(levelApi, {
   home: () => {
     location.hash = '';
@@ -247,6 +270,7 @@ const lobby = new PartyLobby({
   ready: (ready) => client?.party({ type: 'ready', ready }),
   start: () => client?.party({ type: 'start' }),
   broadcast: (enabled) => client?.party({ type: 'broadcast', enabled }),
+  retry: () => client?.retryJoin(),
 });
 const editor = new EditorScreen(levelApi, {
   home: () => {
@@ -339,15 +363,13 @@ function syncScreen() {
         : auth.user
           ? 'home'
           : 'signin';
+  explorer.show(!!auth.user && (editing || browsing), auth.user?.id ?? null);
   connectingParty =
     intent?.kind === 'invite' || (intent?.kind === 'create' && intent.mode === 'coop');
   if (playing && intent) {
     client = new CoopClient(
       receive,
-      async () => {
-        await (await sceneAvailable).prepareArtwork(pack);
-        return auth.ticket();
-      },
+      () => auth.ticket(),
       () => auth.expired(),
       intent,
       (id) => {
@@ -483,7 +505,6 @@ class ChamberScene extends Phaser.Scene {
         document.body.append(artworkStatus);
       },
     );
-    resolveScene(this);
     this.scale.on('resize', () => this.redraw());
     this.redraw();
   }
@@ -654,6 +675,8 @@ if (import.meta.hot)
     client?.destroy();
     auth.destroy();
     editor.destroy();
+    explorer.destroy();
+    moveSequence.destroy();
     library.destroy();
     leaderboards.destroy();
     watch.destroy();

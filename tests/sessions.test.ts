@@ -188,3 +188,50 @@ it('returns a finished attempt to the same party, clears readiness and rejects p
     auth.close();
   }
 });
+it('sends progress before slow archive reads and cancels abandoned party creation', async () => {
+  const auth = new AuthService({ databasePath: ':memory:', demoEnabled: true }),
+    archive = new MemoryArchive(),
+    store = new LevelStore(':memory:', archive);
+  await store.seed(levels);
+  const hub = new Sessions(auth, store),
+    peer = new TestPeer(),
+    read = archive.read.bind(archive);
+  let release!: () => void,
+    active = true;
+  archive.read = async (ref) => {
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return read(ref);
+  };
+  try {
+    const joining = hub.join(
+      peer,
+      user('host'),
+      { kind: 'create', mode: 'coop', levelId: store.campaign()[0].id, player: 1 },
+      undefined,
+      () => active,
+    );
+    await expect
+      .poll(() => peer.messages.some((m) => m.type === 'joining' && m.stage === 'level'))
+      .toBe(true);
+    expect(peer.messages.some((m) => m.type === 'state' || m.type === 'welcome')).toBe(false);
+    active = false;
+    release();
+    await expect(joining).rejects.toThrow('cancelled');
+    archive.read = read;
+    const retry = new TestPeer();
+    await hub.join(retry, user('host'), {
+      kind: 'create',
+      mode: 'coop',
+      levelId: store.campaign()[0].id,
+      player: 1,
+    });
+    expect(retry.state.party?.host).toBe(true);
+  } finally {
+    hub.close();
+    await store.drain();
+    store.close();
+    auth.close();
+  }
+});
