@@ -1,4 +1,4 @@
-import {it,expect} from 'vitest';
+import {it,expect,vi} from 'vitest';
 import {LevelStore} from '../server/levels/LevelStore';
 import {MemoryArchive} from '../server/arkiv/archive';
 import {levels} from '../server/data/campaign';
@@ -44,6 +44,22 @@ it('pages an ordered ranking without losing the personal rank or leaking identit
   const rows=Array.from({length:60},(_,i)=>({accountId:String(i)}));
   const page=rankingPage(rows,'59',1,(_row,rank,isYou)=>({rank,isYou}));
   expect(page.entries).toHaveLength(25);expect(page.entries[0].rank).toBe(26);expect(page.me).toEqual({rank:60,isYou:true});expect(page.total).toBe(60);
+});
+
+it('improves a best score, ignores slower wins, and ranks earlier equal scores first',async()=>{
+  const archive=new MemoryArchive(),store=new LevelStore(':memory:',archive);
+  const fast={...levels[0],width:4,height:4,walls:[],iceTiles:[],initialP1:[1,1],initialP2:[4,4],initialBoxesP1:[[2,2]],initialBoxesP2:[[2,2]],weldTargets:[[2,2]],switchesP1:[[2,2]],switchesP2:[[2,2]],exitP1:[2,1],exitP2:[3,4],solutionP1:['W','W','W','W','R'],solutionP2:['W','W','W','W','L']};
+  try{
+    const draft=await store.save('owner','Owner',fast);await store.publish('owner',draft.id,1);const snapshot=store.published(draft.id)!;
+    const quick:[import('../src/core/types').Direction[],import('../src/core/types').Direction[]]=[['W','W','W','W','R'],['W','W','W','W','L']];
+    const slow:[import('../src/core/types').Direction[],import('../src/core/types').Direction[]]=[['W','W','W','W','W','R'],['W','W','W','W','W','L']];
+    vi.spyOn(Date,'now').mockReturnValue(1000);await store.captureRun(snapshot,{id:'a',displayName:'Atlas'},1,slow,'coop','live');
+    vi.mocked(Date.now).mockReturnValue(2000);await store.captureRun(snapshot,{id:'b',displayName:'Nova'},2,quick,'coop','live');
+    vi.mocked(Date.now).mockReturnValue(3000);await store.captureRun(snapshot,{id:'a',displayName:'Atlas'},1,quick,'coop','live');
+    vi.mocked(Date.now).mockReturnValue(4000);await store.captureRun(snapshot,{id:'a',displayName:'Atlas'},1,slow,'coop','live');
+    const board=store.scores(snapshot.ref!.entityKey,'a','coop');
+    expect(board.entries.map(row=>[row.name,row.turns,row.achievedAt])).toEqual([['Nova',5,2000],['Atlas',5,3000]]);expect(board.me?.rank).toBe(2);
+  }finally{vi.restoreAllMocks();await store.drain();store.close();}
 });
 
 it('authenticates leaderboard reads and hearts, rejects CSRF and stale revisions, and extends once per account',async()=>{

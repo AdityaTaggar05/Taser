@@ -93,7 +93,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
     const log=extension?{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'ExpiryExtended',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'}],[expiresAt])}:{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[3700n,1])};
     return {status:'success',transactionHash:keccak256(raw),blockNumber:100n,blockHash,logs:[{address:'0x4400000000000000000000000000000000000044',...log}]} as never;
   });
-  vi.spyOn(reader,'getTransaction').mockImplementation(async({hash:txHash})=>{const serialized=sent.get(txHash)!,tx=parseTransaction(serialized);return {...tx,hash:keccak256(serialized),from:account.address,input:tx.data} as never;});
+  vi.spyOn(reader,'getTransaction').mockImplementation(async({hash:txHash})=>{const serialized=sent.get(txHash!)!,tx=parseTransaction(serialized);return {...tx,hash:keccak256(serialized),from:account.address,input:tx.data} as never;});
   vi.spyOn(reader,'getEntity').mockImplementation(async()=>{
     if(!readbackAvailable)throw new Error('Readback unavailable');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
