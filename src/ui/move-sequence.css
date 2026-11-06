@@ -2,4 +2,4 @@
 @media(max-width:1000px){.console:has(.move-sequence:not([hidden])){height:228px}.timeline-row:has(.move-sequence:not([hidden])){height:145px;flex-wrap:wrap;align-content:center;gap:5px 10px}.timeline-row .move-sequence:not([hidden]){order:4;flex:1 0 100%;height:73px;padding:5px 0;border:0;border-top:1px solid var(--line)}.timeline-row:has(.move-sequence:not([hidden])) .timeline{flex:1}.outcome{z-index:2}body[data-screen=play]:has(.move-sequence:not([hidden])) .outcome{bottom:245px}body[data-screen=play]:has(.move-sequence:not([hidden])) .hint{bottom:240px}}
 @media(max-width:760px){.console:has(.move-sequence:not([hidden])){height:240px}.timeline-row:has(.move-sequence:not([hidden])){height:148px}.move-sequence-heading{font-size:8px}.move-sequence-heading strong span{margin-left:9px}.move-pairs button{width:68px}.move-cell{line-height:21px}.move-sequence-empty{padding:12px 0}.history-actions{flex-shrink:0}}
 
-.move-cell[data-move=W]{font-size:8px;letter-spacing:-.4px}
+.move-cell[data-direction=W]{font-size:8px;letter-spacing:-.4px}
