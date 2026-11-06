@@ -452,6 +452,21 @@ export class CoopRoom {
               ? 'An operator entered an active laser. Undo and find a safe route.'
               : s.message,
       })),
+      positionHistory: this.engine.stateStack.map((s) => ({
+        step: s.step,
+        p1Pos: [...s.p1Pos],
+        p2Pos: [...s.p2Pos],
+        boxesP1: copyBoxes(s.boxesP1),
+        boxesP2: copyBoxes(s.boxesP2),
+        ...(s.step > 0 && this.inputs[0][s.step - 1] && this.inputs[1][s.step - 1]
+          ? {
+              inputs: [this.inputs[0][s.step - 1], this.inputs[1][s.step - 1]] as [
+                Direction,
+                Direction,
+              ],
+            }
+          : {}),
+      })),
       nextBoxes: this.engine.nextBoxes(player),
       shove: this.engine.lastShoves[index],
       pendingMove: this.pending[index],

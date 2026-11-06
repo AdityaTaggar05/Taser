@@ -17,20 +17,25 @@ try {
   await page.goto(base);
   await page.getByRole('button', { name: 'Use Atlas', exact: true }).click();
   await page.getByRole('button', { name: 'Sign in ↗', exact: true }).click();
-  await page.evaluate(() => (location.hash = 'solo/campaign'));
-  await page.locator('.archive-card').first().waitFor();
   const panel = page.locator('#arkiv-panel'),
-    toggle = panel.locator('button');
-  await toggle.click();
+    toggle = panel.locator('.arkiv-toggle');
   await panel.getByText('Test archive · no blockchain writes', { exact: true }).waitFor();
   assert.equal(await panel.locator('a[href*="explorer.arkiv.network"]').count(), 0);
-  await toggle.focus();
-  await page.keyboard.press('Enter');
-  assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
-  await page.keyboard.press('Enter');
-  assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
-  await page.keyboard.press('Escape');
-  assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(await panel.locator('.arkiv-memory-grid button').count(), 6);
+  await page.screenshot({ path: '/tmp/block-explorer-home-desktop.png' });
+  await panel.locator('[data-category="theme"]').click();
+  assert.match(
+    await panel.locator('.arkiv-chain-query pre').first().textContent(),
+    /ThemeEntities/,
+  );
+  await panel.locator('[data-category="move"]').click();
+  assert.match(
+    await panel.locator('.arkiv-chain-query pre').first().textContent(),
+    /eq\('category', 'move'\)/,
+  );
+  await page.evaluate(() => (location.hash = 'solo/campaign'));
+  await page.locator('.archive-card').first().waitFor();
+  await panel.waitFor({ state: 'hidden' });
   await page
     .locator('.archive-card')
     .first()
@@ -80,25 +85,32 @@ try {
       ?.textContent?.includes('Your winning run is published.'),
   );
   await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
   await page.screenshot({ path: '/tmp/block-explorer-gameplay-mobile.png' });
+  await page.keyboard.press('Escape');
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
   const rect = await page.locator('.move-sequence').boundingBox();
   assert(rect.x >= 0 && rect.x + rect.width <= 390 && rect.y >= 0);
   await page.screenshot({ path: '/tmp/block-explorer-minimized-mobile.png' });
   await page.getByRole('button', { name: 'Return to home', exact: true }).click();
+  await panel.waitFor();
+  await panel.locator('.arkiv-guide').waitFor();
+  await page.screenshot({ path: '/tmp/block-explorer-home-mobile.png' });
+  await page.evaluate(() => (location.hash = 'create'));
   await panel.waitFor({ state: 'hidden' });
   await page.waitForTimeout(200);
   const stopped = polls;
   await page.waitForTimeout(3300);
-  assert.equal(polls, stopped, 'polling stops on home');
-  await page.evaluate(() => (location.hash = 'create'));
-  await panel.waitFor();
-  await toggle.click();
+  assert.equal(polls, stopped, 'polling stops in the creator');
   await page.locator('[data-editor=save]').click();
-  await panel.getByText('Draft revision 1', { exact: true }).waitFor();
   await page.screenshot({ path: '/tmp/block-explorer-creator-mobile.png' });
   // Mocked live-style responses test links and state rendering only. They are not live-chain evidence.
   const tx = '0x' + 'ab'.repeat(32),
     entity = '0x' + 'cd'.repeat(32);
+  let verifyMockMove = false;
   await page.route('**/levels/activity', (route) =>
     route.fulfill({
       json: {
@@ -118,8 +130,9 @@ try {
             kind: 'move',
             label: 'Mock submitted turn',
             createdAt: Date.now(),
-            state: 'pending',
+            state: verifyMockMove ? 'confirmed' : 'pending',
             txHash: tx,
+            entityKey: verifyMockMove ? entity : undefined,
           },
           {
             id: 'mock:3',
@@ -134,9 +147,6 @@ try {
     }),
   );
   await page.evaluate(() => (location.hash = ''));
-  await page.waitForTimeout(100);
-  await page.evaluate(() => (location.hash = 'solo/campaign'));
-  await page.locator('.archive-card').first().waitFor();
   await panel.getByText('Mock confirmed turn', { exact: true }).waitFor();
   assert.equal(
     await panel
@@ -151,13 +161,20 @@ try {
   );
   await panel.getByText('Pending verification', { exact: true }).waitFor();
   await panel.getByText('Failed', { exact: true }).waitFor();
+  assert.equal(await page.locator('.arkiv-arrival').count(), 0, 'history loads quietly');
+  verifyMockMove = true;
+  await page.locator('.arkiv-arrival[data-activity-id="mock:2"]').waitFor();
+  await page.screenshot({ path: '/tmp/block-explorer-verified-arrival.png' });
   await page.route('**/levels/runs/**', async (route) => {
     const response = await route.fetch();
     const data = await response.json();
     data.runs = data.runs.map((r) => ({ ...r, storage: 'arkiv', txHash: tx, entityKey: entity }));
     await route.fulfill({ json: data });
   });
-  await toggle.click();
+  await page.evaluate(() => (location.hash = 'solo/campaign'));
+  await page.locator('.archive-card').first().waitFor();
+  await panel.waitFor({ state: 'hidden' });
+  assert.equal(await page.locator('.arkiv-arrival').count(), 0, 'navigation clears arrivals');
   await page
     .locator('.archive-card')
     .first()
@@ -172,7 +189,7 @@ try {
       .getAttribute('href'),
     `https://rabdi.explorer.arkiv.network/tx/${tx}`,
   );
-  await toggle.click();
+  await panel.waitFor({ state: 'hidden' });
   await page.screenshot({ path: '/tmp/block-explorer-runs-mobile.png' });
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(
@@ -185,10 +202,11 @@ try {
           'solo move pairs + undo/reset + reconnect',
           'write failure + recovery',
           'winning-run publication',
-          'home polling cleanup',
-          'creator save',
+          'home record guide and direct chain query examples',
+          'creator and browsing hide the panel; inactive polling cleanup',
           '390px viewport',
           'mocked live-style pending/confirmed/failed and explorer links',
+          'verified move flies in; historical receipts stay quiet; navigation clears animations',
           'player-run entity/transaction links (mocked)',
         ],
         pageErrors: errors,

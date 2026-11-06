@@ -173,7 +173,7 @@ it('uses the socket-assigned role, never a player number supplied in a command',
   expect(b.state.pendingMove).toBeNull();
   expect(frame(b).step).toBe(0);
 });
-it('sends only own history, own queued move and partner readiness', () => {
+it('keeps the board projection and queued move private while sharing committed position history', () => {
   const { room, a, b } = setup();
   send(room, b, { type: 'move', direction: 'D' });
   expect(a.state.pendingMove).toBeNull();
@@ -184,6 +184,35 @@ it('sends only own history, own queued move and partner readiness', () => {
   expect(a.state).not.toHaveProperty('token');
   expect(a.state).not.toHaveProperty('partnerMove');
   expect(a.state).not.toHaveProperty('boxesP2');
+  expect(a.state.positionHistory).toHaveLength(1);
+  expect(a.state.positionHistory?.[0]).not.toHaveProperty('inputs');
+  expect(a.state.positionHistory).toEqual(b.state.positionHistory);
+});
+it('shares both players and all blocks only through committed turns and truncates them on undo/reset', () => {
+  const { room, a, b } = setup();
+  const initial = structuredClone(a.state.positionHistory);
+  send(room, a, { type: 'move', direction: 'U' });
+  expect(a.state.positionHistory).toEqual(initial);
+  send(room, b, { type: 'move', direction: 'D' });
+  const positions = a.state.positionHistory!;
+  expect(positions).toHaveLength(2);
+  expect(positions[1]).toEqual({
+    step: 1,
+    p1Pos: frame(a).position,
+    p2Pos: frame(b).position,
+    boxesP1: frame(a).boxes,
+    boxesP2: frame(b).boxes,
+    inputs: ['U', 'D'],
+  });
+  expect(b.state.positionHistory).toEqual(positions);
+  expect(a.state.level?.solutionP1).toEqual([]);
+  expect(a.state.level?.solutionP2).toEqual([]);
+  send(room, a, { type: 'undo' });
+  expect(a.state.positionHistory).toEqual(initial);
+  send(room, a, { type: 'move', direction: 'U' });
+  send(room, b, { type: 'move', direction: 'D' });
+  send(room, b, { type: 'reset' });
+  expect(a.state.positionHistory).toEqual(initial);
 });
 it('rejects malformed protocol messages without changing the timeline', () => {
   const { room, a } = setup();

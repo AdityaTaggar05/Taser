@@ -91,6 +91,13 @@ function view() {
 function refresh() {
   const artworkReady = !!scene?.artworkReady;
   const inLobby = playing && (client?.state?.party ? !client.state.party.started : connectingParty);
+  document.body.dataset.gameplay = String(playing && !inLobby);
+  explorer.show(
+    !!auth.user && (!home.root.hidden || (playing && !inLobby && !!client?.state?.level)),
+    auth.user?.id ?? null,
+    playing,
+    home.archiveSlot,
+  );
   const status = client?.status ?? 'connecting';
   const notice =
     client?.notice ??
@@ -113,7 +120,11 @@ function refresh() {
     !!client?.canStudy,
     !!client?.otherPerspective,
   );
-  explorer.context(client?.state?.publicationKey);
+  explorer.context(
+    client?.state?.publicationKey,
+    playing && !inLobby ? (client?.state ?? undefined) : undefined,
+    inspection ?? client?.state?.history.at(-1)?.step ?? 0,
+  );
   moveSequence.context(
     auth.user?.id ?? null,
     client?.state?.party?.id,
@@ -250,7 +261,11 @@ const home = new HomeScreen({
   },
 });
 const levelApi = new LevelClient(auth);
-const explorer = new ArkivPanel(levelApi);
+const explorer = new ArkivPanel(levelApi, (step) => {
+  inspection = step === (client?.state?.history.length ?? 0) - 1 ? null : step;
+  scene?.redraw();
+  refresh();
+});
 const moveSequence = new MoveSequence(
   levelApi,
   hud.root.querySelector('.timeline-row')!,
@@ -369,7 +384,6 @@ function syncScreen() {
         : auth.user
           ? 'home'
           : 'signin';
-  explorer.show(!!auth.user && (editing || browsing), auth.user?.id ?? null);
   connectingParty =
     intent?.kind === 'invite' || (intent?.kind === 'create' && intent.mode === 'coop');
   if (playing && intent) {
@@ -597,7 +611,7 @@ class ChamberScene extends Phaser.Scene {
         this.board?.destroy();
         this.board = new BoardView(this, index);
       }
-      const width = this.scale.width,
+      const width = hud.root.getBoundingClientRect().width,
         top = document.querySelector('.mission')!.getBoundingClientRect().bottom + 48;
       const bottom = document.querySelector('.console')!.getBoundingClientRect().top - 10,
         side = width < 700 ? 8 : 24;

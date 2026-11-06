@@ -554,3 +554,59 @@
 body[data-screen='home'] #hud {
   display: none;
 }
+.home-archive-slot {
+  position: absolute;
+  top: calc(var(--home-header-height) + var(--home-content-gap));
+  bottom: calc(var(--home-footer-height) + var(--home-content-gap));
+  right: 48px;
+  width: min(47vw, 620px);
+  min-height: 0;
+}
+#home .home-art-label {
+  display: none;
+}
+@media (max-width: 1099px), (max-height: 520px) {
+  #home {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #home .home-top {
+    position: relative;
+    inset: auto;
+    margin: 0 24px;
+  }
+  #home .home-content {
+    position: relative;
+    inset: auto;
+    display: flex;
+    width: auto;
+    max-width: 540px;
+    margin: 32px auto 36px;
+    padding: 0 24px;
+  }
+  #home .home-menu {
+    width: 100%;
+    max-width: none;
+  }
+  #home .home-archive-slot {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-width: 540px;
+    margin: 0 auto 32px;
+    padding: 0 24px;
+  }
+  #home #arkiv-panel[data-placement='home'] {
+    height: auto;
+  }
+  #home #arkiv-panel-content {
+    overflow: visible;
+  }
+  #home .home-footer {
+    position: relative;
+    inset: auto;
+    margin: 0 24px;
+    min-height: 52px;
+  }
+}

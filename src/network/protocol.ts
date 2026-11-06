@@ -8,6 +8,15 @@ export interface PlayerFrame {
   status: GameStatus;
   message: string;
 }
+/** Shared positions from committed turns only, never queued or future inputs. */
+export interface PositionFrame {
+  step: number;
+  p1Pos: Coord;
+  p2Pos: Coord;
+  boxesP1: Coord[];
+  boxesP2: Coord[];
+  inputs?: [Direction, Direction];
+}
 export interface SessionState {
   type: 'state';
   mode?: PlayMode;
@@ -26,6 +35,7 @@ export interface SessionState {
   solutionAvailable?: boolean;
   moveSequences?: number[];
   history: PlayerFrame[];
+  positionHistory?: PositionFrame[];
   nextBoxes: Coord[] | null;
   shove: number | null;
   pendingMove: Direction | null;

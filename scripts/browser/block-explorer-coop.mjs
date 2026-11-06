@@ -19,6 +19,7 @@ try {
   await a.locator('.archive-card').first().getByRole('link', { name: 'Choose P1 / P2 ↗' }).click();
   await a.locator('.role-link').first().click();
   await a.locator('.party-code').waitFor({ timeout: 12000 });
+  await a.locator('#arkiv-panel').waitFor({ state: 'hidden' });
   console.log('Co-op: party created');
   await a.waitForFunction(() => document.querySelector('.party-code')?.textContent?.length === 6);
   const code = await a.locator('.party-code').textContent();
@@ -33,22 +34,31 @@ try {
   await a.getByRole('button', { name: 'Move up', exact: true }).click();
   assert.equal(await a.locator('#turn').textContent(), '00');
   await a.getByRole('button', { name: 'Cancel', exact: true }).click();
+  const guestInitialClock = await b.locator('#turn').textContent();
   await b.getByRole('button', { name: 'Move down', exact: true }).click();
-  assert.equal(await b.locator('#turn').textContent(), '00');
+  assert.equal(await b.locator('#turn').textContent(), guestInitialClock);
   await a.getByRole('button', { name: 'Move up', exact: true }).click();
   for (const p of [a, b]) {
-    await p.waitForFunction(() => document.querySelector('#turn')?.textContent === '01');
+    await p.waitForFunction(() =>
+      document.querySelector('.arkiv-context-turn')?.textContent?.startsWith('T01'),
+    );
+    await p.locator('#arkiv-panel').waitFor();
+    assert.equal(await p.locator('.arkiv-guide').isVisible(), false);
     await p.locator('.move-pairs [data-sequence="1"]').waitFor();
     await p.locator('.move-pairs [data-state=confirmed]').waitFor();
   }
   await a.screenshot({ path: '/tmp/block-explorer-coop-desktop.png' });
   await a.locator('#reset').click();
   for (const p of [a, b])
-    await p.waitForFunction(() => document.querySelector('#turn')?.textContent === '00');
+    await p.waitForFunction(() =>
+      document.querySelector('.arkiv-context-turn')?.textContent?.startsWith('T00'),
+    );
   await a.getByRole('button', { name: 'Move up', exact: true }).click();
   await b.getByRole('button', { name: 'Move down', exact: true }).click();
   await b.reload();
-  await b.waitForFunction(() => document.querySelector('#turn')?.textContent === '01');
+  await b.waitForFunction(() =>
+    document.querySelector('.arkiv-context-turn')?.textContent?.startsWith('T01'),
+  );
   await b.locator('.move-pairs [data-sequence="2"]').waitFor();
   await a.getByRole('button', { name: 'Return to home', exact: true }).click();
   assert.equal(errors.length, 0, errors.join('\n'));

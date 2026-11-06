@@ -14,6 +14,7 @@ interface HomeActions {
 }
 export class HomeScreen {
   readonly root = document.createElement('main');
+  readonly archiveSlot = document.createElement('div');
 
   constructor(private actions: HomeActions) {
     this.root.id = 'home';
@@ -126,7 +127,8 @@ export class HomeScreen {
         <p>
           Choose Co-op to host a private party: share its invite link or code, both confirm Ready,
           then the host starts. Choose Solo to play alongside a fixed creator solution or a winning
-          player run. Each operator sees only their own timeline.
+          player run. Each operator controls their own timeline; the gameplay sidebar shows both
+          players’ recorded positions.
         </p>
         <ol>
           <li>
@@ -214,6 +216,8 @@ export class HomeScreen {
         <button class="home-dialog-primary" data-home-action="close">Back to the timeline ↗</button>
       </dialog>
     `;
+    this.archiveSlot.className = 'home-archive-slot';
+    this.root.querySelector('.home-footer')!.before(this.archiveSlot);
     document.body.append(this.root);
     this.root.addEventListener('click', (e) => {
       const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-home-action]');
