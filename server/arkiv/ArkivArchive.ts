@@ -4,7 +4,7 @@ import {resolve,dirname} from 'node:path';
 import {createHash,randomBytes} from 'node:crypto';
 import {createPublicClient,createWalletClient,ExpirationTime,ENTITY_EVENTS_ABI,type TxParams} from '@arkiv-network/sdk';
 import {rabdi} from '@arkiv-network/sdk/chains';
-import {asc,eq,and,gt} from '@arkiv-network/sdk/query';
+import {asc,eq,and,or,gt} from '@arkiv-network/sdk/query';
 import {key,u64} from '@arkiv-network/sdk/schema';
 import {custom,http,hexToBytes,bytesToHex,keccak256,parseEther,parseTransaction,recoverTransactionAddress,decodeEventLog,MethodNotFoundRpcError,type Hex,type LocalAccount,type TransactionSerialized,type Transport} from 'viem';
 import {getGasPrice} from 'viem/actions';
@@ -64,27 +64,28 @@ export class ArkivArchive implements LevelArchive {
     this.db.prepare("INSERT OR IGNORE INTO arkiv_identity VALUES('genesis',?)").run(genesis);return genesis;
   }
   private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
-  private optionsFor(plan:Plan){return {expiration:ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
+  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:record.lifetimeDays===2?ExpirationTime.fromDays(2):ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||
-      !['draft','community','campaign'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
+      !['draft','community','campaign','run'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
       (expected&&row.ciphertext.value.toLowerCase()!==expected.ciphertext.toLowerCase()))throw new ArchiveError(503,'Untrusted Arkiv level publication.');
   }
   private async entity(entityKey:string){const row=await this.reader.getEntity(entityKey as Hex,LevelEntities);if(row.$key.toLowerCase()!==entityKey.toLowerCase())throw new ArchiveError(503,'Arkiv returned a different entity identity.');return row;}
   private async decode(row:Awaited<ReturnType<typeof this.entity>>){this.trusted(row);return this.cipher.decrypt(hexToBytes(row.ciphertext.value),{id:row.record_id.value,revision:Number(row.revision.value),category:row.category.value});}
+  async head(){try{await this.identity();return await this.reader.getBlockNumber({cacheTime:0});}catch(error){throw this.safe(error,'Arkiv availability could not be checked.');}}
   async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
   async list():Promise<ArchivedLevel[]>{
     try{
       await this.identity();const found:ArchivedLevel[]=[];let last:Hex|undefined;
+      const scope=and(eq('namespace',this.options.namespace),or(eq('category','draft'),eq('category','community'),eq('category','campaign'),eq('category','run')));
+      // Limit discovery to the level and replay categories this release understands.
       // Bounded current-state traversal, not a historical snapshot. Fail on incomplete scans.
       for(let page=0;page<100;page++){
         const query=this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
-          .where(last?and(eq('namespace',this.options.namespace),gt('$key',key(last))):eq('namespace',this.options.namespace)).orderBy(asc('$key')).limit(100);
+          .where(last?and(scope,gt('$key',key(last))):scope).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
         for(const row of result.entities){
-          // Other record categories can share this schema and namespace.
-          if(!['draft','community','campaign'].includes(row.category.value))continue;
           const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
         }
         if(result.entities.length<100)return found;

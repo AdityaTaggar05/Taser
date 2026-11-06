@@ -5,6 +5,7 @@ export class LevelClient {
   constructor(private auth:AuthClient){}
   async mine(){return (await this.auth.levelRequest<{levels:LevelSummary[]}>()).levels;}
   async community(){return (await this.auth.levelRequest<{levels:LevelSummary[]}>('/community')).levels;}
+  async runs(id:string,role:1|2){return (await this.auth.levelRequest<{runs:import('./types').RunSummary[]}>(`/runs/${id}/${role}`)).runs;}
   catalog(){return this.auth.levelRequest<LevelCatalog>('/catalog');}
   template(id:string){return this.auth.levelRequest<{level:LevelConfig}>(`/campaign/${id}/template`);}
   solution(entityKey:string){return this.auth.levelRequest<ReferenceSolution>(`/solution/${entityKey}`);}

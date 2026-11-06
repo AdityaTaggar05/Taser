@@ -9,7 +9,7 @@ async function setup(server:Pick<ViteDevServer,'httpServer'|'middlewares'>|Pick<
   const auth=new AuthService({demoEnabled:process.env.DEMO_AUTH==='true'||(dev&&process.env.DEMO_AUTH!=='false')});
   const levels=await levelRuntime(auth),api=applicationApi(auth,levels);
   server.middlewares.use((req,res,next)=>{if(req.url?.startsWith('/api/auth/'))void api(req,res);else next();});
-  const close=attachCoop(server.httpServer,auth,undefined,levels);server.httpServer.once('close',()=>{close();levels.close();auth.close();});
+  const close=attachCoop(server.httpServer,auth,undefined,levels);server.httpServer.once('close',()=>{close();void levels.drain().finally(()=>{levels.close();auth.close();});});
 }
 function coop():Plugin {
   return { name:'weldpoint-coop',

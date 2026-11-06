@@ -1,69 +1,72 @@
 import './published.css';
 import type {LevelClient} from '../editor/LevelClient';
 import type {LevelSummary} from '../editor/types';
-import type {Player} from '../network/protocol';
-
-/** Metadata only: no puzzle layout or reference route is requested here. */
+import {INVITE_LENGTH,INVITE_PATTERN,normalizeInviteCode} from '../network/invite';
 export class PublishedLevels {
-  readonly root=document.createElement('main');
-  private request=0;
-  private category:'community'|'campaign'='community';
-  private selected:string|undefined;
-  private choosing=false;
-  private entries:LevelSummary[]=[];
-  constructor(private api:LevelClient,private actions:{home:()=>void;play:(id:string|undefined,player:Player)=>void;fullscreen:()=>void}){
-    this.root.id='published-levels';this.root.hidden=true;
-    this.root.innerHTML=`<header class="published-header"><button data-library="home">← Home</button><span>WELDPOINT / CHAMBER ARCHIVE</span><button data-library="fullscreen" aria-label="Fullscreen">⛶</button></header><section class="published-content"><p class="archive-kicker">BUILT BY OPERATORS · STORED ON ARKIV</p><h1>Published levels</h1><p class="archive-intro">Pick a chamber. Choose your perspective. Meet in the middle.</p><nav class="archive-tabs" aria-label="Level collection"><button data-library="community">Community</button><button data-library="campaign">Campaign</button><button data-library="refresh">Refresh ↻</button></nav><p class="archive-status" role="status"></p><div class="archive-grid"></div><section class="role-choice" hidden aria-labelledby="role-title"><p class="archive-kicker">CHOOSE YOUR PERSPECTIVE</p><h2 id="role-title">Enter the timeline</h2><p class="role-level"></p><div class="role-options"><button data-player="1"><b>P1 <span>→</span></b><strong>Forward time</strong><small>Write the past. Your partner’s history becomes your way out.</small></button><button data-player="2"><b>P2 <span>←</span></b><strong>Reverse time</strong><small>Start at the other end. Meet your partner at the midpoint.</small></button></div><p class="role-note">Two signed-in players must choose opposite roles on the same chamber. An occupied role waits until it is free. This playtest has one shared room.</p><button data-library="back">← Published levels</button></section></section>`;
-    document.body.append(this.root);
-    this.root.addEventListener('click',event=>{
-      const button=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!button)return;
-      if(button.dataset.player){this.actions.play(this.selected,Number(button.dataset.player) as Player);return;}
-      const action=button.dataset.library;
-      if(action==='home')this.actions.home();
-      else if(action==='fullscreen')this.actions.fullscreen();
-      else if(action==='back')location.hash='community';
-      else if(action==='community'||action==='campaign'){this.category=action;void this.load();}
-      else if(action==='refresh')void this.load();
-    });
+  readonly root=document.createElement('main');private request=0;
+  constructor(private api:LevelClient,private actions:{home:()=>void;fullscreen:()=>void}){
+    this.root.id='published-levels';this.root.hidden=true;document.body.append(this.root);
   }
-  show(visible:boolean,choosing=false,id?:string){
-    this.root.hidden=!visible;this.root.classList.toggle("choosing-role",choosing);this.request++;this.choosing=choosing;this.selected=id;
-    if(!visible){this.entries=[];this.root.querySelector('.archive-grid')!.replaceChildren();return;}
-    this.root.querySelector('h1')!.textContent=choosing?'Choose your role':'Published levels';
-    this.root.querySelector<HTMLElement>('.archive-tabs')!.hidden=choosing;
-    this.root.querySelector<HTMLElement>('.archive-grid')!.hidden=choosing;
-    this.root.querySelector<HTMLElement>('.role-choice')!.hidden=!choosing;
-    this.root.querySelector<HTMLElement>('.archive-intro')!.hidden=choosing;
-    const selected=this.entries.find(level=>level.id===id);
-    this.root.querySelector('.role-level')!.textContent=selected?selected.name:id?'Published chamber / '+id:'Campaign / shared co-op room';
-    this.status('');this.root.querySelector<HTMLElement>('.archive-status')!.hidden=choosing;
-    if(!choosing)void this.load();
-  }
-  private status(message:string){this.root.querySelector('.archive-status')!.textContent=message;}
-  private async load(){
-    const request=++this.request;
-    this.root.querySelectorAll<HTMLButtonElement>('.archive-tabs button[data-library=community],.archive-tabs button[data-library=campaign]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.library===this.category)));
-    this.root.querySelector('.archive-grid')!.setAttribute('aria-busy','true');
-    this.root.querySelector('.archive-grid')!.replaceChildren();this.status('Loading confirmed publications…');
-    try{
-      const entries=this.category==='community'?await this.api.community():(await this.api.catalog()).campaign;
-      if(request!==this.request||this.root.hidden||this.choosing)return;
-      this.entries=entries;this.render();
-    }catch(error){if(request===this.request)this.status((error as Error).message+' Use Refresh to retry.');}
-    finally{if(request===this.request)this.root.querySelector('.archive-grid')!.setAttribute('aria-busy','false');}
-  }
-  private render(){
-    const grid=this.root.querySelector('.archive-grid')!;grid.replaceChildren();
-    this.status(this.entries.length?`${this.entries.length} published ${this.entries.length===1?'chamber':'chambers'} · verified winning solutions`:'No community chambers yet. Publish a winning level in Level creator, or explore Campaign.');
-    for(const level of this.entries){
-      const card=document.createElement('article');card.className='archive-card';
-      const meta=document.createElement('p');meta.className='archive-kicker';meta.textContent=`${level.width} × ${level.height} / ${level.totalSteps} TURNS / REV ${level.publishedRevision??level.revision}`;
-      const name=document.createElement('h2');name.textContent=level.name;
-      const subtitle=document.createElement('p');subtitle.className='archive-subtitle';subtitle.textContent=level.subtitle;
-      const author=document.createElement('p');author.className='archive-author';author.textContent=`By ${level.ownerName}`;
-      const play=document.createElement('a');play.href='#play/'+level.id;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';
-      card.append(meta,name,subtitle,author,play);grid.append(card);
+  show(visible:boolean,hash=''){
+    this.root.hidden=!visible;const request=++this.request;if(!visible){this.root.replaceChildren();return;}
+    this.root.innerHTML=`<header class="published-header"><button data-menu="home">← Home</button><span>WELDPOINT / CHALLENGES</span><button data-menu="fullscreen" aria-label="Fullscreen">⛶</button></header><section class="published-content"><p class="archive-kicker">TWO PERSPECTIVES · ONE TIMELINE</p><h1></h1><p class="archive-intro"></p><div class="menu-body"></div><p class="archive-status" role="status"></p></section>`;
+    this.root.querySelector('[data-menu=home]')!.addEventListener('click',this.actions.home);this.root.querySelector('[data-menu=fullscreen]')!.addEventListener('click',this.actions.fullscreen);
+    const body=this.root.querySelector('.menu-body')!,title=this.root.querySelector('h1')!,intro=this.root.querySelector('.archive-intro')!;
+    const mode=/^#(solo|coop)/.exec(hash)?.[1] as 'solo'|'coop'|undefined;
+    const selected=/\/(?:campaign|community|chamber)\/([a-f0-9-]{36})/.exec(hash)?.[1];
+    const legacy=/^#play\/([a-f0-9-]{36})/.exec(hash)?.[1];
+    const category=hash.includes('/campaign')?'campaign':'community';
+    const role=/\/p([12])/.exec(hash)?.[1];
+    const status=(message:string)=>{if(this.request===request)this.root.querySelector('.archive-status')!.textContent=message;};
+    const link=(text:string,href:string,parent=body,css='archive-play')=>{const a=document.createElement('a');a.textContent=text;a.href=href;a.className=css;parent.append(a);return a;};
+    if(!mode){
+      title.textContent='Choose how to play';intro.textContent='A live partner or an echo from another timeline.';
+      const choices=document.createElement('div');choices.className='mode-choice';body.append(choices);
+      link('Co-op →',legacy?'#coop/chamber/'+legacy:'#coop',choices);link('Solo →',legacy?'#solo/chamber/'+legacy:'#solo',choices);return;
     }
+    if(!hash.includes('/')){
+      title.textContent=mode==='solo'?'Solo challenges':'Co-op challenges';intro.textContent=mode==='solo'?'Choose a chamber, then play alongside a fixed creator or player replay.':'Choose a chamber and invite your partner to a private party.';
+      const choices=document.createElement('div');choices.className='collection-choice';body.append(choices);
+      link('Campaign →','#'+mode+'/campaign',choices);link('Community →','#'+mode+'/community',choices);
+      if(mode==='coop'){
+        const form=document.createElement('form');form.className='join-code-form';form.innerHTML=`<label for="invite-code">Have an invitation?</label><input id="invite-code" required maxlength="${INVITE_LENGTH}" minlength="${INVITE_LENGTH}" placeholder="6-character code" autocomplete="off" autocapitalize="characters" spellcheck="false" pattern="${INVITE_PATTERN}"/><button type="submit">Join party ↗</button>`;
+        form.onsubmit=event=>{event.preventDefault();const code=normalizeInviteCode(form.querySelector('input')!.value);if(code)location.hash='invite/'+code;};body.append(form);
+      }return;
+    }
+    if(selected&&!role){
+      title.textContent='Choose your role';intro.textContent=mode==='coop'?'Your invited partner will take the opposite role.':'Your replay partner will play the opposite role.';
+      const choices=document.createElement('div');choices.className='role-options';body.append(choices);
+      for(const player of [1,2]){const a=link('',hash+'/p'+player,choices,'role-link');a.dataset.player=String(player);a.innerHTML=`<b>P${player} <span>${player===1?'→':'←'}</span></b><strong>${player===1?'Forward':'Reverse'} time</strong><small>${player===1?'Write the past. Find your way out through your partner’s history.':'Begin at the other end. Meet in the middle of time.'}</small>`;}
+      link('← Choose another chamber','#'+mode+'/'+category);return;
+    }
+    if(selected&&role&&mode==='solo'){
+      title.textContent=hash.endsWith('/runs')?'Player runs':'Choose your replay';intro.textContent=`You play P${role}. The replay controls P${role==='1'?2:1}; its future moves stay hidden.`;
+      if(!hash.endsWith('/runs')){
+        const choices=document.createElement('div');choices.className='echo-options';body.append(choices);
+        link('Creator solution →',hash+'/creator',choices,'run-choice');link('Player runs →',hash+'/runs',choices,'run-choice');
+        status('Solo wins automatically publish your human run. Only co-op wins unlock campaign progress and reference solutions.');
+      }else{
+        const list=document.createElement('div');body.append(list);const retry=document.createElement('button');retry.className='archive-refresh';retry.textContent='Refresh runs ↻';retry.onclick=()=>this.show(true,hash);body.prepend(retry);link('← Replay sources',hash.replace(/\/runs$/,''));
+        status('Loading confirmed runs…');void this.api.runs(selected,role==='1'?2:1).then(runs=>{
+          if(this.request!==request)return;status(runs.length?'Verified winning runs for this exact chamber revision. Available for about 48 hours.':'No matching player runs yet. Try the creator solution first.');
+          for(const run of runs)link(`${run.name} · P${run.role} · ${run.turns} turns · ${run.mode}`,hash.replace(/\/runs$/,'/run/'+run.id),list,'run-choice');
+        }).catch(error=>status((error as Error).message));
+      }return;
+    }
+    title.textContent=category==='campaign'?'Campaign challenges':'Community challenges';intro.textContent=category==='community'?'Verified community publications, available for about 48 hours.':'Choose a campaign chamber.';
+    const grid=document.createElement('div');grid.className='archive-grid';body.append(grid);
+    const refresh=document.createElement('button');refresh.textContent='Refresh ↻';refresh.className='archive-refresh';refresh.onclick=()=>this.show(true,hash);body.prepend(refresh);
+    status('Loading confirmed publications…');
+    void (category==='campaign'?this.api.catalog().then(c=>c.campaign):this.api.community()).then(entries=>{
+      if(this.request!==request)return;status(entries.length?`${entries.length} published ${entries.length===1?'chamber':'chambers'} · winning solutions verified`:'No community chambers yet. Publish a winning level in Level creator.');
+      for(const level of entries)this.card(level,grid,'#'+mode+'/'+category+'/'+level.id);
+      link('← Challenge collections','#'+mode);
+    }).catch(error=>status((error as Error).message+' Use Refresh to retry.'));
+  }
+  private card(level:LevelSummary,parent:Element,href:string){
+    const card=document.createElement('article');card.className='archive-card';
+    for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / REV ${level.publishedRevision??level.revision}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
+    const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);parent.append(card);
   }
   destroy(){this.request++;this.root.remove();}
 }

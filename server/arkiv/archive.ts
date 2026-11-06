@@ -1,8 +1,9 @@
 import type {LevelConfig} from '../../src/core/types';
-export type LevelCategory='draft'|'community'|'campaign';
+export type LevelCategory='draft'|'community'|'campaign'|'run';
 export interface ArchiveRecord {
   id:string; revision:number; category:LevelCategory; ownerId:string; ownerName:string;
-  updatedAt:number; campaignSlot?:number; level:LevelConfig;
+  updatedAt:number; campaignSlot?:number; level:LevelConfig; lifetimeDays?:2;
+  run?:{levelKey:string;role:1|2;mode:'coop'|'solo';source:string};
 }
 export interface ArchiveRef {entityKey:string;txHash:string;expiresAt:string}
 export interface ArchivedLevel {record:ArchiveRecord;ref:ArchiveRef}
@@ -11,12 +12,13 @@ export interface LevelArchive {
   list():Promise<ArchivedLevel[]>;
   put(record:ArchiveRecord):Promise<ArchiveRef>;
   read(ref:ArchiveRef):Promise<ArchiveRecord>;
+  head?():Promise<bigint>;
   close():void;
 }
 export class ArchiveError extends Error {constructor(readonly status:number,message:string){super(message);}}
 /** Explicit deterministic test adapter; the application never selects it as a fallback. */
 export class MemoryArchive implements LevelArchive {
-  readonly mode='test';readonly entries=new Map<string,ArchivedLevel>();
+  readonly mode='test';head?:()=>Promise<bigint>;readonly entries=new Map<string,ArchivedLevel>();
   async list(){return structuredClone([...this.entries.values()]);}
   async put(record:ArchiveRecord){const key=`${record.category}:${record.id}:${record.revision}`;
     const existing=this.entries.get(key);if(existing){if(JSON.stringify(existing.record)!==JSON.stringify(record))throw new ArchiveError(409,'Archive revision conflict.');return existing.ref;}
