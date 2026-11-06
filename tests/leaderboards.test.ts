@@ -4,6 +4,9 @@ import {MemoryArchive} from '../server/arkiv/archive';
 import {levels} from '../server/data/campaign';
 import {authFixture} from './authFixture';
 import {rankingPage} from '../server/levels/ranking';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 it('counts distinct co-op chambers across revisions and merges legacy campaign progress',async()=>{
   const f=await authFixture();try{
@@ -41,4 +44,47 @@ it('pages an ordered ranking without losing the personal rank or leaking identit
   const rows=Array.from({length:60},(_,i)=>({accountId:String(i)}));
   const page=rankingPage(rows,'59',1,(_row,rank,isYou)=>({rank,isYou}));
   expect(page.entries).toHaveLength(25);expect(page.entries[0].rank).toBe(26);expect(page.me).toEqual({rank:60,isYou:true});expect(page.total).toBe(60);
+});
+
+it('authenticates leaderboard reads and hearts, rejects CSRF and stale revisions, and extends once per account',async()=>{
+  const f=await authFixture();try{
+    const a=f.browser(),b=f.browser(),anonymous=f.browser();await a.login();await b.login('nova');
+    const id=f.levels.campaign()[0].id,path=`levels/${id}`,before=(await a.request(path+'/leaderboard')).data;
+    expect((await anonymous.request('levels/leaderboard')).status).toBe(401);
+    expect((await anonymous.request(path+'/heart',{entityKey:before.level.entityKey})).status).toBe(401);
+    expect((await a.request(path+'/heart',{entityKey:before.level.entityKey},{Origin:'https://evil.example'})).status).toBe(403);
+    expect((await a.request(path+'/heart',{entityKey:'0x'+'f'.repeat(64)})).status).toBe(409);
+    const [first,duplicate]=await Promise.all([a.request(path+'/heart',{entityKey:before.level.entityKey}),a.request(path+'/heart',{entityKey:before.level.entityKey})]);
+    expect(first.status).toBe(200);expect(duplicate.status).toBe(200);expect(first.data.hearts).toEqual({count:1,hearted:true,pending:false});
+    expect(BigInt(first.data.expiry.expiresAt)-BigInt(before.expiry.expiresAt)).toBe(1800n);
+    expect(duplicate.data.expiry.expiresAt).toBe(first.data.expiry.expiresAt);
+    const second=await b.request(path+'/heart',{entityKey:before.level.entityKey});expect(second.data.hearts.count).toBe(2);
+    expect(BigInt(second.data.expiry.expiresAt)-BigInt(before.expiry.expiresAt)).toBe(3600n);
+    expect((await a.request(path+'/leaderboard?mode=invalid')).status).toBe(400);
+    expect((await a.request('levels/leaderboard?page=-1')).status).toBe(400);
+    const serialized=JSON.stringify((await a.request(path+'/leaderboard')).data);
+    expect(serialized).not.toMatch(/solutionP1|ciphertext|account_id|privateKey/);
+  }finally{await f.close();}
+});
+
+it('recovers a confirmed heart after a lost application response across restart',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'taser-heart-')),path=join(directory,'game.sqlite'),archive=new MemoryArchive();
+  let store=new LevelStore(path,archive);try{
+    await store.seed(levels);const id=store.campaign()[0].id,key=store.campaign()[0].entityKey,original=archive.extend.bind(archive);let fail=true;
+    archive.extend=async(...args)=>{const ref=await original(...args);if(fail)throw new Error('Lost response');return ref;};
+    await expect(store.heart(id,'a',key)).rejects.toThrow('Lost response');expect((await store.leaderboard(id,'a')).hearts).toEqual({count:0,hearted:false,pending:true});
+    store.close();store=new LevelStore(path,archive);await store.hydrate();fail=false;await store.flushHearts();
+    const board=await store.leaderboard(id,'a');expect(board.expiry.expiresAt).toBe('5400');expect(board.hearts).toEqual({count:1,hearted:true,pending:false});
+    await store.heart(id,'a',key);expect((await store.leaderboard(id,'a')).expiry.expiresAt).toBe('5400');
+  }finally{await store.drain();store.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+it('rejects expired boards and hearts while keeping global completion history',async()=>{
+  let head=0n;const archive=new MemoryArchive();archive.head=async()=>head;
+  const store=new LevelStore(':memory:',archive);try{
+    await store.seed(levels);const id=store.campaign()[0].id,key=store.campaign()[0].entityKey;
+    store.recordWin(['a'],key);head=3600n;
+    await expect(store.leaderboard(id,'a')).rejects.toThrow('expired');await expect(store.heart(id,'a',key)).rejects.toThrow('expired');
+    await store.hydrate();expect(store.completions()).toEqual([{accountId:'a',levelId:'campaign:1'}]);
+  }finally{await store.drain();store.close();}
 });

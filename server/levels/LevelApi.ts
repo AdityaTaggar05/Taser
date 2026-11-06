@@ -14,6 +14,10 @@ export class LevelApi {
       if(!match)throw new LevelError(404,'Unknown level endpoint.');
       const identity=this.auth.authorize(req,match[1],req.method!=='GET'),path=match[2]??'',admin=campaignPublisher(identity.user,this.auth.demoEnabled);
       if(req.method==='GET'){
+        const pageText=url.searchParams.get('page')??'0';if(!/^(0|[1-9][0-9]{0,4})$/.test(pageText))throw new LevelError(400,'Invalid leaderboard page.');const page=Number(pageText);
+        if(path==='leaderboard'){json(200,this.auth.globalLeaderboard(this.store.completions(),identity.user.id,page));return;}
+        const board=/^([a-f0-9-]{36})\/leaderboard$/.exec(path);
+        if(board){const mode=url.searchParams.get('mode')??'coop';if(mode!=='coop'&&mode!=='solo')throw new LevelError(400,'Unknown leaderboard mode.');json(200,await this.store.leaderboard(board[1],identity.user.id,mode,page));return;}
         if(path==='catalog'||path==='community'||path.startsWith('runs/'))await this.store.refreshAvailability();
         const runs=/^runs\/([a-f0-9-]{36})\/([12])$/.exec(path);if(runs){json(200,{runs:this.store.runs(runs[1],Number(runs[2]) as 1|2)});return;}
         if(path==='catalog'){json(200,{campaign:this.store.campaign(),canPublishCampaign:admin,storage:this.store.storage});return;}
@@ -25,13 +29,17 @@ export class LevelApi {
         json(200,path==='community'?{levels:this.store.community()}:path?this.store.get(identity.user.id,path):{levels:this.store.list(identity.user.id)});return;
       }
       if(req.method!=='POST')throw new LevelError(405,'Method not allowed.');
-      const write=/^([a-f0-9-]{36})(?:\/(publish))?$/.exec(path);
+      const write=/^([a-f0-9-]{36})(?:\/(publish|heart))?$/.exec(path);
       if(path&&!write)throw new LevelError(404,'Unknown level endpoint.');
       if(!req.headers['content-type']?.startsWith('application/json'))throw new LevelError(415,'Send JSON data.');
       this.limit(identity.user.id);
       let raw='';for await(const part of req){raw+=part.toString();if(Buffer.byteLength(raw)>65_536)throw new LevelError(413,'Level file is too large (maximum 64 KB).');}
       let body:Record<string,unknown>;try{const value:unknown=JSON.parse(raw);if(!value||typeof value!=='object'||Array.isArray(value))throw new Error();body=value as Record<string,unknown>;}catch{throw new LevelError(400,'Invalid JSON level request.');}
-      if(write?.[2]){
+      if(write?.[2]==='heart'){
+        if(typeof body.entityKey!=='string'||!/^0x[a-fA-F0-9]{64}$/.test(body.entityKey))throw new LevelError(400,'Missing publication identity.');
+        json(200,await this.store.heart(write[1],identity.user.id,body.entityKey));return;
+      }
+      if(write?.[2]==='publish'){
         if(!Number.isSafeInteger(body.revision))throw new LevelError(400,'Missing draft revision.');
         if(body.target!==undefined&&body.target!=='community'&&body.target!=='campaign')throw new LevelError(400,'Unknown publishing destination.');
         if(body.target==='campaign'&&!admin)throw new LevelError(403,'Only the campaign publisher account can publish to campaign.');

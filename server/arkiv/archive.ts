@@ -23,7 +23,7 @@ export class ArchiveError extends Error {constructor(readonly status:number,mess
 export class MemoryArchive implements LevelArchive {
   readonly mode='test';head?:()=>Promise<bigint>;readonly entries=new Map<string,ArchivedLevel>();
   private hearts=new Map<string,ArchiveRef>();
-  async list(){return structuredClone([...this.entries.values()]);}
+  async list(){const head=await this.head?.()??0n;return structuredClone([...this.entries.values()].filter(entry=>BigInt(entry.ref.expiresAt)>head));}
   async put(record:ArchiveRecord){const key=`${record.category}:${record.id}:${record.revision}`;
     const existing=this.entries.get(key);if(existing){if(JSON.stringify(existing.record)!==JSON.stringify(record))throw new ArchiveError(409,'Archive revision conflict.');return existing.ref;}
     const ref={entityKey:'0x'+crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),txHash:'test-only',expiresAt:((await this.head?.()??0n)+creationExpiration(record).minLifetime).toString()};this.entries.set(key,structuredClone({record,ref}));return ref;}

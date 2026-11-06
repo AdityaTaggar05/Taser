@@ -9,6 +9,8 @@ import type {LevelSummary,StoredLevel,CampaignSummary,ReferenceSolution} from '.
 import {ArchiveError,UnconfiguredArchive,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from '../arkiv/archive';
 import {canonicalJSON} from '../arkiv/canonical';
 import {rankingPage} from './ranking';
+import type {LevelLeaderboard} from '../../src/leaderboard/types';
+import {ARKIV_BLOCK_SECONDS} from '../arkiv/expiration';
 export class LevelError extends Error {constructor(readonly status:number,message:string){super(message);}}
 interface Row {id:string;owner_id:string;owner_name:string;draft:string;revision:number;published:string|null;published_revision:number|null;updated_at:number;archived_revision:number|null}
 export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:ArchiveRef;id?:string;slot?:number}
@@ -23,6 +25,7 @@ export class LevelStore {
       CREATE INDEX IF NOT EXISTS custom_levels_owner ON custom_levels(owner_id);
       CREATE TABLE IF NOT EXISTS level_publications(entity_key TEXT PRIMARY KEY,record_id TEXT NOT NULL,revision INTEGER NOT NULL,category TEXT NOT NULL,record TEXT NOT NULL,ref TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS game_runs(id TEXT PRIMARY KEY,record TEXT NOT NULL,ref TEXT,status TEXT NOT NULL DEFAULT 'pending',error TEXT);
+      CREATE TABLE IF NOT EXISTS level_hearts(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,ref TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',PRIMARY KEY(account_id,entity_key));
       CREATE TABLE IF NOT EXISTS leaderboard_completions(account_id TEXT NOT NULL,level_id TEXT NOT NULL,PRIMARY KEY(account_id,level_id));
       CREATE TABLE IF NOT EXISTS level_scores(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,mode TEXT NOT NULL,name TEXT NOT NULL,turns INTEGER NOT NULL,achieved_at INTEGER NOT NULL,role INTEGER NOT NULL,PRIMARY KEY(account_id,entity_key,mode));
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
@@ -46,6 +49,7 @@ export class LevelStore {
   async hydrate(){
     // Only replace the public projection after a complete successful trusted remote traversal.
     const entries=await this.archive.list();
+    for(const row of this.db.prepare('SELECT account_id,entity_key FROM level_wins').all())this.recordWin([String(row.account_id)],String(row.entity_key));
     this.db.exec('BEGIN IMMEDIATE');try{
       // Keep private legacy/recovery snapshots until migration confirms them. Public discovery
       // uses only level_publications, so unarchived or expired snapshots never leak into play.
@@ -122,6 +126,45 @@ export class LevelStore {
       .map(row=>({accountId:String(row.account_id),name:String(row.name),turns:Number(row.turns),achievedAt:Number(row.achieved_at),role:Number(row.role) as 1|2}));
     return rankingPage(rows,viewer,page,(row,rank,isYou)=>({rank,isYou,name:row.name,turns:row.turns,achievedAt:row.achievedAt,role:row.role}));
   }
+  private async liveLevel(id:string,expectedKey?:string){
+    const snapshot=this.forPlay(id);if(!snapshot?.ref)throw new LevelError(404,'Published chamber unavailable or expired.');
+    if(expectedKey&&snapshot.ref.entityKey!==expectedKey)throw new LevelError(409,'This chamber has a new revision. Refresh before sending a heart.');
+    const live=await this.archive.inspect(snapshot.ref);
+    if(live.record.id!==id||live.record.revision!==snapshot.revision||!['campaign','community'].includes(live.record.category))throw new LevelError(503,'Publication identity could not be verified.');
+    this.db.prepare('UPDATE level_publications SET ref=? WHERE entity_key=?').run(JSON.stringify(live.ref),live.ref.entityKey);
+    return live;
+  }
+  async leaderboard(id:string,viewer:string,mode:'coop'|'solo'='coop',page=0):Promise<LevelLeaderboard>{
+    const live=await this.liveLevel(id),currentBlock=await this.archive.head?.()??0n;
+    if(BigInt(live.ref.expiresAt)<=currentBlock)throw new LevelError(410,'This publication has expired.');
+    const heart=this.db.prepare('SELECT status FROM level_hearts WHERE account_id=? AND entity_key=?').get(viewer,live.ref.entityKey);
+    return {level:{id,name:live.record.level.name,revision:live.record.revision,entityKey:live.ref.entityKey},
+      expiry:{expiresAt:live.ref.expiresAt,currentBlock:currentBlock.toString(),observedAt:Date.now(),blockSeconds:ARKIV_BLOCK_SECONDS},
+      hearts:{count:Number(this.db.prepare("SELECT COUNT(*) AS n FROM level_hearts WHERE entity_key=? AND status='confirmed'").get(live.ref.entityKey)!.n),hearted:heart?.status==='confirmed',pending:heart?.status==='pending'},
+      mode,scores:this.scores(live.ref.entityKey,viewer,mode,page)};
+  }
+  heart(id:string,viewer:string,expectedKey:string){return this.serial(async()=>{
+    const live=await this.liveLevel(id,expectedKey);
+    this.db.prepare("INSERT OR IGNORE INTO level_hearts(account_id,entity_key,ref,status) VALUES(?,?,?,'pending')").run(viewer,expectedKey,JSON.stringify(live.ref));
+    await this.publishHeart(viewer,expectedKey);
+    return this.leaderboard(id,viewer);
+  });}
+  private async publishHeart(accountId:string,entityKey:string){
+    const row=this.db.prepare('SELECT ref,status FROM level_hearts WHERE account_id=? AND entity_key=?').get(accountId,entityKey);
+    if(!row||row.status==='confirmed')return;
+    const ref=await this.archive.extend(JSON.parse(String(row.ref)),accountId);
+    if(this.closed)return;
+    // Extension receipts and readback were verified by the archive before counting.
+    this.db.prepare("UPDATE level_hearts SET status='confirmed',ref=? WHERE account_id=? AND entity_key=?").run(JSON.stringify(ref),accountId,entityKey);
+    const live=await this.archive.inspect(ref);
+    this.db.prepare('UPDATE level_publications SET ref=? WHERE entity_key=?').run(JSON.stringify(live.ref),entityKey);
+  }
+  flushHearts(){return this.serial(async()=>{
+    for(const row of this.db.prepare("SELECT account_id,entity_key FROM level_hearts WHERE status='pending' ORDER BY rowid LIMIT 4").all()){
+      if(this.closed)return;
+      try{await this.publishHeart(String(row.account_id),String(row.entity_key));}catch{break;}
+    }
+  });}
   canReveal(accountId:string,entityKey:string){return !!this.db.prepare('SELECT 1 FROM level_wins WHERE account_id=? AND entity_key=?').get(accountId,entityKey);}
   async solution(accountId:string,entityKey:string):Promise<ReferenceSolution>{
     if(!this.canReveal(accountId,entityKey))throw new LevelError(403,'Complete this published revision in co-op to unlock its reference solution.');
