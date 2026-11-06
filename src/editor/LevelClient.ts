@@ -12,4 +12,5 @@ export class LevelClient {
   get(id:string){return this.auth.levelRequest<StoredLevel>('/'+id);}
   save(level:LevelConfig,id?:string,revision?:number,createId?:string){return this.auth.levelRequest<StoredLevel>(id?'/'+id:'',{level,revision,createId});}
   publish(id:string,revision:number,target:'community'|'campaign'='community'){return this.auth.levelRequest<StoredLevel>(`/${id}/publish`,{revision,target});}
+  refreshCertification(id:string){return this.auth.levelRequest<StoredLevel>(`/${id}/certification`,{});}
 }

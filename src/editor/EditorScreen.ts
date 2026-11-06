@@ -67,6 +67,8 @@ export class EditorScreen {
   private box=0;
   private view:EditorView='author';
   private busy=false;
+  private statusTimer:ReturnType<typeof setInterval>;
+  private get locked(){return !!this.stored?.readonly;}
   private generation=0;
   private libraryRequest=0;
   private active=false;
@@ -90,7 +92,7 @@ export class EditorScreen {
     this.root.id='creator';
     this.root.hidden=true;
     this.root.innerHTML=`<header class="creator-top"><button data-editor="home" aria-label="Return to home">⌂</button><span class="creator-wordmark">WELDPOINT <small>CHAMBER CREATOR</small></span><span class="creator-save-state" role="status">Unsaved draft</span><div class="creator-actions"><button data-editor="new">New</button><button data-editor="undo-edit" title="Undo design edit (Ctrl/Cmd+Z)">Undo</button><button data-editor="redo-edit" title="Redo design edit (Ctrl/Cmd+Shift+Z)">Redo</button><button data-editor="library">My levels / Community</button><button data-editor="import">Import</button><button data-editor="export">Export</button><button data-editor="save">Save draft</button><button class="primary" data-editor="publish">Publish to community</button><button data-editor="publish-campaign" hidden>Publish to campaign</button></div></header>
-    <div class="creator-workspace"><aside class="creator-sidebar"><label class="creator-label" for="creator-template">START FROM A TEMPLATE</label><select id="creator-template"><option value="">Choose a chamber…</option></select><label class="creator-label" for="creator-name">CHAMBER NAME</label><input id="creator-name" maxlength="80"/><label class="creator-label" for="creator-subtitle">DESCRIPTION</label><input id="creator-subtitle" maxlength="180"/><div class="creator-fields"><label>Width<input id="creator-width" type="number" min="2" max="20"/></label><label>Height<input id="creator-height" type="number" min="2" max="20"/></label><label>Turns<input id="creator-turns" type="number" min="2" max="32" step="2"/></label><label>Box pairs<select id="creator-boxes">${Array.from({length:6},(_,i)=>`<option>${i+1}</option>`).join('')}</select></label></div><label class="creator-label" for="creator-environment">ENVIRONMENT</label><select id="creator-environment">${registeredThemes.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><label class="creator-checkbox"><input type="checkbox" id="creator-mirrors"/> Mirror boxes</label><label class="creator-checkbox"><input type="checkbox" id="creator-fixed-weld"/> Require fixed weld positions</label><label class="creator-label" for="creator-laser-dir">LASER DIRECTION</label><select id="creator-laser-dir"><option value="D">↓ South</option><option value="U">↑ North</option><option value="L">← West</option><option value="R">→ East</option></select><div class="creator-tool-heading"><span class="creator-label">PLACE OBJECTS</span><label for="creator-box-id">Box identity <select id="creator-box-id"></select></label></div><div class="creator-tools" role="toolbar" aria-label="Placement tools"></div><p class="creator-note">Drag objects to move them, or select a tool and click to place it. Select a box identity before placing its starts and weld target. Single objects deselect after placement. Click a selected tool again or press Escape to return to dragging. Wall Mode skips occupied cells. Remove deletes optional items or extra box pairs; move required objects with their tool.</p></aside>
+    <section class="creator-certification" hidden><span role="status"></span><details><summary>Submission details</summary><label>Submission ID<input class="creator-submission-id" readonly aria-label="Submission ID"/></label></details><button data-editor="refresh-certification">Refresh verification</button><button data-editor="show-publication" hidden>Share / Play</button><a target="_blank" rel="noopener noreferrer" hidden>View certification registry ↗</a></section><div class="creator-workspace"><aside class="creator-sidebar"><label class="creator-label" for="creator-template">START FROM A TEMPLATE</label><select id="creator-template"><option value="">Choose a chamber…</option></select><label class="creator-label" for="creator-name">CHAMBER NAME</label><input id="creator-name" maxlength="80"/><label class="creator-label" for="creator-subtitle">DESCRIPTION</label><input id="creator-subtitle" maxlength="180"/><div class="creator-fields"><label>Width<input id="creator-width" type="number" min="2" max="20"/></label><label>Height<input id="creator-height" type="number" min="2" max="20"/></label><label>Turns<input id="creator-turns" type="number" min="2" max="32" step="2"/></label><label>Box pairs<select id="creator-boxes">${Array.from({length:6},(_,i)=>`<option>${i+1}</option>`).join('')}</select></label></div><label class="creator-label" for="creator-environment">ENVIRONMENT</label><select id="creator-environment">${registeredThemes.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><label class="creator-checkbox"><input type="checkbox" id="creator-mirrors"/> Mirror boxes</label><label class="creator-checkbox"><input type="checkbox" id="creator-fixed-weld"/> Require fixed weld positions</label><label class="creator-label" for="creator-laser-dir">LASER DIRECTION</label><select id="creator-laser-dir"><option value="D">↓ South</option><option value="U">↑ North</option><option value="L">← West</option><option value="R">→ East</option></select><div class="creator-tool-heading"><span class="creator-label">PLACE OBJECTS</span><label for="creator-box-id">Box identity <select id="creator-box-id"></select></label></div><div class="creator-tools" role="toolbar" aria-label="Placement tools"></div><p class="creator-note">Drag objects to move them, or select a tool and click to place it. Select a box identity before placing its starts and weld target. Single objects deselect after placement. Click a selected tool again or press Escape to return to dragging. Wall Mode skips occupied cells. Remove deletes optional items or extra box pairs; move required objects with their tool.</p></aside>
     <section class="creator-centre"><div class="creator-stage-top"><div class="creator-view-tabs" role="group" aria-label="Board perspective"><button data-view="author">Author</button><button data-view="p1">P1 view</button><button data-view="p2">P2 view</button></div><button class="creator-wall-mode-btn" data-editor="wall-mode" aria-pressed="false" title="Toggle Wall Mode (click or drag to add/remove walls)">🧱 Wall Mode</button><span class="creator-board-meta"></span><select id="creator-zoom" aria-label="Grid zoom"><option value="fit">Fit grid</option><option value="48">48 px</option><option value="64">64 px</option><option value="86">86 px</option></select><button data-editor="fullscreen" aria-label="Fullscreen">⛶</button></div><div class="creator-stage"><div class="creator-grid" role="grid" aria-label="Level grid"></div></div><div class="creator-stage-caption">AUTHOR VIEW · Drag &amp; drop players, boxes, switches and exits. Both timelines visible here.</div><section class="creator-test"><div class="creator-test-top"><div><strong>Solution recorder</strong><small>WASD / Space: P1 · Arrows / Enter: P2. Both inputs commit a turn.</small></div><button data-editor="test">Start playtest</button><button data-editor="replay">Replay solution</button><button data-editor="edit" hidden>Back to editing</button></div><div class="creator-test-controls" hidden>${([1,2] as const).map(p=>`<div class="creator-player p${p}"><strong>P${p}</strong>${(['L','U','D','R','W'] as Direction[]).map(d=>`<button data-test-player="${p}" data-direction="${d}" aria-label="P${p} ${d==='W'?'Wait':{U:'Up',D:'Down',L:'Left',R:'Right'}[d]}">${arrows[d]}</button>`).join('')}<button data-cancel-player="${p}">Cancel</button><span class="creator-queued"></span></div>`).join('')}<button data-editor="undo-turn">Undo turn</button><button data-editor="capture" class="primary">Use winning solution</button></div><div class="creator-solution" aria-label="Recorded solution"></div><div class="creator-message" role="status" aria-live="polite"></div></section></section></div>
     <input id="creator-file" type="file" accept="application/json,.json" hidden/><dialog class="home-dialog creator-library" aria-labelledby="creator-library-title"><button class="dialog-close" data-editor="close-library" aria-label="Close level library">×</button><span class="home-kicker">CHAMBER LIBRARY</span><h2 id="creator-library-title">Build. Verify. Share.</h2><div class="creator-library-tabs"><button data-library="mine">My levels</button><button data-library="community">Community</button></div><p class="creator-library-status" role="status"></p><div class="creator-level-list"></div></dialog><dialog class="home-dialog" id="creator-published" aria-labelledby="creator-published-title"><button class="dialog-close" data-editor="close-published" aria-label="Close published level">×</button><span class="home-kicker">VERIFIED · ENCRYPTED ON ARKIV</span><h2 id="creator-published-title">Your chamber is live.</h2><p>Open this link with a partner signed in on another account. Choose Solo or Co-op, then your role. For co-op, share the party invitation with your partner. Community publications are available for about 48 hours. Your chamber also appears in Published levels on the home screen.</p><label class="creator-label" for="creator-share-link">LEVEL LINK</label><input id="creator-share-link" readonly/><button data-editor="copy-link" class="home-dialog-primary">Copy link</button><button data-editor="play-published" class="home-dialog-primary">Choose P1 / P2 ↗</button><p class="creator-copy-status" role="status"></p><p class="creator-archive-proof"></p></dialog>`;
     document.body.append(this.root);
@@ -111,6 +113,7 @@ export class EditorScreen {
       }
     });
     this.observer.observe(this.root.querySelector('.creator-stage')!);
+    this.statusTimer=setInterval(()=>{if(this.active&&this.stored?.certification&&['pending','approved'].includes(this.stored.certification.status)&&!this.busy)void this.refreshSubmission(false);},5000);
     this.syncFields();
     this.render();
   }
@@ -154,7 +157,7 @@ export class EditorScreen {
   }
 
   private onGridPointerDown(e:PointerEvent){
-    if(e.button!==0||!e.isPrimary||!this.active||this.model.engine||this.busy)return;
+    if(e.button!==0||!e.isPrimary||!this.active||this.model.engine||this.busy||this.locked)return;
     const tile=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-cell]');
     if(!tile)return;
     e.preventDefault();
@@ -190,7 +193,7 @@ export class EditorScreen {
 
   private onGridPointerMove(e:PointerEvent){
     if(e.pointerId!==this.pointerId)return;
-    if(!this.active||this.busy||this.model.engine){this.cancelGesture();return;}
+    if(!this.active||this.busy||this.model.engine||this.locked){this.cancelGesture();return;}
     const tile=this.tileAt(e);
     if(this.strokeTool){if(tile)this.paintStroke(tile);return;}
     if(!this.dragItem)return;
@@ -214,7 +217,7 @@ export class EditorScreen {
     if(e.pointerId!==this.pointerId)return;
     const item=this.dragItem,from=this.dragFrom,dragged=this.isDragging,tile=this.tileAt(e);
     this.cancelGesture();
-    if(!this.active||this.busy||this.model.engine||!item||!from||!tile)return;
+    if(!this.active||this.busy||this.model.engine||this.locked||!item||!from||!tile)return;
     try{
       if(dragged){
         const to=tile.dataset.cell!.split(',').map(Number) as Coord;
@@ -249,13 +252,13 @@ export class EditorScreen {
     if(!visible){
       this.root.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach(d=>d.close());
       this.model.engine=null;
-    }else void this.loadCatalog();
+    }else{void this.loadCatalog();if(this.stored)void this.refreshSubmission(false);}
     this.render();
   }
   private replace(level:LevelConfig,stored:StoredLevel|null=null){if(this.dirty&&!window.confirm('Replace the current unsaved draft? Export or save it first if you want to keep it.'))return;this.cancelGesture();this.generation++;this.model=new EditorModel(level);this.draftId=crypto.randomUUID();this.stored=stored;this.dirty=!stored;this.view='author';this.box=0;this.tool=null;this.wallMode=false;this.remember();this.syncFields();this.render();this.message(stored?'Draft loaded.':'New draft. Place objects, then record a winning solution.');}
   private changed(){this.box=Math.min(this.box,this.model.level.initialBoxesP1.length-1);this.dirty=true;this.remember();this.syncFields();this.render();}
   private paint(tile:HTMLButtonElement,tool:EditorTool|null=this.tool){
-    if(!tool||this.model.engine||this.busy)return;
+    if(!tool||this.model.engine||this.busy||this.locked)return;
     const coord=tile.dataset.cell!.split(',').map(Number) as Coord;
     try{
       const changed=this.model.paint(tool,coord,this.box);
@@ -310,6 +313,7 @@ export class EditorScreen {
       return;
     }
     const action=button.dataset.editor;
+    if(this.locked&&['wall-mode','undo-edit','redo-edit','capture','save','publish','publish-campaign','export','import'].includes(action??''))return;
     try{
       if(action==='wall-mode'){
         this.cancelGesture();this.tool=null;this.wallMode=!this.wallMode;
@@ -317,6 +321,8 @@ export class EditorScreen {
         this.message(this.wallMode?'Wall Mode ON: Start on a wall to remove walls, or on floor to build.':'Select a tool to place objects, or drag an existing object.');
         return;
       }
+      if(action==='show-publication'){this.showPublication();return;}
+      if(action==='refresh-certification'){void this.refreshSubmission(true);return;}
       if(action==='home'){this.actions.home();return;}
       if(action==='undo-edit'||action==='redo-edit'){this.cancelGesture();action==='undo-edit'?this.model.undo():this.model.redo();this.dirty=true;this.remember();this.syncFields();this.render();this.message('Design history restored.');return;}
       if(action==='new'){this.replace(blankLevel());return;}
@@ -366,11 +372,12 @@ export class EditorScreen {
     const input=e.target as HTMLInputElement|HTMLSelectElement;
     try{
       if(this.busy)return;
+      if(input.id==='creator-file'&&this.locked)return;
       if(input.id==='creator-file'){const file=(input as HTMLInputElement).files?.[0];if(file){if(file.size>65_536)throw new Error('Import a JSON file smaller than 64 KB.');const generation=this.generation;void file.text().then(text=>{if(generation!==this.generation)return;try{this.replace(cleanDraft(JSON.parse(text)));}catch(error){this.message((error as Error).message);}}).catch(()=>this.message('Could not read the level file.'));}input.value='';return;}
       if(input.id==='creator-template'){if(input.value)void this.loadTemplate(input.value);input.value='';return;}
       if(input.id==='creator-zoom'){this.sizeGrid();return;}
       if(input.id==='creator-box-id'){this.box=Number(input.value);this.render();return;}
-      if(this.model.engine)return;
+      if(this.model.engine||this.locked)return;
       let changed=false;
       if(input.id==='creator-name'||input.id==='creator-subtitle')changed=this.model.edit(l=>{l[input.id==='creator-name'?'name':'subtitle']=input.value;});
       if(input.id==='creator-width'||input.id==='creator-height')changed=this.model.resize(Number(this.el<HTMLInputElement>('#creator-width').value),Number(this.el<HTMLInputElement>('#creator-height').value));
@@ -447,28 +454,40 @@ export class EditorScreen {
     this.root.dataset.environment=this.environment().id;
     this.el<HTMLInputElement>('#creator-fixed-weld').checked=!!l.weldTargets?.length;
     this.el('[data-editor="publish-campaign"]').hidden=!this.catalog.canPublishCampaign;
-    this.el('.creator-save-state').textContent=this.dirty?'Unsaved changes':this.stored?`${this.stored.archivedRevision===this.stored.revision?'Arkiv confirmed':'Archive pending'} · revision ${this.stored.revision}${this.stored.publishedRevision?' · published '+this.stored.publishedRevision:''}`:'New draft';
+    const certification=this.stored?.certification;
+    this.root.classList.toggle('submission-locked',this.locked);
+    this.el('.creator-save-state').textContent=certification?`${certification.status==='published'?'Published · read-only':certification.status==='rejected'?'Solution rejected · editable':'Submission frozen'}`:this.locked?'Published · read-only':this.dirty?'Unsaved changes':this.stored?(this.stored.archivedRevision===this.stored.revision?'Arkiv confirmed':'Archive pending'):'New draft';
+    const banner=this.el('.creator-certification');banner.hidden=!certification;
+    if(certification){
+      banner.querySelector<HTMLInputElement>('.creator-submission-id')!.value=certification.id;
+      banner.querySelector('span')!.textContent=`${certification.mode==='simulation'?'CRE simulation · ':certification.mode==='don'?'CRE · ':''}${certification.message}`;
+      const proof=banner.querySelector<HTMLAnchorElement>('a')!;proof.hidden=!certification.proof||certification.mode==='test';
+      if(certification.proof)proof.href=`https://sepolia.etherscan.io/address/${certification.proof.registry}`;
+      banner.querySelector<HTMLButtonElement>('[data-editor=show-publication]')!.hidden=certification.status!=='published';
+      banner.querySelector<HTMLButtonElement>('button')!.disabled=this.busy||certification.status==='published'||certification.status==='rejected';
+    }
 
     this.renderToolButtons();
-    this.root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(b=>{b.disabled=!!engine||this.busy;b.setAttribute('aria-pressed',String(b.dataset.tool===this.tool));});
+    this.root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(b=>{b.disabled=!!engine||this.busy||this.locked;b.setAttribute('aria-pressed',String(b.dataset.tool===this.tool));});
     this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.view===this.view));});
-    this.root.querySelectorAll<HTMLInputElement|HTMLSelectElement>('.creator-sidebar input,.creator-sidebar select').forEach(i=>i.disabled=!!engine||this.busy);
+    this.root.querySelectorAll<HTMLInputElement|HTMLSelectElement>('.creator-sidebar input,.creator-sidebar select').forEach(i=>i.disabled=!!engine||this.busy||this.locked);
     this.root.querySelectorAll<HTMLButtonElement>('.creator-actions button').forEach(b=>b.disabled=this.busy);
 
+    for(const action of ['save','publish','publish-campaign','export','import'])this.el<HTMLButtonElement>(`[data-editor="${action}"]`).disabled=this.busy||this.locked;
     const wallModeBtn=this.el<HTMLButtonElement>('[data-editor="wall-mode"]');
     if(wallModeBtn){
       wallModeBtn.classList.toggle('active',this.wallMode);
       wallModeBtn.setAttribute('aria-pressed',String(this.wallMode));
       wallModeBtn.textContent=this.wallMode?'🧱 Wall Mode: ON':'🧱 Wall Mode: OFF';
-      wallModeBtn.disabled=!!engine||this.busy;
+      wallModeBtn.disabled=!!engine||this.busy||this.locked;
     }
 
-    this.el<HTMLButtonElement>('[data-editor="undo-edit"]').disabled=!!engine||!this.model.canUndo||this.busy;
-    this.el<HTMLButtonElement>('[data-editor="redo-edit"]').disabled=!!engine||!this.model.canRedo||this.busy;
+    this.el<HTMLButtonElement>('[data-editor="undo-edit"]').disabled=!!engine||!this.model.canUndo||this.busy||this.locked;
+    this.el<HTMLButtonElement>('[data-editor="redo-edit"]').disabled=!!engine||!this.model.canRedo||this.busy||this.locked;
     this.el<HTMLButtonElement>('[data-editor="test"]').textContent=engine?'Restart playtest':'Start playtest';
     this.el('[data-editor="edit"]').hidden=!engine;
     this.el('.creator-test-controls').hidden=!engine;
-    this.el<HTMLButtonElement>('[data-editor="capture"]').disabled=engine?.state.status!=='VICTORY'||this.busy;
+    this.el<HTMLButtonElement>('[data-editor="capture"]').disabled=engine?.state.status!=='VICTORY'||this.busy||this.locked;
     this.el<HTMLButtonElement>('[data-editor="undo-turn"]').disabled=!engine||engine.state.step===0;
     this.el<HTMLButtonElement>('[data-editor="replay"]').disabled=l.solutionP1.length<=l.weldStep||l.solutionP1.length!==l.solutionP2.length;
     this.root.querySelectorAll<HTMLButtonElement>('[data-test-player]').forEach(b=>{
@@ -479,7 +498,7 @@ export class EditorScreen {
     });
     this.root.querySelectorAll<HTMLElement>('.creator-queued').forEach((el,i)=>{el.textContent=this.model.pending[i]?arrows[this.model.pending[i]!]+' queued':'';});
     this.el('.creator-board-meta').textContent=engine?`TURN ${engine.state.step} / ${l.totalSteps} · ${engine.state.step<l.weldStep?'WRITE':'REPLAY'}`:`${l.width} × ${l.height} · ${l.totalSteps} TURNS · WELD ${l.weldStep}`;
-    this.el('.creator-stage-caption').textContent=this.wallMode
+    this.el('.creator-stage-caption').textContent=this.locked&&!engine?'READ-ONLY SUBMISSION · Inspect the level or replay the recorded solution.':this.wallMode
       ?'🧱 WALL MODE ACTIVE · Click or drag to build/remove walls. Occupied cells are protected.'
       :engine
         ?`PLAYTEST ACTIVE · View: ${this.view==='author'?'Convergence (Shared Grid)':this.view==='p1'?'P1 Perspective':'P2 Perspective'}. Input moves below or with WASD / Arrow keys.`
@@ -535,19 +554,34 @@ export class EditorScreen {
   refreshTheme(){const select=this.el<HTMLSelectElement>('#creator-environment');select.replaceChildren(...registeredThemes.map(p=>new Option(p.name,p.id)));select.value=environments[this.model.level.environment??'foundry']?.id??'modern-gray';this.render();}
   private sizeGrid(){if(!this.active)return;const rect=this.el('.creator-stage').getBoundingClientRect(),l=this.model.level;const size=Math.max(18,Math.min(86,Math.floor(Math.min((rect.width-36)/l.width,(rect.height-28)/l.height))));const zoom=this.el<HTMLSelectElement>('#creator-zoom').value;this.el('.creator-grid').style.setProperty('--tile',(zoom==='fit'?size:Number(zoom))+'px');}
   private async persist(publish:boolean,target:'community'|'campaign'='community'){
-    if(this.busy)return;
+    if(this.busy||this.locked)return;
     if(publish){const check=verifySolution(this.model.level);if(!check.valid){this.message('Cannot publish: '+check.message);return;}}
-    const generation=this.generation;this.busy=true;this.render();this.message(publish?'Verifying and publishing encrypted level to Arkiv…':'Saving encrypted draft to Arkiv…');
+    const generation=this.generation;this.busy=true;this.render();this.message(publish?'Freezing this level and submitting its solution for CRE verification…':'Saving encrypted draft to Arkiv…');
     try{
       const saved=!this.dirty&&this.stored&&this.stored.archivedRevision===this.stored.revision?this.stored:await this.api.save(this.model.level,this.stored?.id,this.stored?.revision,this.draftId);if(generation!==this.generation)return;
       this.stored=saved;this.dirty=false;this.remember();
-      if(publish){const published=await this.api.publish(saved.id,saved.revision,target);if(generation!==this.generation)return;this.stored=published;this.el<HTMLInputElement>('#creator-share-link').value=new URL(`#play/${saved.id}`,location.href).href;this.el('.creator-copy-status').textContent='';const proof=this.el('.creator-archive-proof');proof.replaceChildren();if(published.publication){const ref=published.publication;const a=document.createElement('a');a.textContent='View encrypted entity on Arkiv ↗';a.href=`https://rabdi.explorer.arkiv.network/entity/${ref.entityKey}`;a.target='_blank';a.rel='noopener noreferrer';proof.append(a,document.createTextNode(` · ${ref.category} · expiry block ${ref.expiresAt}`));}this.el<HTMLDialogElement>('#creator-published').showModal();}
+      if(publish){const published=await this.api.publish(saved.id,saved.revision,target);if(generation!==this.generation)return;this.stored=published;if(published.certification?.status!=='published'){this.message(published.certification?.message??'Verification pending.');this.remember();return;}this.showPublication();}
       if(publish)void this.loadCatalog();
-      this.message(publish?`Published to ${target} on Arkiv. The server verified both operators reaching their exits.`:'Encrypted draft confirmed on Arkiv.');
+      this.message(publish?`Published to ${target} after CRE verification and Arkiv confirmation. This level is permanently read-only.`:'Encrypted draft confirmed on Arkiv.');
     }catch(error){if(generation===this.generation)this.message((error as Error).message);}finally{this.busy=false;this.render();}
   }
 
-  private async loadCatalog(){const generation=this.generation;try{const catalog=await this.api.catalog();if(generation!==this.generation)return;this.catalog=catalog;const select=this.el<HTMLSelectElement>('#creator-template');select.replaceChildren(new Option('Choose a completed chamber…',''));for(const c of catalog.campaign)select.add(new Option(`Chamber ${c.slot}: ${c.name}`,c.id));this.el('[data-editor="publish-campaign"]').hidden=!catalog.canPublishCampaign;}catch(error){if(generation===this.generation)this.message((error as Error).message);}}
+  private showPublication(){
+    const published=this.stored;if(!published?.publication)return;
+    this.el<HTMLInputElement>('#creator-share-link').value=new URL(`#play/${published.id}`,location.href).href;this.el('.creator-copy-status').textContent='';const proof=this.el('.creator-archive-proof');proof.replaceChildren();if(published.publication){const ref=published.publication;const a=document.createElement('a');a.textContent='View encrypted entity on Arkiv ↗';a.href=`https://rabdi.explorer.arkiv.network/entity/${ref.entityKey}`;a.target='_blank';a.rel='noopener noreferrer';proof.append(a,document.createTextNode(` · ${ref.category} · expiry block ${ref.expiresAt}`));}this.el<HTMLDialogElement>('#creator-published').showModal();
+  }
+
+  private async refreshSubmission(reconcile:boolean){
+    if(!this.stored||this.busy)return;const id=this.stored.id,generation=this.generation;
+    try{
+      const stored=await (reconcile?this.api.refreshCertification(id):this.api.get(id));if(generation!==this.generation)return;
+      const changed=this.stored?.certification?.status!==stored.certification?.status;
+      if(stored.readonly&&!this.locked){this.model=new EditorModel(stored.level);this.dirty=false;this.syncFields();this.message('This saved submission is now read-only.');}
+      this.stored=stored;this.remember();this.render();if(reconcile||changed)this.message(stored.certification?.message??'Submission status refreshed.');
+    }catch(error){if(reconcile&&generation===this.generation)this.message((error as Error).message);}
+  }
+
+  private async loadCatalog(){const generation=this.generation;try{const catalog=await this.api.catalog();if(generation!==this.generation)return;this.catalog=catalog;const select=this.el<HTMLSelectElement>('#creator-template');select.replaceChildren(new Option('Choose a completed chamber…',''));for(const c of catalog.campaign.filter(c=>!c.verification||c.verification==='legacy'))select.add(new Option(`Chamber ${c.slot}: ${c.name}`,c.id));this.el('[data-editor="publish-campaign"]').hidden=!catalog.canPublishCampaign;}catch(error){if(generation===this.generation)this.message((error as Error).message);}}
   private async loadTemplate(id:string){const generation=this.generation;this.busy=true;this.render();try{const {level}=await this.api.template(id);if(generation!==this.generation)return;level.name+=' remix';this.replace(level);}catch(error){if(generation===this.generation)this.message((error as Error).message);}finally{this.busy=false;this.render();}}
   private async library(community:boolean){
     const generation=this.generation,request=++this.libraryRequest,status=this.el('.creator-library-status'),list=this.el('.creator-level-list');list.replaceChildren();status.textContent='Loading levels…';
@@ -556,14 +590,15 @@ export class EditorScreen {
   }
 
   private libraryCard(entry:LevelSummary,community:boolean,list:HTMLElement){
-    const card=document.createElement('article'),title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('small');title.textContent=entry.name||'Untitled chamber';description.textContent=entry.subtitle;meta.textContent=`${entry.width}×${entry.height} · ${entry.totalSteps} turns · by ${entry.ownerName} · ${entry.publishedRevision?'published r'+entry.publishedRevision:'draft'}`;card.append(title,description,meta);
-    const button=document.createElement('button');button.textContent=community?'Play together ↗':'Edit draft ↗';button.addEventListener('click',()=>{if(community){this.actions.play(entry.id);return;}const generation=this.generation;button.disabled=true;void this.api.get(entry.id).then(stored=>{if(generation!==this.generation)return;this.replace(stored.level,stored);this.el<HTMLDialogElement>('.creator-library').close();}).catch(error=>this.el('.creator-library-status').textContent=(error as Error).message).finally(()=>button.disabled=false);});card.append(button);list.append(card);
+    const card=document.createElement('article'),title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('small');title.textContent=entry.name||'Untitled chamber';description.textContent=entry.subtitle;meta.textContent=`${entry.width}×${entry.height} · ${entry.totalSteps} turns · by ${entry.ownerName} · ${entry.certification?.status??(entry.publishedRevision?'published · legacy':'draft')}`;card.append(title,description,meta);
+    const button=document.createElement('button');button.textContent=community?'Play ↗':entry.readonly?'View submission ↗':'Edit draft ↗';button.addEventListener('click',()=>{if(community){this.actions.play(entry.id);return;}const generation=this.generation;button.disabled=true;void this.api.get(entry.id).then(stored=>{if(generation!==this.generation)return;this.replace(stored.level,stored);this.el<HTMLDialogElement>('.creator-library').close();}).catch(error=>this.el('.creator-library-status').textContent=(error as Error).message).finally(()=>button.disabled=false);});card.append(button);list.append(card);
   }
 
   private export(){const blob=new Blob([JSON.stringify(this.model.level,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(this.model.level.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()||'chamber')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);this.message('Exported this draft and its recorded solution as JSON.');}
 
   key(event:KeyboardEvent){
     if(this.busy||this.root.querySelector('dialog[open]'))return;
+    if(this.locked&&(event.ctrlKey||event.metaKey)&&['KeyS','KeyZ','KeyY'].includes(event.code)){event.preventDefault();return;}
     const target=event.target as HTMLElement;
     if(event.code==='Escape'){this.cancelGesture();this.tool=null;this.wallMode=false;this.render();return;}
     if((event.ctrlKey||event.metaKey)&&event.code==='KeyS'){event.preventDefault();if(target.matches('input,select,textarea'))target.blur();void this.persist(false);return;}
@@ -604,6 +639,7 @@ export class EditorScreen {
     window.removeEventListener('pointerup',this.boundPointerUp);
     window.removeEventListener('pointercancel',this.boundPointerCancel);
     window.removeEventListener('blur',this.boundBlur);
+    clearInterval(this.statusTimer);
     this.observer.disconnect();
     this.root.remove();
   }

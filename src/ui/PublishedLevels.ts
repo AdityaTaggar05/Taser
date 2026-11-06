@@ -65,7 +65,7 @@ export class PublishedLevels {
   }
   private card(level:LevelSummary,parent:Element,href:string){
     const card=document.createElement('article');card.className='archive-card';
-    for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / REV ${level.publishedRevision??level.revision}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
+    for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / ${level.verification==='simulation'?'CRE SIMULATION':level.verification==='don'?'CRE VERIFIED':'LEGACY · SERVER VERIFIED'}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
     const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);parent.append(card);
   }
   destroy(){this.request++;this.root.remove();}
