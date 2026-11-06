@@ -21,6 +21,7 @@ import {
 } from '../arkiv/archive';
 import { ActivityStore } from '../arkiv/ActivityStore';
 import { canonicalJSON } from '../arkiv/canonical';
+import { publicCertificate } from '../../src/certification/public';
 import {
   RULES_HASH,
   levelHash,
@@ -154,6 +155,7 @@ export class LevelStore {
       ...(!published ? { archivedRevision: row.archived_revision } : {}),
       readonly: this.frozen(row.id),
       certification,
+      certificate: row.published_revision ? publicCertificate(certification?.proof) : undefined,
       verification: row.published_revision
         ? mode && mode !== 'unconfigured'
           ? mode
@@ -189,6 +191,7 @@ export class LevelStore {
         height: r.level.height,
         totalSteps: r.level.totalSteps,
         verification: r.certification?.proof.mode ?? 'legacy',
+        certificate: publicCertificate(r.certification?.proof),
       }));
   }
 
@@ -747,6 +750,7 @@ export class LevelStore {
         slot: r.campaignSlot!,
         entityKey: ref.entityKey,
         verification: r.certification?.proof.mode ?? ('legacy' as const),
+        certificate: publicCertificate(r.certification?.proof),
         txHash: ref.txHash,
         storage: this.storage,
       }))

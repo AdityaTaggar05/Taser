@@ -86,6 +86,15 @@ it('accepts only a matching certificate, persists encrypted proof and makes the 
     const published = store.get('alice', draft.id);
     expect(published.certification?.status).toBe('published');
     expect(store.community()[0].verification).toBe('simulation');
+    expect(store.community()[0].certificate).toMatchObject({
+      id,
+      mode: 'simulation',
+      chainId: 11155111,
+      registry: '0x1111111111111111111111111111111111111111',
+      commitment: requestHash(published.certification!.proof!.request),
+    });
+    expect(store.community()[0].certificate).not.toHaveProperty('request');
+    expect(store.community()[0].certificate).not.toHaveProperty('salt');
     expect(store.activityFeed('alice').activities).toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: 'community', state: 'confirmed' })]),
     );

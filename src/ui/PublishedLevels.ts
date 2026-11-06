@@ -3,6 +3,7 @@ import { explorerLink } from '../network/arkiv';
 import type { LevelClient } from '../editor/LevelClient';
 import type { LevelSummary } from '../editor/types';
 import { verificationLabel } from '../certification/model';
+import { certificateEvidence } from './CertificateEvidence';
 import { INVITE_LENGTH, INVITE_PATTERN, normalizeInviteCode } from '../network/invite';
 export class PublishedLevels {
   readonly root = document.createElement('main');
@@ -262,6 +263,10 @@ export class PublishedLevels {
     board.textContent = 'Leaderboard & hearts ♡';
     card.append(play, board);
     this.proof(level, card);
+    if (level.certificate) {
+      const evidence = certificateEvidence(level.certificate);
+      if (evidence) card.append(evidence);
+    }
     parent.append(card);
   }
 

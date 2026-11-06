@@ -14,6 +14,7 @@ export interface LevelSummary {
   readonly?: boolean;
   certification?: import('../certification/model').CertificationInfo;
   verification?: 'legacy' | import('../certification/model').CertificationMode;
+  certificate?: import('../certification/public').PublicCertificate;
   entityKey?: string;
   txHash?: string;
   storage?: 'arkiv' | 'test' | 'unconfigured';

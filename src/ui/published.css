@@ -649,6 +649,32 @@
   padding: 6px 0;
   overflow-wrap: anywhere;
 }
+.certificate-evidence {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #536858;
+  font: 11px/1.7 monospace;
+}
+.certificate-evidence a {
+  color: #9de6cc;
+}
+.certificate-evidence details {
+  margin-top: 8px;
+}
+.certificate-evidence summary {
+  cursor: pointer;
+  color: #c5d7c9;
+}
+.certificate-evidence code {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.certificate-evidence button {
+  padding: 8px 12px;
+  font: inherit;
+}
 .run-entry {
   margin-bottom: 15px;
 }

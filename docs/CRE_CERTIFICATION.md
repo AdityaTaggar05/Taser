@@ -16,6 +16,10 @@ The final public record remains permanently read-only after the entity expires. 
 
 ## Scope and trust
 
+Published campaign and community cards expose certificate evidence without the solution, witness salt or private draft. Sepolia-backed proofs include a **Sepolia certificate** link to the recorded registry and an expandable certificate ID with a copy action. On Etherscan, use **Contract → Read Contract → certifications(id)**, paste that ID and compare `exists=true`, `valid=true`, `steps` and the displayed expected commitment. Read Contract requires the registry source to be verified on the explorer. The linked block is the server's observation snapshot, not a claimed certificate transaction block; the current proof does not contain a transaction hash.
+
+Local CLI receipts show **CRE simulation receipt** with the receipt ID and workflow hash. They do not produce Sepolia links. Legacy levels and explicit test proofs do not claim a public certificate. Adding explorer links does not deploy contracts or upload receipts to Sepolia.
+
 - **CRE CLI simulation** can approve publications without a Sepolia receiver when explicitly selected. EVM simulation uses a separate simulation registry. Compiling WASM or replaying a local unit test is not a successful CRE CLI simulation and is never reported as live DON execution.
 - The game server never accepts an HTTP callback saying `approved: true`. It validates its own successful CLI subprocess result or reads the configured Sepolia contract. Unconfigured verification does not fall back to the server's initial verdict.
 - The authenticated witness gateway decrypts the pinned Arkiv draft and checks that it matches the frozen submission before supplying it. This gateway remains trusted for plaintext-to-archive binding. The authorized verifier can see the solution. This is not confidential computation or a zero-knowledge proof.
