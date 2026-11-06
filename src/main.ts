@@ -118,6 +118,8 @@ function refresh() {
     client?.state?.moveSequences ?? [],
     inspection ?? client?.state?.history.at(-1)?.step ?? 0,
     playing && !inLobby,
+    client?.state?.player,
+    client?.state?.level?.totalSteps,
   );
   home.update(audio.enabled, pack.name, completed.size, levels.length, auth.user);
   applyThemeInterface(pack, auth.user, client?.status, !!client?.state?.partnerReady);
@@ -550,7 +552,7 @@ class ChamberScene extends Phaser.Scene {
       this.board?.destroy();
       this.board = undefined;
       this.title?.clear();
-      this.cameras.main.setBackgroundColor(this.activeEnvironment().palette.background);
+      this.cameras.main.setBackgroundColor('#f3efe5');
       void this.prepareArtwork(this.activeEnvironment()).catch(() => {});
       return;
     }
@@ -599,7 +601,7 @@ class ChamberScene extends Phaser.Scene {
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  backgroundColor: '#151b1e',
+  backgroundColor: '#f3efe5',
   antialias: false,
   pixelArt: true,
   scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
@@ -622,10 +624,6 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyF') {
       e.preventDefault();
       void fullscreen();
-    }
-    if (e.code === 'Enter' && target.tagName !== 'BUTTON' && target.tagName !== 'A') {
-      e.preventDefault();
-      location.hash = 'coop';
     }
     return;
   }

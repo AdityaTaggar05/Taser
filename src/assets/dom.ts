@@ -4,6 +4,7 @@ export function applySprite(element: HTMLElement, pack: ThemePack, id: string) {
   const { sprite, url } = resolveSprite(pack, id),
     r = sprite.frame,
     sheet = pack.manifest.sheets[sprite.sheet];
+  element.style.setProperty('--sprite-ratio', String(r.w / r.h));
   element.dataset.sprite = id;
   element.classList.add('theme-sprite');
   element.style.backgroundImage = `url("${url}")`;

@@ -1,3 +1,4 @@
+import { icon } from '../ui/icons';
 import type { PlayerProfile } from '../auth/types';
 import { applyThemeVariables, type ThemePack } from './catalog';
 import { applySprite, spriteElement } from './dom';
@@ -9,6 +10,11 @@ export function applyThemeInterface(
   partnerReady = false,
 ) {
   applyThemeVariables(pack);
+  document
+    .querySelectorAll<HTMLButtonElement>('button[aria-label="Fullscreen"]')
+    .forEach((button) => {
+      if (!button.querySelector('svg')) button.innerHTML = icon('fullscreen');
+    });
   document.querySelectorAll<HTMLElement>('.home-brand>span,.wordmark>.mark').forEach((el) => {
     el.textContent = '';
     applySprite(el, pack, 'ui.emblem');

@@ -31,7 +31,7 @@ export class PublishedLevels {
     }
     this.root.innerHTML = /* HTML */ `
       <header class="published-header">
-        <button data-menu="home">← Home</button>
+        <button data-menu="home">← Back</button>
         <span>WELDPOINT / CHALLENGES</span>
         <button data-menu="fullscreen" aria-label="Fullscreen">⛶</button>
       </header>
@@ -43,7 +43,11 @@ export class PublishedLevels {
         <p class="archive-status" role="status"></p>
       </section>
     `;
-    this.root.querySelector('[data-menu=home]')!.addEventListener('click', this.actions.home);
+    this.root.querySelector('[data-menu=home]')!.addEventListener('click', () => {
+      if (/\/runs$/.test(hash)) location.hash = hash.replace(/\/runs$/, '');
+      else if (/\/p[12]$/.test(hash)) location.hash = hash.replace(/\/[a-f0-9-]{36}\/p[12]$/, '');
+      else this.actions.home();
+    });
     this.root
       .querySelector('[data-menu=fullscreen]')!
       .addEventListener('click', this.actions.fullscreen);
@@ -151,9 +155,7 @@ export class PublishedLevels {
         body.append(choices);
         link('Creator solution →', hash + '/creator', choices, 'run-choice');
         link('Player runs →', hash + '/runs', choices, 'run-choice');
-        status(
-          'Solo wins automatically publish your human run. Only co-op wins unlock campaign progress and reference solutions.',
-        );
+        status('');
       } else {
         const list = document.createElement('div');
         body.append(list);
@@ -168,11 +170,7 @@ export class PublishedLevels {
           .runs(selected, role === '1' ? 2 : 1)
           .then((runs) => {
             if (this.request !== request) return;
-            status(
-              runs.length
-                ? 'Verified winning runs for this exact chamber revision. Available for about 48 hours.'
-                : 'No matching player runs yet. Try the creator solution first.',
-            );
+            status(runs.length ? 'Verified winning runs.' : 'No player runs yet.');
             for (const run of runs) {
               const row = document.createElement('article');
               row.className = 'run-entry';

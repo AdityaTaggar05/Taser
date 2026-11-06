@@ -29,7 +29,7 @@ export class LevelLibrary {
     playOptions.players = mode;
     playOptions.collection = category;
     saveOptions();
-    root.innerHTML = `<div class="library-layout"><section class="level-database"><div class="database-toolbar"><label class="search-label">⌕ <input type="search" placeholder="Find a chamber…" aria-label="Search levels"></label><label class="sort-label">Sort <select aria-label="Sort levels"><option value="newest">Newest</option><option value="popular">Most popular</option><option value="expiry">Expiring first</option></select></label><button class="library-refresh" aria-label="Refresh levels">↻</button></div><div class="database-scroll"><table class="chamber-table"><thead><tr><th scope="col">Title</th><th scope="col">Creator / runner</th><th scope="col">Likes</th><th scope="col">Time to expiry</th></tr></thead><tbody></tbody></table></div><p class="database-footnote">ARKIV / Published chambers · expiry estimated from block time</p></section><aside class="launch-panel"><p class="folio">YOUR TIMELINE</p><div class="option-cycler"><small>PLAYERS</small><button data-cycle="players" aria-label="Change players">‹</button><b data-option="players"></b><button data-cycle="players" aria-label="Next players">›</button></div><div class="option-cycler"><small>COLLECTION</small><button data-cycle="collection" aria-label="Change collection">‹</button><b data-option="collection"></b><button data-cycle="collection" aria-label="Next collection">›</button></div><div class="option-cycler"><small>ROLE</small><button data-cycle="role" aria-label="Change role">‹</button><b data-option="role"></b><button data-cycle="role" aria-label="Next role">›</button></div><div class="selected-chamber"><span class="folio">SELECTED CHAMBER</span><h2>Choose a level</h2><p>Select a row to prepare your timeline.</p></div><button class="ink-button start-chamber" disabled>Start <span>↗</span></button><div class="selected-evidence"></div><a class="text-button" href="#">← Change objective</a></aside></div>`;
+    root.innerHTML = `<div class="library-layout"><section class="level-database"><div class="database-toolbar"><label class="search-label">⌕ <input type="search" placeholder="Find a chamber…" aria-label="Search levels"></label><label class="sort-label">Sort <select aria-label="Sort levels"><option value="newest">Newest</option><option value="popular">Most popular</option>${category === 'community' ? '<option value="expiry">Expiring first</option>' : ''}</select></label><button class="library-refresh" aria-label="Refresh levels">↻</button></div><div class="database-scroll"><table class="chamber-table"><thead><tr><th scope="col">Title</th><th scope="col">Creator / runner</th><th scope="col">Likes</th>${category === 'community' ? '<th scope="col">Time to expiry</th>' : ''}</tr></thead><tbody></tbody></table></div><p class="database-footnote">ARKIV / Published chambers · expiry estimated from block time</p></section><aside class="launch-panel"><p class="folio">YOUR TIMELINE</p><div class="option-cycler"><small>PLAYERS</small><button data-cycle="players" aria-label="Change players">‹</button><b data-option="players"></b><button data-cycle="players" aria-label="Next players">›</button></div><div class="option-cycler"><small>COLLECTION</small><button data-cycle="collection" aria-label="Change collection">‹</button><b data-option="collection"></b><button data-cycle="collection" aria-label="Next collection">›</button></div><div class="option-cycler"><small>ROLE</small><button data-cycle="role" aria-label="Change role">‹</button><b data-option="role"></b><button data-cycle="role" aria-label="Next role">›</button></div><div class="selected-chamber"><span class="folio">SELECTED CHAMBER</span><h2>Choose a level</h2><p></p></div><button class="ink-button start-chamber" disabled>Start <span>↗</span></button><div class="selected-evidence"></div><a class="text-button" href="#">← Back</a></aside></div>`;
     this.rows = root.querySelector('tbody')!;
     root.querySelector('input')!.addEventListener('input', (e) => {
       this.search = (e.target as HTMLInputElement).value.toLowerCase();
@@ -70,7 +70,7 @@ export class LevelLibrary {
     for (const [key, value] of Object.entries({
       players: playOptions.players === 'solo' ? 'Solo' : 'Co-op',
       collection: playOptions.collection === 'campaign' ? 'Campaign' : 'Community',
-      role: playOptions.role === 1 ? 'Forward →' : '← Reverse',
+      role: playOptions.role === 1 ? 'Forward' : 'Reverse',
     }))
       this.root.querySelector(`[data-option=${key}]`)!.textContent = value;
   }
@@ -91,7 +91,7 @@ export class LevelLibrary {
       }
       if (!this.alive) return;
       this.root.querySelector('.database-footnote')!.textContent =
-        `${storage === 'test' ? 'TEST ARCHIVE / Simulated records' : storage === 'unconfigured' ? 'ARKIV NOT CONFIGURED' : 'ARKIV / Published chambers'} · expiry estimated from block time`;
+        `${storage === 'test' ? 'TEST ARCHIVE / Simulated records' : storage === 'unconfigured' ? 'ARKIV NOT CONFIGURED' : storage ? 'ARKIV / Published chambers' : 'No publications'} ${playOptions.collection === 'community' ? ' · estimated expiry' : ''}`;
       if (!this.entries.some((e) => e.id === this.selected)) {
         this.selected = '';
         this.root.querySelector<HTMLButtonElement>('.start-chamber')!.disabled = true;
@@ -173,8 +173,13 @@ export class LevelLibrary {
         : '—';
       board.setAttribute('aria-label', `Likes and leaderboard for ${entry.name}`);
       likes.append(board);
-      const expiry = tr.insertCell();
-      expiry.dataset.expiryId = entry.id;
+      if (playOptions.collection === 'community') {
+        const expiry = tr.insertCell();
+        expiry.dataset.expiryId = entry.id;
+      }
+      tr.onclick = (event) => {
+        if (!(event.target as HTMLElement).closest('a,button')) this.select(entry);
+      };
       tr.classList.toggle('selected', entry.id === this.selected);
     }
     if (!entries.length) {

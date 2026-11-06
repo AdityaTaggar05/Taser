@@ -4,7 +4,7 @@ The interface uses warm paper, graphite rules, serif headlines, monospaced metad
 
 ## Flow
 
-- Landing → wallet / Atlas / Nova onboarding → players, collection and role → play or create.
+- Landing → wallet / Atlas / Nova onboarding → play or create → players, collection and role for play.
 - The archive supports title/creator search, newest, popular and estimated-expiry sorting. The right-hand options select the role and launch the chosen chamber. Solo retains creator/player replay selection; co-op retains invite codes and the two-player Ready handshake.
 - Profile settings are available across authenticated screens: sound, theme pack, fullscreen and account switching. Switching wallets signs out first; it does not merge accounts.
 - The shared animated guide is available from setup and gameplay, with reduced-motion support.

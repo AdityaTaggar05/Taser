@@ -12,6 +12,7 @@ export class SignInScreen {
         WELDPOINT
       </a>
       <section class="landing-panel">
+        <button class="landing-back text-button" type="button">← Back</button>
         <p class="folio">A TEMPORAL CO-OP PUZZLE</p>
         <div class="landing-emblem" aria-hidden="true">↔</div>
         <h1>
@@ -25,19 +26,15 @@ export class SignInScreen {
         <p class="landing-caption">Your past. Their way forward.</p>
       </section>
       <section class="signin-panel" hidden aria-labelledby="signin-title">
+        <button class="signin-back text-button" type="button">← Back</button>
         <div class="home-kicker">
           <span></span>
           TWO OPERATORS. ONE TIMELINE.
         </div>
         <h1 id="signin-title">Meet your operator.</h1>
-        <p class="signin-intro">
-          Connect a wallet to save your progress, or use a development account.
-        </p>
+
         <button class="signin-wallet home-play" type="button">
-          <span>
-            <small>YOUR WALLET. YOUR OPERATOR.</small>
-            Connect Ethereum wallet
-          </span>
+          <span>Connect Ethereum wallet</span>
           <span aria-hidden="true">↗</span>
         </button>
         <p class="signin-wallet-note">A signature to sign in. No transaction or gas required.</p>
@@ -72,6 +69,13 @@ export class SignInScreen {
       <footer class="signin-footer">COOPERATE ACROSS TIME</footer>
     `;
     document.body.append(this.root);
+    const landingBack = this.root.querySelector<HTMLButtonElement>('.landing-back')!;
+    landingBack.disabled = history.length <= 1;
+    landingBack.onclick = () => history.back();
+    this.root.querySelector('.signin-back')!.addEventListener('click', () => {
+      this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = false;
+      this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = true;
+    });
     this.root.querySelector('.landing-enter')!.addEventListener('click', () => this.onboarding());
     this.root.querySelector('.signin-brand')!.addEventListener('click', () => {
       this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = false;
@@ -135,7 +139,7 @@ export class SignInScreen {
 
   private disable() {
     this.root
-      .querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input')
+      .querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not(.landing-back),input')
       .forEach((el) => (el.disabled = this.busy || !this.auth.ready));
   }
 

@@ -1,3 +1,4 @@
+import { icon } from './icons';
 import { isLive, type Direction } from '../core/types';
 import type { Player, SessionState } from '../network/protocol';
 import type { ConnectionStatus } from '../network/CoopClient';
@@ -45,17 +46,12 @@ export class Hud {
           <span class="level-caption">CHAMBERS</span>
         </nav>
         <div class="utilities">
-          <button
-            data-action="home"
-            aria-label="Return to home"
-            title="Leave session and return home"
-          >
-            ⌂
+          <button data-action="home" aria-label="Back" title="Leave session and return home">
+            ${icon('back')}
           </button>
           <button data-action="sound" aria-label="Toggle sound" id="sound">SFX ON</button>
-          <button data-action="theme" aria-label="Change environment">◐</button>
-          <button data-action="help" aria-label="How to play">?</button>
-          <button data-action="fullscreen" aria-label="Fullscreen">⛶</button>
+          <button data-action="help" aria-label="How to play">${icon('help')}</button>
+          <button data-action="fullscreen" aria-label="Fullscreen">${icon('fullscreen')}</button>
         </div>
       </header>
       <section class="mission">
@@ -115,7 +111,6 @@ export class Hud {
               ↺
               <span>Reset</span>
             </button>
-            <button data-action="hint">Reference route</button>
           </div>
         </div>
         <div class="controls-row">
@@ -325,12 +320,6 @@ export class Hud {
     this.root
       .querySelector('#peer-status')!
       .classList.toggle('ready', paired && !!session?.partnerReady);
-    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled =
-      viewingOther || !session?.solutionAvailable;
-    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.title =
-      session?.solutionAvailable
-        ? 'View the verified reference route'
-        : 'Complete this revision to unlock its reference route';
     if (!view || !session) {
       this.root.querySelector('#outcome')!.setAttribute('hidden', '');
       return;
@@ -347,7 +336,10 @@ export class Hud {
     this.root.querySelector('.timeline-label span')!.textContent = `0 → ${l.totalSteps}`;
     this.root.querySelector<HTMLElement>('#timeline')!.style.overflowX =
       l.totalSteps > 12 ? 'auto' : '';
-    this.set('turn', String(s.step).padStart(2, '0'));
+    this.set(
+      'turn',
+      String(session.player === 2 ? l.totalSteps - s.step : s.step).padStart(2, '0'),
+    );
     this.set('turn-total', `/ ${String(l.totalSteps).padStart(2, '0')}`);
     this.set(
       'phase-name',
@@ -365,7 +357,7 @@ export class Hud {
         ? 'YOUR FIRST MOVE LOCKS THE VIEW'
         : s.step < l.weldStep
           ? `CONVERGE AT TURN ${l.weldStep}`
-          : `EXIT TOGETHER BY TURN ${l.totalSteps}`,
+          : `EXIT TOGETHER AT T${String(session.player === 2 ? 0 : l.totalSteps).padStart(2, '0')}`,
     );
     this.root.querySelector('#phase-led')!.className = s.status === 'WELD_SUCCESS' ? 'welded' : '';
     const publication =
@@ -389,7 +381,7 @@ export class Hud {
     this.root.querySelector('#timeline')!.innerHTML = Array.from(
       { length: l.totalSteps + 1 },
       (_, k) =>
-        `<button data-step="${k}" ${viewingOther || k >= session.history.length ? 'disabled' : ''} class="${k === s.step ? 'current ' : ''}${k === l.weldStep ? 'weld ' : ''}${k < s.step ? 'past' : ''}" aria-label="Review turn ${k}"><i></i><span>${k === l.weldStep ? 'WELD' : k}</span></button>`,
+        `<button data-step="${k}" ${viewingOther || k >= session.history.length ? 'disabled' : ''} class="${k === s.step ? 'current ' : ''}${k === l.weldStep ? 'weld ' : ''}${k < s.step ? 'past' : ''}" aria-label="Review time ${session.player === 2 ? l.totalSteps - k : k}"><i></i><span>${k === l.weldStep ? 'MID' : session.player === 2 ? l.totalSteps - k : k}</span></button>`,
     ).join('');
     const terminal = !isLive(s.status) && view.inspecting === null,
       victory = s.status === 'VICTORY';
@@ -414,9 +406,7 @@ export class Hud {
         'outcome-message',
         s.message +
           publication +
-          (session.mode === 'solo'
-            ? ' Solo practice does not unlock campaign progress or reference solutions.'
-            : ''),
+          (session.mode === 'solo' ? ' Solo practice does not unlock campaign progress.' : ''),
       );
       this.root.querySelector('#outcome-actions')!.innerHTML = /* HTML */ `
         ${!victory ? `<button data-action="undo" ${paired ? '' : 'disabled'}>↶ Undo turn</button>` : ''}

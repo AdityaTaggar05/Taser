@@ -22,20 +22,20 @@ export class HomeScreen {
   private guide = new Guide();
   constructor(private actions: HomeActions) {
     this.root.id = 'home';
-    this.root.innerHTML = `<header class="paper-header"><a href="#" class="home-brand"><span>⌁</span> WELDPOINT</a><span class="folio">THE TEMPORAL CO-OP PUZZLE</span></header>
-      <section class="setup-page"><div class="section-heading"><p class="folio">01 / CONFIGURE YOUR TIMELINE</p><h1>Choose your perspective.</h1><p>One chamber. Two operators. Opposite directions.</p></div>
-      <form class="mode-form"><fieldset><legend><span>01</span> Players</legend><div class="segmented"><button type="button" data-choice="players" data-value="solo">Solo <small>Follow a recorded echo</small></button><button type="button" data-choice="players" data-value="coop">Co-op <small>Bring a live partner</small></button></div></fieldset>
-      <fieldset><legend><span>02</span> Collection</legend><div class="segmented"><button type="button" data-choice="collection" data-value="campaign">Campaign <small>The original chambers</small></button><button type="button" data-choice="collection" data-value="community">Community <small>Made by other operators</small></button></div></fieldset>
-      <fieldset><legend><span>03</span> Your role</legend><div class="segmented mode-roles"><button type="button" data-choice="role" data-value="1" data-player="1">Forward <small>P1 · Write the past →</small></button><button type="button" data-choice="role" data-value="2" data-player="2">Reverse <small>P2 · Meet the future ←</small></button></div></fieldset>
+    this.root.innerHTML = `<header class="paper-header"><button class="text-button" data-home-action="back">← Back</button><a href="#" class="home-brand"><span>⌁</span> WELDPOINT</a><span class="folio">THE TEMPORAL CO-OP PUZZLE</span></header>
+      <section class="setup-page"><section class="home-welcome" hidden><h1>WeldPoint</h1><button class="ink-button" data-home-action="begin">Continue</button></section><div class="section-heading"><p class="folio">02 / CONFIGURE YOUR TIMELINE</p><h1>Choose your perspective.</h1></div>
+      <form class="mode-form"><fieldset><legend><span>01</span> Players</legend><div class="segmented"><button type="button" data-choice="players" data-value="solo">Solo </button><button type="button" data-choice="players" data-value="coop">Co-op </button></div></fieldset>
+      <fieldset><legend><span>02</span> Collection</legend><div class="segmented"><button type="button" data-choice="collection" data-value="campaign">Campaign </button><button type="button" data-choice="collection" data-value="community">Community </button></div></fieldset>
+      <fieldset><legend><span>03</span> Your role</legend><div class="segmented mode-roles"><button type="button" data-choice="role" data-value="1" data-player="1">Forward </button><button type="button" data-choice="role" data-value="2" data-player="2">Reverse </button></div></fieldset>
       <button class="ink-button mode-submit" type="submit">Select level <span>↗</span></button></form>
-      <section class="objective-picker" hidden><p class="folio">02 / CHOOSE YOUR OBJECTIVE</p><h1>What brings you here?</h1><div class="objective-options"><button data-home-action="browse"><span class="objective-symbol">↔</span><b>Play a level</b><small>Enter a chamber. Find a way home.</small><span>01 ↗</span></button><button data-home-action="create"><span class="objective-symbol">⊞</span><b>Create a level</b><small>Build, solve, and publish your own.</small><span>02 ↗</span></button></div><button class="text-button" data-home-action="configure">← Change game options</button></section>
+      <section class="objective-picker" hidden><p class="folio">01 / CHOOSE YOUR OBJECTIVE</p><h1>What brings you here?</h1><div class="objective-options"><button data-home-action="browse"><span class="objective-symbol">↔</span><b>Play a level</b><span>01 ↗</span></button><button data-home-action="create"><span class="objective-symbol">⊞</span><b>Create a level</b><span>02 ↗</span></button></div></section>
       <div class="setup-bottom"><button class="text-button" data-home-action="guide">How to play ↗</button><button class="text-button" data-home-action="leaderboard">Leaderboard ↗</button><form class="join-code-form"><label for="home-invite">Have a co-op code?</label><input id="home-invite" required pattern="${INVITE_PATTERN}" maxlength="6" minlength="6" placeholder="6-character code" aria-label="Co-op invite code"><button type="submit">Join →</button></form></div></section>
       <footer class="paper-footer"><span>ETHGLOBAL / MUMBAI 2026</span><span>YOUR PAST. THEIR WAY FORWARD.</span></footer>`;
     document.body.append(this.root);
     this.account.id = 'home-profile';
     this.account.className = 'paper-dialog profile-dialog';
     this.account.setAttribute('aria-labelledby', 'profile-title');
-    this.account.innerHTML = `<button class="dialog-close" data-home-action="close" aria-label="Close profile">×</button><p class="folio">OPERATOR PROFILE</p><h2 id="profile-title"></h2><p id="profile-kind"></p><p id="profile-address"></p><p id="profile-progress"></p><button class="setting-row" data-home-action="sound"><span>Sound effects</span><b id="home-sound"></b></button><button class="setting-row" data-home-action="theme"><span>Theme pack<small>Artwork distributed through Swarm</small></span><b id="home-environment"></b></button><button class="setting-row" data-home-action="fullscreen"><span>Fullscreen</span><b>⛶</b></button><button class="setting-row" data-home-action="wallet"><span>Connect / switch wallet<small>Sign in with another Ethereum account</small></span><b>↗</b></button><p id="profile-status" role="status"></p><button class="ink-button" data-home-action="logout">Sign out ↗</button>`;
+    this.account.innerHTML = `<button class="dialog-close" data-home-action="close" aria-label="Close profile">×</button><p class="folio">OPERATOR PROFILE</p><h2 id="profile-title"></h2><p id="profile-kind"></p><p id="profile-address"></p><p id="profile-progress"></p><button class="setting-row" data-home-action="sound"><span>Sound effects</span><b id="home-sound"></b></button><button class="setting-row" data-home-action="theme"><span>Theme pack</span><b id="home-environment"></b></button><button class="setting-row" data-home-action="fullscreen"><span>Fullscreen</span><b>⛶</b></button><button class="setting-row" data-home-action="wallet"><span>Connect / switch wallet</span><b>↗</b></button><p id="profile-status" role="status"></p><button class="ink-button" data-home-action="logout">Sign out ↗</button>`;
     document.body.append(this.account);
     this.profileButton.className = 'global-profile';
     this.profileButton.innerHTML =
@@ -50,10 +50,15 @@ export class HomeScreen {
       const name = b.dataset.homeAction!;
       if (name === 'guide') this.guide.show();
       else if (name === 'close') this.account.close();
-      else if (name === 'browse')
-        location.hash = `${playOptions.players}/${playOptions.collection}`;
-      else if (name === 'configure') this.objective(false);
-      else if (name === 'logout' || name === 'wallet') {
+      else if (name === 'browse') this.objective(false);
+      else if (name === 'configure' || name === 'begin') this.objective(true);
+      else if (name === 'back') {
+        if (!this.root.querySelector<HTMLElement>('.mode-form')!.hidden) this.objective(true);
+        else {
+          this.root.querySelector<HTMLElement>('.objective-picker')!.hidden = true;
+          this.root.querySelector<HTMLElement>('.home-welcome')!.hidden = false;
+        }
+      } else if (name === 'logout' || name === 'wallet') {
         b.disabled = true;
         void actions
           .logout()
@@ -74,7 +79,7 @@ export class HomeScreen {
     this.account.addEventListener('click', action);
     this.root.querySelector('.mode-form')!.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.objective(true);
+      location.hash = `${playOptions.players}/${playOptions.collection}`;
     });
     this.root.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach((button) => {
       button.onclick = () => {
@@ -94,6 +99,7 @@ export class HomeScreen {
       if (code) location.hash = 'invite/' + code;
     });
     this.choices();
+    this.objective(true);
   }
   private choices() {
     this.root
@@ -108,6 +114,7 @@ export class HomeScreen {
       );
   }
   private objective(show: boolean) {
+    this.root.querySelector<HTMLElement>('.home-welcome')!.hidden = true;
     this.root.querySelector<HTMLElement>('.mode-form')!.hidden = show;
     this.root.querySelector<HTMLElement>('.section-heading')!.hidden = show;
     this.root.querySelector<HTMLElement>('.objective-picker')!.hidden = !show;
@@ -122,7 +129,7 @@ export class HomeScreen {
   show(show: boolean) {
     this.root.hidden = !show;
     if (show) {
-      this.objective(false);
+      this.objective(true);
       this.choices();
     }
   }
@@ -145,6 +152,9 @@ export class HomeScreen {
         `${completed} / ${total} campaign chambers secured`;
     } else this.account.close();
     this.account.querySelector('#home-sound')!.textContent = sound ? 'ON' : 'OFF';
+    this.account
+      .querySelector('[data-home-action=sound]')!
+      .setAttribute('aria-pressed', String(sound));
     this.account.querySelector('#home-environment')!.textContent = environment + ' →';
   }
   destroy() {
