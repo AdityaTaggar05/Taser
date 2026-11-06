@@ -36,7 +36,19 @@ export class MoveSequence {
       '<div class="move-sequence-heading"><strong>MOVE PAIRS <span>P1 | P2</span></strong><span class="move-query-status" role="status"></span></div><ol class="move-pairs" aria-label="Committed move pairs"></ol>';
     this.list = this.root.querySelector('ol')!;
     this.status = this.root.querySelector('.move-query-status')!;
-    parent.insertBefore(this.root, parent.querySelector('.history-actions'));
+    const nav = document.createElement('nav');
+    nav.className = 'move-card-nav';
+    nav.setAttribute('aria-label', 'Move pair history');
+    nav.innerHTML =
+      '<button aria-label="Previous move pair">← Previous</button><span>COMMITTED TOGETHER</span><button aria-label="Next move pair">Next →</button>';
+    nav.querySelector('button')!.onclick = () => {
+      if (this.selected > 1) this.inspect(this.selected - 1);
+    };
+    nav.querySelectorAll('button')[1].onclick = () => {
+      if (this.selected < this.sequences.length) this.inspect(this.selected + 1);
+    };
+    this.root.append(nav);
+    parent.append(this.root);
     document.addEventListener('visibilitychange', this.visible);
     this.root.addEventListener('keydown', (event) => event.stopPropagation());
   }
@@ -165,6 +177,18 @@ export class MoveSequence {
         ?.focus({ preventScroll: true });
   }
   private highlight() {
+    const nav = this.root.querySelectorAll<HTMLButtonElement>('.move-card-nav button');
+    nav[0].disabled = this.selected <= 1;
+    nav[1].disabled = this.selected >= this.sequences.length;
+    this.root.dataset.empty = String(this.selected === 0 || !this.sequences.length);
+    let initial = this.list.querySelector<HTMLElement>('.move-initial');
+    if (!initial) {
+      initial = document.createElement('li');
+      initial.className = 'move-initial';
+      initial.textContent = 'Initial state · no move pair at turn 0.';
+      this.list.append(initial);
+    }
+    initial.hidden = this.selected !== 0 || !this.sequences.length;
     this.list.querySelectorAll<HTMLElement>('[data-turn]').forEach((row) => {
       const current = Number(row.dataset.turn) === this.selected;
       row.classList.toggle('current', current);

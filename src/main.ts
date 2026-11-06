@@ -12,6 +12,7 @@ import {
 } from './render/environment';
 import { KEY_MOVES } from './input/TurnBuffer';
 import { Hud } from './ui/Hud';
+import { BoxExplorer } from './ui/BoxExplorer';
 import { GameAudio } from './ui/audio';
 import { HomeScreen } from './ui/HomeScreen';
 import { PartyLobby } from './ui/PartyLobby';
@@ -34,6 +35,7 @@ import { registeredThemes, initializeThemes } from './assets/catalog';
 import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
+import './ui/editorial.css';
 
 let connectingParty = false;
 
@@ -106,7 +108,10 @@ function refresh() {
     !!client?.canStudy,
     !!client?.otherPerspective,
   );
+  explorer.show(!!auth.user && ((playing && !inLobby) || editing), auth.user?.id ?? null);
+  explorer.dock(playing && !inLobby);
   explorer.context(client?.state?.publicationKey);
+  boxExplorer.update(client?.state ?? null, inspection);
   moveSequence.context(
     auth.user?.id ?? null,
     client?.state?.party?.id,
@@ -119,7 +124,14 @@ function refresh() {
 }
 function queue(direction: Direction) {
   const session = client?.state;
-  if (!session || !client?.playable || !scene?.artworkReady || hud.helpOpen || inspection !== null)
+  if (
+    !session ||
+    !client?.playable ||
+    !scene?.artworkReady ||
+    hud.helpOpen ||
+    home.dialogOpen ||
+    inspection !== null
+  )
     return;
   const error = session.moveErrors[direction];
   if (error) {
@@ -168,6 +180,8 @@ function toggleSound() {
   refresh();
 }
 const hud = new Hud(levels, {
+  guide: (show) => home.openGuide(show),
+  guideOpen: () => home.dialogOpen,
   solution: () => {
     void revealSolution();
   },
@@ -191,6 +205,7 @@ const hud = new Hud(levels, {
   inspect: (step) => {
     inspection = step === (client?.state?.history.length ?? 0) - 1 ? null : step;
     scene?.redraw();
+    refresh();
   },
   theme: toggleTheme,
   sound: toggleSound,
@@ -201,6 +216,11 @@ const hud = new Hud(levels, {
   },
 });
 hud.setSound(audio.enabled);
+const boxExplorer = new BoxExplorer(hud.root.querySelector('.console')!, (step) => {
+  inspection = step;
+  scene?.redraw();
+  refresh();
+});
 const auth = new AuthClient(() => {
   completed.clear();
   auth.user?.completed.forEach((id) => completed.add(id));
@@ -237,15 +257,11 @@ const home = new HomeScreen({
 });
 const levelApi = new LevelClient(auth);
 const explorer = new ArkivPanel(levelApi);
-const moveSequence = new MoveSequence(
-  levelApi,
-  hud.root.querySelector('.timeline-row')!,
-  (step) => {
-    inspection = step;
-    scene?.redraw();
-    refresh();
-  },
-);
+const moveSequence = new MoveSequence(levelApi, hud.root.querySelector('.move-dock')!, (step) => {
+  inspection = step;
+  scene?.redraw();
+  refresh();
+});
 const library = new PublishedLevels(levelApi, {
   home: () => {
     location.hash = '';
@@ -355,7 +371,7 @@ function syncScreen() {
         : auth.user
           ? 'home'
           : 'signin';
-  explorer.show(!!auth.user && (editing || browsing), auth.user?.id ?? null);
+  explorer.show(!!auth.user && editing, auth.user?.id ?? null);
   connectingParty =
     intent?.kind === 'invite' || (intent?.kind === 'create' && intent.mode === 'coop');
   if (playing && intent) {
@@ -539,7 +555,7 @@ class ChamberScene extends Phaser.Scene {
       return;
     }
     artworkStatus.remove();
-    this.cameras.main.setBackgroundColor(pack.palette.background);
+    this.cameras.main.setBackgroundColor('#f3efe5');
     document.body.dataset.environment = pack.id;
     if (editing) {
       if (playtestEngine) {
@@ -567,13 +583,10 @@ class ChamberScene extends Phaser.Scene {
         this.board?.destroy();
         this.board = new BoardView(this, index);
       }
-      const width = this.scale.width,
-        top = document.querySelector('.mission')!.getBoundingClientRect().bottom + 48;
-      const bottom = document.querySelector('.console')!.getBoundingClientRect().top - 10,
-        side = width < 700 ? 8 : 24;
+      const rect = hud.root.querySelector('.game-stage')!.getBoundingClientRect();
       this.board.render(
         study ? new OtherPerspectiveView(study.level) : current,
-        { x: side, y: top, width: width - side * 2, height: Math.max(130, bottom - top) },
+        { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
         pack,
         study ? undefined : previous,
         !study && animate,
@@ -634,7 +647,7 @@ window.addEventListener('keydown', (e) => {
     if (!e.repeat) hud.toggleHelp();
     return;
   }
-  if (hud.helpOpen) return;
+  if (hud.helpOpen || home.dialogOpen) return;
   if (target.tagName === 'BUTTON' && (e.code === 'Enter' || e.code === 'Space')) return;
   if (KEY_MOVES[e.code]) {
     e.preventDefault();
@@ -672,7 +685,7 @@ if (import.meta.hot)
     library.destroy();
     leaderboards.destroy();
     lobby.destroy();
-    home.root.remove();
+    home.destroy();
     signin.root.remove();
     hud.root.remove();
     game.destroy(true);

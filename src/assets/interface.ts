@@ -45,14 +45,16 @@ export function applyThemeInterface(
       button.prepend(el);
     } else applySprite(el, pack, id);
   });
-  document.querySelectorAll<HTMLElement>('.role-options [data-player]').forEach((button) => {
-    const id = `player.p${button.dataset.player}.idle.south.0`;
-    let el = button.querySelector<HTMLElement>('.theme-role-operator');
-    if (!el) {
-      el = spriteElement(pack, id, 'theme-role-operator');
-      button.prepend(el);
-    } else applySprite(el, pack, id);
-  });
+  document
+    .querySelectorAll<HTMLElement>('.role-options [data-player],.mode-roles [data-player]')
+    .forEach((button) => {
+      const id = `player.p${button.dataset.player}.idle.south.0`;
+      let el = button.querySelector<HTMLElement>('.theme-role-operator');
+      if (!el) {
+        el = spriteElement(pack, id, 'theme-role-operator');
+        button.prepend(el);
+      } else applySprite(el, pack, id);
+    });
   document.querySelectorAll<HTMLElement>('.party-members [data-party-player]').forEach((card) => {
     const id = `player.p${card.dataset.partyPlayer}.idle.south.0`;
     let el = card.querySelector<HTMLElement>('.theme-party-operator');

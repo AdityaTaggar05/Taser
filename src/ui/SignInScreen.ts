@@ -11,25 +11,32 @@ export class SignInScreen {
         <span>⌁</span>
         WELDPOINT
       </a>
-      <section class="signin-panel" aria-labelledby="signin-title">
+      <section class="landing-panel">
+        <p class="folio">A TEMPORAL CO-OP PUZZLE</p>
+        <div class="landing-emblem" aria-hidden="true">↔</div>
+        <h1>
+          WELDPOINT
+          <span>Meet in the middle of time.</span>
+        </h1>
+        <button class="ink-button landing-enter" type="button">
+          Log in / Sign up
+          <span>↗</span>
+        </button>
+        <p class="landing-caption">Your past. Their way forward.</p>
+      </section>
+      <section class="signin-panel" hidden aria-labelledby="signin-title">
         <div class="home-kicker">
           <span></span>
           TWO OPERATORS. ONE TIMELINE.
         </div>
-        <h1 id="signin-title">
-          Every timeline
-          <br />
-          starts with you.
-        </h1>
+        <h1 id="signin-title">Meet your operator.</h1>
         <p class="signin-intro">
-          Sign in to enter the chambers.
-          <br />
-          Your progress stays with your account.
+          Connect a wallet to save your progress, or use a development account.
         </p>
         <button class="signin-wallet home-play" type="button">
           <span>
             <small>YOUR WALLET. YOUR OPERATOR.</small>
-            Sign in with Ethereum
+            Connect Ethereum wallet
           </span>
           <span aria-hidden="true">↗</span>
         </button>
@@ -65,6 +72,11 @@ export class SignInScreen {
       <footer class="signin-footer">COOPERATE ACROSS TIME</footer>
     `;
     document.body.append(this.root);
+    this.root.querySelector('.landing-enter')!.addEventListener('click', () => this.onboarding());
+    this.root.querySelector('.signin-brand')!.addEventListener('click', () => {
+      this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = false;
+      this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = true;
+    });
     this.root
       .querySelector('.signin-wallet')!
       .addEventListener('click', () => void this.run(() => auth.wallet()));
@@ -86,6 +98,11 @@ export class SignInScreen {
         this.root.querySelector<HTMLInputElement>('#demo-password')!.focus();
       }),
     );
+  }
+
+  private onboarding() {
+    this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = true;
+    this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = false;
   }
 
   private async run(action: () => Promise<void>) {
@@ -123,6 +140,7 @@ export class SignInScreen {
   }
 
   update() {
+    if (location.hash === '#onboarding') this.onboarding();
     this.root.hidden = !!this.auth.user;
     (this.root.querySelector('form') as HTMLFormElement).hidden = !this.auth.state.demoEnabled;
     (this.root.querySelector('.signin-retry') as HTMLButtonElement).hidden = !this.auth.error;

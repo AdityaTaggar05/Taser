@@ -17,11 +17,15 @@ export interface HudActions {
   home: () => void;
   party: () => void;
   perspective: () => void;
+  guide: (show: boolean) => void;
+  guideOpen: () => boolean;
 }
 const arrows: Record<Direction, string> = { U: '↑', D: '↓', L: '←', R: '→', W: '·' };
 export class Hud {
   readonly root = document.getElementById('hud')!;
-  helpOpen = false;
+  get helpOpen() {
+    return this.actions.guideOpen();
+  }
   private hintOpen = false;
   private player: Player = 1;
 
@@ -89,6 +93,12 @@ export class Hud {
           Other perspective
         </button>
       </section>
+      <nav class="mobile-inspect-toolbar" aria-label="Game data">
+        <button data-action="inspect-arkiv">Arkiv ↗</button>
+        <button data-action="inspect-moves">Move pairs ↗</button>
+      </nav>
+      <div class="game-stage" aria-label="Playable chamber"></div>
+      <aside class="move-dock" aria-label="Move pair explorer"></aside>
       <footer class="console">
         <div class="timeline-row">
           <div class="timeline-label">
@@ -131,48 +141,6 @@ export class Hud {
         <p id="outcome-message"></p>
         <div id="outcome-actions"></div>
       </div>
-      <div id="help" class="modal" hidden>
-        <section role="dialog" aria-modal="true" aria-labelledby="help-title">
-          <span class="eyebrow">OPERATOR FIELD GUIDE</span>
-          <h2 id="help-title">
-            Two operators.
-            <br />
-            Opposite ends of time.
-          </h2>
-          <p>
-            Co-op uses a private invitation: both operators confirm Ready, then the host starts.
-            Solo pairs you with a fixed creator or player replay. Its future moves stay hidden.
-            Before your first move, use Other perspective to study the opposite starting layout
-            without a time limit. Your first valid move locks the switch; Reset unlocks it.
-          </p>
-          <ol>
-            <li>
-              <strong id="help-write">WRITE · Turns 1–4</strong>
-              Coordinate box positions with your partner. A shove moves the box while you stay put.
-            </li>
-            <li>
-              <strong id="help-weld">WELD · Turn 4</strong>
-              Matching boxes must meet; some chambers also require unmarked fixed positions.
-            </li>
-            <li>
-              <strong id="help-replay">REPLAY · Turns 5–8</strong>
-              Boxes follow your partner’s history in reverse. Keep clear and reach both open exits
-              together before time expires.
-            </li>
-          </ol>
-          <p class="help-keys">
-            WASD or arrows: move · Space / Enter: wait
-            <br />
-            Both queued inputs commit a turn. Cancel or change yours before your partner commits.
-            <br />
-            Backspace / Z: shared undo · R: shared reset · F: fullscreen
-            <br />
-            Return Home to choose another challenge. Solo wins publish your run; only co-op wins
-            unlock progress and reference routes.
-          </p>
-          <button data-action="close-help" class="primary">Return to chamber ↗</button>
-        </section>
-      </div>
     `;
     this.root.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
@@ -192,6 +160,19 @@ export class Hud {
         return;
       }
       const action = b.dataset.action;
+      if (action === 'inspect-arkiv' || action === 'inspect-moves') {
+        const tab = action === 'inspect-arkiv' ? 'arkiv' : 'moves';
+        document.body.dataset.inspector = document.body.dataset.inspector === tab ? '' : tab;
+        this.root
+          .querySelectorAll<HTMLButtonElement>('.mobile-inspect-toolbar button')
+          .forEach((button) =>
+            button.setAttribute(
+              'aria-pressed',
+              String(button.dataset.action === 'inspect-' + document.body.dataset.inspector),
+            ),
+          );
+        return;
+      }
       if (action === 'help' || action === 'close-help') {
         this.toggleHelp();
         return;
@@ -261,10 +242,7 @@ export class Hud {
   }
 
   toggleHelp(force?: boolean) {
-    this.helpOpen = force ?? !this.helpOpen;
-    this.root.querySelector('#help')!.toggleAttribute('hidden', !this.helpOpen);
-    if (this.helpOpen)
-      this.root.querySelector<HTMLButtonElement>('[data-action="close-help"]')!.focus();
+    this.actions.guide(force ?? !this.helpOpen);
   }
 
   render(
@@ -369,9 +347,6 @@ export class Hud {
     this.root.querySelector('.timeline-label span')!.textContent = `0 → ${l.totalSteps}`;
     this.root.querySelector<HTMLElement>('#timeline')!.style.overflowX =
       l.totalSteps > 12 ? 'auto' : '';
-    this.set('help-write', `WRITE · Turns 1–${l.weldStep}`);
-    this.set('help-weld', `WELD · Turn ${l.weldStep}`);
-    this.set('help-replay', `REPLAY · Turns ${l.weldStep + 1}–${l.totalSteps}`);
     this.set('turn', String(s.step).padStart(2, '0'));
     this.set('turn-total', `/ ${String(l.totalSteps).padStart(2, '0')}`);
     this.set(

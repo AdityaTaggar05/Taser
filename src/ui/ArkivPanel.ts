@@ -17,6 +17,8 @@ export class ArkivPanel {
   private publicationKey: string | undefined;
   private lastRender = '';
   private error = '';
+  private filter = 'all';
+  private docked = false;
   constructor(private api: LevelClient) {
     this.root.id = 'arkiv-panel';
     this.root.hidden = true;
@@ -40,6 +42,12 @@ export class ArkivPanel {
     this.root.append(this.toggle, this.content);
     document.body.append(this.root);
     this.expand(this.expanded);
+  }
+  dock(value: boolean) {
+    if (this.docked === value) return;
+    this.docked = value;
+    this.root.classList.toggle('docked', value);
+    this.expand(value);
   }
   context(key?: string) {
     if (this.publicationKey === key) return;
@@ -68,6 +76,7 @@ export class ArkivPanel {
   private expand(value: boolean) {
     this.expanded = value;
     this.content.hidden = !value;
+    if (!value && this.docked && window.innerWidth <= 900) document.body.dataset.inspector = '';
     this.toggle.setAttribute('aria-expanded', String(value));
     try {
       localStorage.setItem('weldpoint:explorer', value ? 'expanded' : 'minimized');
@@ -111,10 +120,12 @@ export class ArkivPanel {
       this.error,
       this.api.references,
       this.publicationKey,
+      this.filter,
     ]);
     if (signature === this.lastRender) return;
     this.lastRender = signature;
     const focused = (document.activeElement as HTMLAnchorElement)?.href;
+    const focusedQuery = (document.activeElement as HTMLElement)?.dataset.query;
     const header = document.createElement('div');
     header.className = 'arkiv-heading';
     const title = document.createElement('strong');
@@ -143,16 +154,23 @@ export class ArkivPanel {
       this.error ||
       (!this.feed
         ? 'Loading activity…'
-        : `${activities.length} recent writes · ${pending} pending · ${failed} failed${test ? ' · test results only' : ''}`);
+        : `${activities.length} recent account writes · ${pending} pending · ${failed} failed${test ? ' · test results only' : ''}`);
     const list = document.createElement('ol');
     list.className = 'arkiv-activity';
     list.setAttribute('aria-label', 'Recent archive writes');
-    for (const activity of activities)
+    const matching = activities.filter(
+      (a) =>
+        this.filter === 'all' ||
+        (this.filter === 'levels'
+          ? ['draft', 'community', 'campaign'].includes(a.kind)
+          : a.kind === this.filter),
+    );
+    for (const activity of matching.slice(0, 6))
       this.activity(list, activity, test || this.feed?.storage !== 'arkiv');
-    if (!activities.length) {
+    if (!matching.length) {
       const empty = document.createElement('li');
       empty.textContent =
-        'No writes recorded for your account yet. Archive reads do not create transactions.';
+        'No matching writes recorded yet. Complete a turn or publish a chamber to see activity.';
       list.append(empty);
     }
     const refs = document.createElement('div');
@@ -172,7 +190,37 @@ export class ArkivPanel {
       if (tx) row.append(tx);
       if (row.childNodes.length) refs.append(row);
     }
-    this.content.replaceChildren(header, description, status, list, refs);
+    const schematic = document.createElement('div');
+    schematic.className = 'arkiv-schematic';
+    schematic.innerHTML =
+      '<span>P1 + P2<br><b>MOVE PAIR</b></span><i>→</i><span>ARKIV<br><b>ENTITY</b></span><i>→</i><span>QUERY<br><b>REPLAY</b></span>';
+    const queries = document.createElement('nav');
+    queries.className = 'arkiv-query-blocks';
+    queries.setAttribute('aria-label', 'Arkiv activity filters');
+    for (const [key, name] of [
+      ['all', 'All activity'],
+      ['move', 'Move pairs'],
+      ['levels', 'Levels'],
+      ['run', 'Winning runs'],
+    ]) {
+      const button = document.createElement('button');
+      button.textContent = name;
+      button.dataset.query = key;
+      button.setAttribute('aria-pressed', String(this.filter === key));
+      button.onclick = () => {
+        this.filter = key;
+        this.render();
+      };
+      queries.append(button);
+    }
+    const results = document.createElement('div');
+    results.className = 'arkiv-results';
+    results.append(status, list, refs);
+    this.content.replaceChildren(header, schematic, description, queries, results);
+    if (focusedQuery)
+      this.content
+        .querySelector<HTMLButtonElement>(`[data-query=${focusedQuery}]`)
+        ?.focus({ preventScroll: true });
     if (focused) {
       const replacement = Array.from(this.content.querySelectorAll('a')).find(
         (a) => a.href === focused,

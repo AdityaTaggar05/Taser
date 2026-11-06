@@ -1,4 +1,5 @@
 import './published.css';
+import { LevelLibrary } from './LevelLibrary';
 import { explorerLink } from '../network/arkiv';
 import type { LevelClient } from '../editor/LevelClient';
 import type { LevelSummary } from '../editor/types';
@@ -8,6 +9,7 @@ import { INVITE_LENGTH, INVITE_PATTERN, normalizeInviteCode } from '../network/i
 export class PublishedLevels {
   readonly root = document.createElement('main');
   private request = 0;
+  private database?: LevelLibrary;
 
   constructor(
     private api: LevelClient,
@@ -19,6 +21,8 @@ export class PublishedLevels {
   }
 
   show(visible: boolean, hash = '') {
+    this.database?.destroy();
+    this.database = undefined;
     this.root.hidden = !visible;
     const request = ++this.request;
     if (!visible) {
@@ -186,36 +190,14 @@ export class PublishedLevels {
       }
       return;
     }
-    title.textContent = category === 'campaign' ? 'Campaign challenges' : 'Community challenges';
+    title.textContent = 'The chamber archive.';
     intro.textContent =
-      category === 'community'
-        ? 'Verified community chambers start with 2 hours. Each operator’s heart adds 1 hour.'
-        : 'Choose a campaign chamber.';
-    const grid = document.createElement('div');
-    grid.className = 'archive-grid';
-    body.append(grid);
-    const refresh = document.createElement('button');
-    refresh.textContent = 'Refresh ↻';
-    refresh.className = 'archive-refresh';
-    refresh.onclick = () => this.show(true, hash);
-    body.prepend(refresh);
-    status('Loading confirmed publications…');
-    void (
-      category === 'campaign' ? this.api.catalog().then((c) => c.campaign) : this.api.community()
-    )
-      .then((entries) => {
-        if (this.request !== request) return;
-        status(
-          entries.length
-            ? `${entries.length} published ${entries.length === 1 ? 'chamber' : 'chambers'} · winning solutions verified`
-            : 'No community chambers yet. Publish a winning level in Level creator.',
-        );
-        for (const level of entries)
-          this.card(level, grid, '#' + mode + '/' + category + '/' + level.id);
-        link('← Challenge collections', '#' + mode);
-      })
-      .catch((error) => status((error as Error).message + ' Use Refresh to retry.'));
+      category === 'campaign'
+        ? 'Original puzzles. A shared way forward.'
+        : 'Built by operators. Kept alive by the community.';
+    this.database = new LevelLibrary(body, this.api, mode, category, status);
   }
+
   private proof(ref: { entityKey?: string; txHash?: string; storage?: string }, parent: Element) {
     if (ref.storage !== 'arkiv') return;
     const links = document.createElement('div');
@@ -271,6 +253,7 @@ export class PublishedLevels {
   }
 
   destroy() {
+    this.database?.destroy();
     this.request++;
     this.root.remove();
   }
