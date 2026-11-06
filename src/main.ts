@@ -14,8 +14,10 @@ import { RemoteView } from './network/RemoteView';
 import type { SessionState } from './network/protocol';
 import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
+import {EditorScreen} from './editor/EditorScreen';
+import {LevelClient} from './editor/LevelClient';
 
-let playing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
+let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
 const audio=new GameAudio(),completed=new Set<number>();
@@ -46,16 +48,18 @@ const hud=new Hud(levels,{home:()=>{location.hash='';},level,undo:()=>command('u
 hud.setSound(audio.enabled);
 const auth=new AuthClient(()=>{
   completed.clear();auth.user?.completed.forEach(id=>completed.add(id));
-  signin.update();syncScreen();refresh();
+  signin.update();editor.setUser(auth.user);syncScreen();refresh();
 });
 const signin=new SignInScreen(auth);
-const home=new HomeScreen({play:()=>{location.hash='play';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const editor=new EditorScreen(new LevelClient(auth),{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
 function syncScreen(){
   const next=!!auth.user&&location.hash==='#play';
-  if(screenInitialized&&next===playing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
+  const nextEditing=!!auth.user&&location.hash==='#create';
+  if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
-  screenInitialized=true;playing=next;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);
-  hud.root.hidden=!playing;home.show(!playing&&!!auth.user);signin.update();document.body.dataset.screen=playing?'play':auth.user?'home':'signin';
+  screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);
+  hud.root.hidden=!playing;home.show(!playing&&!editing&&!!auth.user);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':auth.user?'home':'signin';
   if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired());}
   scene?.redraw();refresh();
 }
@@ -80,7 +84,7 @@ class ChamberScene extends Phaser.Scene {
   redraw(previous?:StepSnapshot,animate=false){
     this.cameras.main.setBackgroundColor(pack.palette.background);
     document.body.dataset.environment=pack.id;
-    if(!playing){this.board?.destroy();this.board=undefined;this.title?.draw(this.scale.width,this.scale.height,pack);refresh();return;}
+    if(!playing){this.board?.destroy();this.board=undefined;if(editing)this.title?.clear();else this.title?.draw(this.scale.width,this.scale.height,pack);refresh();return;}
     this.title?.clear();
     const current=view();
     if(current){
@@ -97,6 +101,7 @@ const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#101
 syncScreen();void auth.refresh();
 window.addEventListener('hashchange',syncScreen);
 window.addEventListener('keydown',e=>{
+  if(editing){editor.key(e);return;}
   const target=e.target as HTMLElement;if(target.matches('input,textarea,select'))return;
   if(!playing){
     if(!auth.user||home.dialogOpen)return;
@@ -117,5 +122,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();
