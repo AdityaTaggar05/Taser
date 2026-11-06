@@ -112,3 +112,22 @@ it('does not turn rejection or a lost response into certification', () => {
     title: 'Waiting for confirmation',
   });
 });
+
+it('changes diagrams only with observed publication stages and preserves failure states', () => {
+  expect(publicationProgress('saving').networkPhase).toBe('saving');
+  expect(publicationProgress('submitting').networkPhase).toBe('freezing');
+  expect(publicationProgress('submitting', stored('pending')).networkPhase).toBe('verifying');
+  expect(publicationProgress('submitting', stored('approved')).networkPhase).toBe('publishing');
+  expect(publicationProgress('submitting', stored('approved', {})).networkPhase).toBe('verifying');
+  const level = stored('published');
+  expect(publicationProgress('submitting', level).networkPhase).toBe('publishing');
+  level.publication = { category: 'community', entityKey: hash, txHash: hash, expiresAt: '1000' };
+  expect(publicationProgress('submitting', level).networkPhase).toBe('published');
+  expect(publicationProgress('submitting', stored('rejected')).networkPhase).toBe('rejected');
+  expect(
+    publicationProgress('submitting', stored('approved'), 'Archive unavailable'),
+  ).toMatchObject({ networkPhase: 'paused', verified: true });
+  const unconfigured = stored('pending');
+  unconfigured.certification!.mode = 'unconfigured';
+  expect(publicationProgress('submitting', unconfigured).networkPhase).toBe('paused');
+});

@@ -2,6 +2,8 @@ import { validProof, verificationLabel } from '../certification/model';
 import type { StoredLevel } from './types';
 
 export type PublicationStage = 'saving' | 'submitting';
+export type NetworkPhase =
+  'saving' | 'freezing' | 'verifying' | 'publishing' | 'published' | 'rejected' | 'paused';
 export type BlockState = 'waiting' | 'active' | 'done' | 'error';
 
 /** Presentation follows server evidence; animation never advances a submission. */
@@ -29,7 +31,21 @@ export function publicationProgress(stage: PublicationStage, stored?: StoredLeve
           : 'active'
         : 'waiting',
   );
+  const networkPhase: NetworkPhase = rejected
+    ? 'rejected'
+    : published
+      ? 'published'
+      : error || info?.mode === 'unconfigured'
+        ? 'paused'
+        : verified
+          ? 'publishing'
+          : info
+            ? 'verifying'
+            : stage === 'submitting'
+              ? 'freezing'
+              : 'saving';
   return {
+    networkPhase,
     blocks,
     verified,
     published,

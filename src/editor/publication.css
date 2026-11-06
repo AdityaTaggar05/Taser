@@ -139,19 +139,19 @@
   color: #8fac9f;
   margin: 10px 0 0;
 }
-.publication-overlay[data-network='preparing'] .network-signals path {
+.publication-overlay[data-network='saving'] .network-signals path {
   animation-duration: 6s;
   opacity: 0.4;
 }
-.publication-overlay[data-network='confirmed'] .publication-network {
+.publication-overlay[data-network='published'] .publication-network {
   --network-color: #a4ffc0;
 }
-.publication-overlay[data-network='confirmed'] .network-signals path,
+.publication-overlay[data-network='published'] .network-signals path,
 .publication-overlay[data-network='paused'] .network-signals path {
   animation: none;
   opacity: 0;
 }
-.publication-overlay[data-network='confirmed'] .network-node-halo,
+.publication-overlay[data-network='published'] .network-node-halo,
 .publication-overlay[data-network='paused'] .network-node-halo {
   animation: none;
 }
@@ -487,4 +487,55 @@
   .publication-pipeline li {
     transition: none;
   }
+}
+
+/* Each server-observed stage gets its own diagram, palette and motion. */
+.publication-overlay[data-network='saving'] .publication-network {
+  --network-color: #93c8ff;
+}
+.publication-overlay[data-network='freezing'] .publication-network {
+  --network-color: #c0a6ff;
+}
+.publication-overlay[data-network='publishing'] .publication-network {
+  --network-color: #f1d48d;
+}
+.publication-overlay[data-network='rejected'] .publication-network {
+  --network-color: #ff9b9b;
+}
+.network-glyph {
+  fill: none;
+  stroke: var(--network-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.network-node-label {
+  fill: var(--network-color);
+  font: 10px monospace;
+  letter-spacing: 0.5px;
+}
+.publication-network .network-hub-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.publication-overlay[data-network='freezing'] .network-edges path {
+  stroke-dasharray: 5 5;
+}
+.publication-overlay[data-network='publishing'] .network-signals path {
+  animation-duration: 1.8s;
+}
+.publication-overlay[data-network='published'] .network-edges path {
+  stroke: var(--network-color);
+  opacity: 0.55;
+}
+.publication-overlay[data-network='paused'] .network-edges path,
+.publication-overlay[data-network='rejected'] .network-edges path {
+  stroke: var(--network-color);
+  stroke-dasharray: 4 8;
+  opacity: 0.4;
+}
+.publication-overlay[data-network='rejected'] .network-signals path,
+.publication-overlay[data-network='rejected'] .network-node-halo {
+  animation: none;
+  opacity: 0;
 }

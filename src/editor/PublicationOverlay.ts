@@ -1,6 +1,6 @@
 import type { StoredLevel } from './types';
 import { publicationProgress, type PublicationStage } from './publicationProgress';
-import { verificationNetwork } from './verificationNetwork';
+import { networkScene, verificationNetwork } from './verificationNetwork';
 import './publication.css';
 
 /** Modal publication feedback, independent of the grid and its rendering loop. */
@@ -154,22 +154,15 @@ export class PublicationOverlay {
     this.el('.publication-verdict').textContent =
       progress.label || (progress.rejected ? 'VERIFICATION REJECTED' : 'PUBLICATION IN PROGRESS');
     const mode = this.stored?.certification?.mode;
-    this.dialog.dataset.network = progress.verified
-      ? 'confirmed'
-      : progress.rejected || this.error
-        ? 'paused'
-        : progress.blocks[2] === 'active' && mode && mode !== 'unconfigured'
-          ? 'verifying'
-          : 'preparing';
-    this.el('.publication-network-state').textContent = progress.verified
-      ? 'Solution verification confirmed'
-      : progress.rejected
-        ? 'Solution rejected'
-        : this.error
-          ? 'Awaiting confirmation'
-          : this.dialog.dataset.network === 'verifying'
-            ? 'Checking the submitted solution'
-            : 'Preparing the submission';
+    const phase = progress.networkPhase;
+    if (this.dialog.dataset.network !== phase) {
+      this.dialog.dataset.network = phase;
+      const scene = networkScene(phase);
+      this.el('.publication-network h3').textContent = scene.title;
+      this.el('.publication-network-state').textContent = scene.state;
+      // Only fixed local diagram data enters SVG; polling the same phase preserves motion.
+      this.dialog.querySelector('.publication-network svg')!.innerHTML = scene.svg;
+    }
     this.el('.publication-network-caption').textContent =
       mode === 'cli-simulation'
         ? 'Network illustration · local CRE CLI simulation'
