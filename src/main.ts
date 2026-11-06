@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import {WatchScreen} from './betting/WatchScreen';
 import './style.css';
 import type {CampaignSummary,EditorView} from './editor/types';
 let levels:CampaignSummary[]=[];
@@ -69,11 +70,12 @@ const auth=new AuthClient(()=>{
   signin.update();editor.setUser(auth.user);syncScreen();refresh();void loadCatalog();
 });
 const signin=new SignInScreen(auth);
-const home=new HomeScreen({play:()=>{location.hash='coop';},solo:()=>{location.hash='solo';},create:()=>{location.hash='create';},community:()=>{location.hash='coop/community';},leaderboard:()=>{location.hash='leaderboard';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const home=new HomeScreen({play:()=>{location.hash='coop';},solo:()=>{location.hash='solo';},create:()=>{location.hash='create';},community:()=>{location.hash='coop/community';},leaderboard:()=>{location.hash='leaderboard';},watch:()=>{location.hash='watch';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const watch=new WatchScreen(auth);
 const levelApi=new LevelClient(auth);
 const library=new PublishedLevels(levelApi,{home:()=>{location.hash='';},fullscreen});
 const leaderboards=new Leaderboards(levelApi,{home:()=>{location.hash='';},fullscreen});
-const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'})});
+const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'}),broadcast:enabled=>client?.party({type:'broadcast',enabled})});
 const editor=new EditorScreen(levelApi,{
   home:()=>{location.hash='';},
   play:id=>{location.hash='play/'+id;},
@@ -97,6 +99,7 @@ async function revealSolution(){
 function syncScreen(){
   const intent=joinIntent(location.hash);
   const browsing=!!auth.user&&!intent&&/^#(?:solo|coop|play|community)(?:\/|$)/.test(location.hash);
+  const watching=!!auth.user&&/^#watch(?:\/[a-f0-9-]{36})?$/.test(location.hash);
   const ranking=!!auth.user&&/^#leaderboard(?:\/[a-f0-9-]{36})?$/.test(location.hash);
   const next=!!auth.user&&!!intent;
   const nextEditing=!!auth.user&&location.hash==='#create';
@@ -104,7 +107,7 @@ function syncScreen(){
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
   if(!editing)playtestEngine=null;
-  hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!ranking&&!!auth.user);library.show(browsing,location.hash);leaderboards.show(ranking,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing||ranking?'library':auth.user?'home':'signin';
+  hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!ranking&&!watching&&!!auth.user);library.show(browsing,location.hash);leaderboards.show(ranking,location.hash);watch.show(watching,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing||ranking||watching?'library':auth.user?'home':'signin';
   connectingParty=intent?.kind==='invite'||intent?.kind==='create'&&intent.mode==='coop';
   if(playing&&intent){client=new CoopClient(receive,async()=>{await artworkAvailable;return auth.ticket();},()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
   scene?.redraw();refresh();
@@ -212,5 +215,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();library.destroy();leaderboards.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();library.destroy();leaderboards.destroy();watch.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();

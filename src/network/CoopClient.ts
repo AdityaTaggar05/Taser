@@ -39,7 +39,7 @@ export class CoopClient {
     if(sent&&command.type==='move'){this.studySelectionPending=true;this.viewingOther=false;this.changed(this.state);}
     return sent;
   }
-  party(command:{type:'ready';ready:boolean}|{type:'start'}|{type:'lobby';revision:number}){return this.transmit(command);}
+  party(command:{type:'broadcast';enabled:boolean}|{type:'ready';ready:boolean}|{type:'start'}|{type:'lobby';revision:number}){return this.transmit(command);}
   private transmit(value:unknown){if(this.socket?.readyState!==WebSocket.OPEN)return false;this.socket.send(JSON.stringify(value));return true;}
   showNotice(message:string){this.notice=message;this.changed(this.state);}
   leave(){this.transmit({type:'leave'});if(this.intent.kind==='resume')try{sessionStorage.removeItem('weldpoint:seat:'+this.intent.id);}catch{}this.token=null;this.destroy();}

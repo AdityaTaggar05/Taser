@@ -17,7 +17,7 @@ export class AuthClient {
   private async request<T>(action:string,body?:unknown):Promise<T>{
     const response=await fetch(`/api/auth/${this.context}/${action}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(action.startsWith('levels')?90_000:15_000)});
     const value=await response.json();
-    if(!response.ok){if(response.status===401&&(action==='socket-ticket'||action.startsWith('levels')))this.expired();throw new Error(value.error??'Sign-in service is unavailable.');}
+    if(!response.ok){if(response.status===401&&(action==='socket-ticket'||(action.startsWith('levels')||action.startsWith('betting'))))this.expired();throw new Error(value.error??'Sign-in service is unavailable.');}
     return value as T;
   }
   async refresh(){
@@ -38,6 +38,7 @@ export class AuthClient {
     const signature=await provider.request({method:'personal_sign',params:[hex,address]});
     this.state=await this.request<AuthState>('wallet',{signature});this.error=null;this.changed();
   }
+  bettingRequest<T>(path='',body?:unknown){return this.request<T>('betting'+path,body);}
   levelRequest<T>(path='',body?:unknown){return this.request<T>('levels'+path,body);}
   async ticket(){return (await this.request<{ticket:string}>('socket-ticket',{})).ticket;}
   async logout(){this.revision++;await this.request('logout',{});this.expired();}

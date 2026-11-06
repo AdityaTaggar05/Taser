@@ -2,11 +2,13 @@ import type {SessionState} from '../network/protocol';
 import type {ConnectionStatus} from '../network/CoopClient';
 export class PartyLobby {
   readonly root=document.createElement('main');private ready=false;
-  constructor(actions:{leave:()=>void;ready:(ready:boolean)=>void;start:()=>void}){
+  constructor(actions:{leave:()=>void;ready:(ready:boolean)=>void;start:()=>void;broadcast:(enabled:boolean)=>void}){
     this.root.id='party-lobby';this.root.hidden=true;
-    this.root.innerHTML=`<header class="published-header"><button data-party="leave">← Leave party</button><span>WELDPOINT / PRIVATE PARTY</span></header><section class="published-content"><p class="archive-kicker">MEET BEFORE THE TIMELINE</p><h1>Your party</h1><h2 class="party-level"></h2><p class="party-status" role="status"></p><div class="party-members"></div><section class="party-invite"><label for="party-link">INVITE LINK</label><input id="party-link" readonly/><button data-party="copy">Copy invite link</button><p>Or share this join code: <strong class="party-code"></strong></p><small>The other operator takes the opposite role. Both must be Ready; the host starts.</small></section><div class="party-actions"><button data-party="ready">Ready</button><button data-party="start">Start challenge ↗</button></div><p class="party-copy-status" role="status"></p></section>`;
+    this.root.innerHTML=`<header class="published-header"><button data-party="leave">← Leave party</button><span>WELDPOINT / PRIVATE PARTY</span></header><section class="published-content"><p class="archive-kicker">MEET BEFORE THE TIMELINE</p><h1>Your party</h1><h2 class="party-level"></h2><p class="party-status" role="status"></p><div class="party-members"></div><section class="party-invite"><label for="party-link">INVITE LINK</label><input id="party-link" readonly/><button data-party="copy">Copy invite link</button><p>Or share this join code: <strong class="party-code"></strong></p><small>The other operator takes the opposite role. Both must be Ready; the host starts.</small></section><label class="party-broadcast"><input type="checkbox" data-party="broadcast"/> Broadcast this attempt publicly</label><p>Both operators must opt in. Spectators see both boards after 10 seconds and can predict with test points. Public attempts disable undo; reset counts as a loss.</p><p class="party-public-status"></p><div class="party-actions"><button data-party="ready">Ready</button><button data-party="start">Start challenge ↗</button></div><p class="party-copy-status" role="status"></p></section>`;
     document.body.append(this.root);
+    this.root.querySelector<HTMLInputElement>('[data-party=broadcast]')!.addEventListener('change',event=>actions.broadcast((event.target as HTMLInputElement).checked));
     this.root.addEventListener('click',event=>{const action=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-party]')?.dataset.party;
+      if(action==='broadcast')return;
       if(action==='leave')actions.leave();else if(action==='ready')actions.ready(!this.ready);else if(action==='start')actions.start();else if(action==='copy')void this.copyInvite();
     });
   }
@@ -20,6 +22,8 @@ export class PartyLobby {
     this.root.querySelector<HTMLElement>('.party-invite')!.hidden=!party;
     const members=this.root.querySelector('.party-members')!;members.replaceChildren();
     for(const member of party?.members??[]){const card=document.createElement('article');card.className='archive-card';card.dataset.partyPlayer=String(member.player);const name=document.createElement('h2');name.textContent=member.name;const detail=document.createElement('p');detail.textContent=`P${member.player} · ${member.connected?(member.ready?'READY':'NOT READY'):'RECONNECTING'}`;card.append(name,detail);members.append(card);}
+    const broadcast=this.root.querySelector<HTMLInputElement>('[data-party=broadcast]')!;broadcast.checked=!!party?.members.find(m=>m.player===state?.player)?.broadcast;broadcast.disabled=status!=='connected'||!party;
+    this.root.querySelector('.party-public-status')!.textContent=party?.publicMatchId?'Public prediction pool is open. Starting the challenge closes predictions.':party?.members.some(m=>m.broadcast)?'Waiting for both operators to allow broadcasting.':'This party is private.';
     this.ready=party?.members.find(m=>m.player===state?.player)?.ready??false;
     const ready=this.root.querySelector<HTMLButtonElement>('[data-party=ready]')!;ready.textContent=this.ready?'Not ready':'Ready';ready.disabled=status!=='connected'||!party;ready.setAttribute('aria-pressed',String(this.ready));
     const start=this.root.querySelector<HTMLButtonElement>('[data-party=start]')!;start.hidden=!party?.host;start.disabled=status!=='connected'||party?.members.length!==2||!party.members.every(m=>m.connected&&m.ready);
