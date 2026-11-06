@@ -305,9 +305,9 @@ export class EditorScreen {
         <h2 id="creator-published-title">Your chamber is live.</h2>
         <p>
           Open this link with a partner signed in on another account. Choose Solo or Co-op, then
-          your role. For co-op, share the party invitation with your partner. Community publications
-          are available for about 48 hours. Your chamber also appears in Published levels on the
-          home screen.
+          your role. For co-op, share the party invitation with your partner. Published chambers
+          start with 2 hours. Each operator can heart a publication once to add 1 hour. Your chamber
+          also appears in Published levels on the home screen.
         </p>
         <label class="creator-label" for="creator-share-link">LEVEL LINK</label>
         <input id="creator-share-link" readonly />

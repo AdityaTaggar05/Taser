@@ -10,6 +10,10 @@ import {
   bytesToHex,
   encodeEventTopics,
   encodeAbiParameters,
+  decodeFunctionData,
+  decodeAbiParameters,
+  parseAbi,
+  parseAbiParameters,
   keccak256,
   parseTransaction,
   type Hex,
@@ -133,7 +137,9 @@ function writerFixture(
   let raw: TransactionSerialized | undefined,
     sends = 0,
     receiptAvailable = false,
-    readbackAvailable = true;
+    readbackAvailable = true,
+    expiresAt = 3700n;
+  const sent = new Map<Hex, TransactionSerialized>();
   const queries: unknown[] = [];
   const entityKey = ('0x' + 'ab'.repeat(32)) as Hex,
     blockHash = ('0x' + 'cd'.repeat(32)) as Hex;
@@ -153,6 +159,7 @@ function writerFixture(
         if (method === 'eth_sendRawTransaction') {
           sends++;
           raw = (params as TransactionSerialized[])[0];
+          sent.set(keccak256(raw), raw);
           const db = new DatabaseSync(path);
           const saved = db
             .prepare("SELECT phase,signed,tx_hash FROM arkiv_writes WHERE phase='submitting'")
@@ -192,29 +199,45 @@ function writerFixture(
         number: 100n,
       }) as never,
   );
-  vi.spyOn(reader, 'getTransactionReceipt').mockImplementation(async () => {
+  vi.spyOn(reader, 'getTransactionReceipt').mockImplementation(async ({ hash: txHash }) => {
+    const raw = sent.get(txHash);
     if (!raw || !receiptAvailable) throw new Error('Receipt not available');
-    return {
-      status: 'success',
-      transactionHash: keccak256(raw),
-      blockNumber: 100n,
-      blockHash,
-      logs: [
-        {
-          address: '0x4400000000000000000000000000000000000044',
+    const db = new DatabaseSync(path),
+      plan = db
+        .prepare('SELECT operation,body FROM arkiv_writes WHERE tx_hash=?')
+        .get(keccak256(raw))!;
+    db.close();
+    const extension = String(plan.operation).startsWith('heart:');
+    if (extension) expiresAt = BigInt(JSON.parse(String(plan.body)).expiresAt);
+    const log = extension
+      ? {
+          topics: encodeEventTopics({
+            abi: ENTITY_EVENTS_ABI,
+            eventName: 'ExpiryExtended',
+            args: { entityKey, owner: account.address },
+          }),
+          data: encodeAbiParameters([{ type: 'uint64' }], [expiresAt]),
+        }
+      : {
           topics: encodeEventTopics({
             abi: ENTITY_EVENTS_ABI,
             eventName: 'EntityCreated',
             args: { entityKey, owner: account.address },
           }),
-          data: encodeAbiParameters([{ type: 'uint64' }, { type: 'uint8' }], [7_884_100n, 1]),
-        },
-      ],
+          data: encodeAbiParameters([{ type: 'uint64' }, { type: 'uint8' }], [3700n, 1]),
+        };
+    return {
+      status: 'success',
+      transactionHash: keccak256(raw),
+      blockNumber: 100n,
+      blockHash,
+      logs: [{ address: '0x4400000000000000000000000000000000000044', ...log }],
     } as never;
   });
-  vi.spyOn(reader, 'getTransaction').mockImplementation(async () => {
-    const tx = parseTransaction(raw!);
-    return { ...tx, hash: keccak256(raw!), from: account.address, input: tx.data } as never;
+  vi.spyOn(reader, 'getTransaction').mockImplementation(async ({ hash: txHash }) => {
+    const serialized = sent.get(txHash!)!,
+      tx = parseTransaction(serialized);
+    return { ...tx, hash: keccak256(serialized), from: account.address, input: tx.data } as never;
   });
   vi.spyOn(reader, 'getEntity').mockImplementation(async () => {
     if (!readbackAvailable) throw new Error('Readback unavailable');
@@ -244,7 +267,7 @@ function writerFixture(
       $creator: account.address,
       $owner: account.address,
       $creationFlags: { readonly: true, permissionlessExtension: false },
-      $expiresAt: 7_884_100n,
+      $expiresAt: expiresAt,
       namespace: str('test'),
       record_id: str(record().id),
       revision: u64(1),
@@ -258,6 +281,9 @@ function writerFixture(
     path,
     reader,
     queries,
+    get raw() {
+      return raw!;
+    },
     get sends() {
       return sends;
     },
@@ -576,6 +602,113 @@ it('scopes the level catalog query to level categories when other feature record
     const query = JSON.stringify(f.queries.at(-1));
     for (const value of ['category', 'draft', 'community', 'campaign'])
       expect(query).toContain(value);
+  } finally {
+    f.close();
+  }
+});
+
+it('encodes two-hour level creation in the real SDK native transaction', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    await f.archive.put(record());
+    const decoded = decodeFunctionData({
+      abi: parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),
+      data: parseTransaction(f.raw).data!,
+    });
+    const [create] = decodeAbiParameters(
+      parseAbiParameters(
+        '(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)',
+      ),
+      decoded.args![0][0].operationData,
+    );
+    expect(create.minLifetime).toBe(3600n);
+    expect(create.expiresAt).toBe(0n);
+    expect(create.creationFlags).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+it('extends from the real expiry, reconciles lost replies and deduplicates each account', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    f.receipt(false);
+    await expect(f.archive.extend(ref, 'atlas')).rejects.toThrow('could not be confirmed');
+    expect(f.sends).toBe(2);
+    await expect(f.archive.extend(ref, 'nova')).rejects.toThrow();
+    expect(f.sends).toBe(2);
+    f.receipt(true);
+    expect((await f.archive.extend(ref, 'atlas')).expiresAt).toBe('5500');
+    expect(f.sends).toBe(2);
+    expect((await f.archive.inspect(ref)).ref.expiresAt).toBe('5500');
+    expect((await f.archive.put(record())).expiresAt).toBe('5500');
+    expect(f.sends).toBe(2);
+    expect((await f.archive.extend(ref, 'atlas')).expiresAt).toBe('5500');
+    expect(f.sends).toBe(2);
+    expect((await f.archive.extend(ref, 'nova')).expiresAt).toBe('7300');
+    expect(f.sends).toBe(3);
+    const decoded = decodeFunctionData({
+      abi: parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),
+      data: parseTransaction(f.raw).data!,
+    });
+    const [extension] = decodeAbiParameters(
+      parseAbiParameters('(bytes32 entityKey, uint64 expiresAt, uint64 minLifetime)'),
+      decoded.args![0][0].operationData,
+    );
+    expect(extension.expiresAt).toBe(7300n);
+    expect(extension.minLifetime).toBe(0n);
+  } finally {
+    f.close();
+  }
+});
+it('preserves extension receipt confirmation after failed readback and never sends again', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    const original = vi.mocked(f.reader.getEntity).getMockImplementation()!;
+    let calls = 0;
+    vi.mocked(f.reader.getEntity).mockImplementation(async (...args) => {
+      if (++calls > 1) throw new Error('unavailable');
+      return original(...args);
+    });
+    await expect(f.archive.extend(ref, 'atlas')).rejects.toThrow();
+    expect(f.sends).toBe(2);
+    vi.mocked(f.reader.getEntity).mockImplementation(original);
+    expect((await f.archive.extend(ref, 'atlas')).expiresAt).toBe('5500');
+    expect(f.sends).toBe(2);
+  } finally {
+    f.close();
+  }
+});
+it('rejects expired hearts and fee-exceeding extensions without broadcasting', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    vi.spyOn(f.reader, 'getBlockNumber').mockResolvedValue(3700n);
+    await expect(f.archive.extend(ref, 'atlas')).rejects.toThrow('expired');
+    expect(f.sends).toBe(1);
+    vi.mocked(f.reader.getBlockNumber).mockResolvedValue(100n);
+    vi.spyOn(f.reader, 'getBalance').mockResolvedValue(0n);
+    await expect(f.archive.extend(ref, 'atlas')).rejects.toThrow('fee');
+    expect(f.sends).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+
+it('refuses an extension beyond Arkiv maximum lifetime before broadcast', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record()),
+      row = await f.reader.getEntity(ref.entityKey as Hex);
+    vi.mocked(f.reader.getEntity).mockResolvedValue({ ...row, $expiresAt: 7_884_100n } as never);
+    await expect(f.archive.extend(ref, 'atlas')).rejects.toThrow('estimate failed');
+    expect(f.sends).toBe(1);
   } finally {
     f.close();
   }

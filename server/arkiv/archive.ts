@@ -1,4 +1,5 @@
 import type { LevelConfig } from '../../src/core/types';
+import { creationExpiration, HEART_EXTENSION } from './expiration';
 export type LevelCategory = 'draft' | 'community' | 'campaign' | 'run';
 export interface ArchiveRecord {
   id: string;
@@ -30,6 +31,8 @@ export interface LevelArchive {
   list(): Promise<ArchivedLevel[]>;
   put(record: ArchiveRecord): Promise<ArchiveRef>;
   read(ref: ArchiveRef): Promise<ArchiveRecord>;
+  inspect(ref: ArchiveRef): Promise<ArchivedLevel>;
+  extend(ref: ArchiveRef, accountId: string): Promise<ArchiveRef>;
   head?(): Promise<bigint>;
   close(): void;
 }
@@ -46,9 +49,12 @@ export class MemoryArchive implements LevelArchive {
   readonly mode = 'test';
   head?: () => Promise<bigint>;
   readonly entries = new Map<string, ArchivedLevel>();
-
+  private hearts = new Map<string, ArchiveRef>();
   async list() {
-    return structuredClone([...this.entries.values()]);
+    const head = (await this.head?.()) ?? 0n;
+    return structuredClone(
+      [...this.entries.values()].filter((entry) => BigInt(entry.ref.expiresAt) > head),
+    );
   }
 
   async put(record: ArchiveRecord) {
@@ -63,16 +69,33 @@ export class MemoryArchive implements LevelArchive {
       entityKey:
         '0x' + crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''),
       txHash: 'test-only',
-      expiresAt: '999999999',
+      expiresAt: (
+        ((await this.head?.()) ?? 0n) + creationExpiration(record).minLifetime
+      ).toString(),
     };
     this.entries.set(key, structuredClone({ record, ref }));
     return ref;
   }
-
-  async read(ref: ArchiveRef) {
+  async inspect(ref: ArchiveRef) {
     const found = [...this.entries.values()].find((e) => e.ref.entityKey === ref.entityKey);
     if (!found) throw new ArchiveError(503, 'Archived level unavailable.');
-    return structuredClone(found.record);
+    if (BigInt(found.ref.expiresAt) <= ((await this.head?.()) ?? 0n))
+      throw new ArchiveError(410, 'This publication has expired.');
+    return structuredClone(found);
+  }
+  async read(ref: ArchiveRef) {
+    return (await this.inspect(ref)).record;
+  }
+  async extend(ref: ArchiveRef, accountId: string) {
+    const operation = ref.entityKey + ':' + accountId,
+      prior = this.hearts.get(operation);
+    if (prior) return structuredClone(prior);
+    const live = await this.inspect(ref);
+    live.ref.expiresAt = (BigInt(live.ref.expiresAt) + HEART_EXTENSION.minLifetime).toString();
+    const entry = [...this.entries.values()].find((e) => e.ref.entityKey === ref.entityKey)!;
+    entry.ref = live.ref;
+    this.hearts.set(operation, structuredClone(live.ref));
+    return live.ref;
   }
 
   close() {}
@@ -98,6 +121,11 @@ export class UnconfiguredArchive implements LevelArchive {
   async read(): Promise<ArchiveRecord> {
     return this.fail();
   }
-
+  async inspect(): Promise<ArchivedLevel> {
+    return this.fail();
+  }
+  async extend(): Promise<ArchiveRef> {
+    return this.fail();
+  }
   close() {}
 }

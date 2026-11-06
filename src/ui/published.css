@@ -18,7 +18,7 @@
   background: #21332a;
   color: #eff7e3;
 }
-#published-levels {
+:is(#published-levels, #leaderboards) {
   position: fixed;
   inset: 0;
   z-index: 12;
@@ -178,7 +178,7 @@
   color: #a4b8aa;
   margin-bottom: 28px;
 }
-#published-levels [hidden] {
+:is(#published-levels, #leaderboards) [hidden] {
   display: none !important;
 }
 @media (max-width: 600px) {
@@ -530,5 +530,108 @@
   }
   #party-lobby h1 {
     font-size: 34px;
+  }
+}
+
+.leaderboard-links,
+.leaderboard-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  margin: 24px 0;
+  font: 12px/1.8 monospace;
+}
+.leaderboard-links a {
+  color: #8ec8ad;
+}
+.level-lifetime {
+  padding: 18px 22px;
+  margin-top: 28px;
+  border: 1px solid #526b5b;
+  background: #14231f;
+}
+.expiry-clock {
+  font: 18px monospace;
+  color: #c4f0df;
+}
+.expiry-block,
+.heart-count,
+.leaderboard-personal {
+  font: 11px/1.8 monospace;
+  color: #a4b8aa;
+  overflow-wrap: anywhere;
+}
+.heart-count {
+  display: block;
+  margin-top: 14px;
+}
+.level-lifetime button,
+.leaderboard-pages button {
+  padding: 12px 18px;
+  border: 1px solid #8ec8ad;
+  color: #dce5cf;
+  background: #223d33;
+  font: 12px monospace;
+}
+.level-lifetime button[aria-pressed='true'] {
+  color: #8ec8ad;
+}
+.leaderboard-pages button:disabled,
+.level-lifetime button:disabled {
+  opacity: 0.55;
+}
+.leaderboard-table {
+  overflow-x: auto;
+}
+.leaderboard-results {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font: 13px/1.6 monospace;
+}
+.leaderboard-results caption {
+  text-align: left;
+  color: #8ec8ad;
+  padding: 14px 0;
+}
+.leaderboard-results th {
+  font-weight: normal;
+  color: #a4b8aa;
+}
+.leaderboard-results th,
+.leaderboard-results td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #526b5b;
+  overflow-wrap: anywhere;
+}
+.leaderboard-results td:nth-child(2) {
+  max-width: 340px;
+}
+.leaderboard-you {
+  background: #284939;
+  color: #d0f5db;
+}
+#leaderboards button:focus-visible,
+#leaderboards a:focus-visible {
+  outline: 2px solid #83e5cc;
+  outline-offset: 4px;
+}
+@media (max-width: 600px) {
+  .leaderboard-results {
+    font-size: 11px;
+  }
+  .leaderboard-results th,
+  .leaderboard-results td {
+    padding: 12px 6px;
+  }
+  .level-lifetime {
+    padding: 14px;
+  }
+  .expiry-clock {
+    font-size: 14px;
+  }
+  .leaderboard-links {
+    gap: 12px;
   }
 }

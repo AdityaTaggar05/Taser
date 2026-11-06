@@ -143,7 +143,8 @@ export function attachCoop(
     if (!flushing) {
       flushing = true;
       void store
-        .flushRuns()
+        .flushHearts()
+        .then(() => store.flushRuns())
         .then(() => store.flushCertifications())
         .catch(() => {})
         .finally(() => (flushing = false));

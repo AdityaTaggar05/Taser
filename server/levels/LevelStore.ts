@@ -49,6 +49,9 @@ interface SubmissionPayload {
   publication: ArchiveRecord;
 }
 
+import { rankingPage } from './ranking';
+import type { LevelLeaderboard } from '../../src/leaderboard/types';
+import { ARKIV_BLOCK_SECONDS } from '../arkiv/expiration';
 export class LevelError extends Error {
   constructor(
     readonly status: number,
@@ -81,6 +84,7 @@ export class LevelStore {
   private observedHead = 0n;
   private availabilityAt = 0;
   private certificationCursor = 0;
+  private heartCursor = 0;
   private db: DatabaseSync;
   private queue: Promise<unknown> = Promise.resolve();
 
@@ -103,6 +107,9 @@ export class LevelStore {
       CREATE TABLE IF NOT EXISTS level_locks(level_id TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS certification_submissions(id TEXT PRIMARY KEY,level_id TEXT NOT NULL,revision INTEGER NOT NULL,target TEXT NOT NULL,status TEXT NOT NULL,submitted_at INTEGER NOT NULL,payload TEXT NOT NULL,proof TEXT,error TEXT);
       CREATE INDEX IF NOT EXISTS submission_level ON certification_submissions(level_id);
+      CREATE TABLE IF NOT EXISTS level_hearts(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,ref TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',PRIMARY KEY(account_id,entity_key));
+      CREATE TABLE IF NOT EXISTS leaderboard_completions(account_id TEXT NOT NULL,level_id TEXT NOT NULL,PRIMARY KEY(account_id,level_id));
+      CREATE TABLE IF NOT EXISTS level_scores(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,mode TEXT NOT NULL,name TEXT NOT NULL,turns INTEGER NOT NULL,achieved_at INTEGER NOT NULL,role INTEGER NOT NULL,PRIMARY KEY(account_id,entity_key,mode));
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
     if (
       !this.db
@@ -281,6 +288,8 @@ export class LevelStore {
             'Could not confirm an archived CRE verification. Check verification configuration and the private receipts.',
           );
       }
+    for (const row of this.db.prepare('SELECT account_id,entity_key FROM level_wins').all())
+      this.recordWin([String(row.account_id)], String(row.entity_key));
     this.db.exec('BEGIN IMMEDIATE');
     try {
       // Keep private legacy/recovery snapshots until migration confirms them. Public discovery
@@ -288,6 +297,15 @@ export class LevelStore {
       this.db.exec('DELETE FROM level_publications');
       for (const entry of entries.sort((a, b) => a.record.revision - b.record.revision))
         this.project(entry);
+      // Recover old co-op progress while its publication identity is still known.
+      for (const row of this.db.prepare('SELECT account_id,entity_key FROM level_wins').all())
+        this.recordWin([String(row.account_id)], String(row.entity_key));
+      for (const row of this.db
+        .prepare("SELECT record FROM game_runs WHERE status='confirmed'")
+        .all()) {
+        const record = JSON.parse(String(row.record)) as ArchiveRecord;
+        if (record.run) this.score(record);
+      }
       this.db.exec('COMMIT');
     } catch (error) {
       this.db.exec('ROLLBACK');
@@ -755,10 +773,183 @@ export class LevelStore {
   }
 
   recordWin(ids: string[], entityKey: string) {
-    for (const id of ids)
+    const row = this.db
+        .prepare('SELECT record FROM level_publications WHERE entity_key=?')
+        .get(entityKey),
+      record = row ? (JSON.parse(String(row.record)) as ArchiveRecord) : null;
+    for (const id of ids) {
       this.db
         .prepare('INSERT OR IGNORE INTO level_wins(account_id,entity_key) VALUES(?,?)')
         .run(id, entityKey);
+      if (record && ['campaign', 'community'].includes(record.category))
+        this.db
+          .prepare('INSERT OR IGNORE INTO leaderboard_completions(account_id,level_id) VALUES(?,?)')
+          .run(
+            id,
+            record.category === 'campaign'
+              ? `campaign:${record.campaignSlot}`
+              : `community:${record.id}`,
+          );
+    }
+  }
+  completions() {
+    return this.db
+      .prepare('SELECT account_id,level_id FROM leaderboard_completions')
+      .all()
+      .map((row) => ({ accountId: String(row.account_id), levelId: String(row.level_id) }));
+  }
+  private score(record: ArchiveRecord) {
+    if (!record.run) return;
+    const check = verifySolution(record.level);
+    if (!check.valid) return;
+    this.db
+      .prepare(
+        `INSERT INTO level_scores(account_id,entity_key,mode,name,turns,achieved_at,role) VALUES(?,?,?,?,?,?,?)
+      ON CONFLICT(account_id,entity_key,mode) DO UPDATE SET name=excluded.name,turns=excluded.turns,achieved_at=excluded.achieved_at,role=excluded.role
+      WHERE excluded.turns<level_scores.turns OR (excluded.turns=level_scores.turns AND excluded.achieved_at<level_scores.achieved_at)`,
+      )
+      .run(
+        record.ownerId,
+        record.run.levelKey,
+        record.run.mode,
+        record.ownerName,
+        check.step,
+        record.updatedAt,
+        record.run.role,
+      );
+  }
+  scores(entityKey: string, viewer: string, mode: 'coop' | 'solo', page = 0) {
+    const rows = this.db
+      .prepare(
+        'SELECT * FROM level_scores WHERE entity_key=? AND mode=? ORDER BY turns,achieved_at,account_id',
+      )
+      .all(entityKey, mode)
+      .map((row) => ({
+        accountId: String(row.account_id),
+        name: String(row.name),
+        turns: Number(row.turns),
+        achievedAt: Number(row.achieved_at),
+        role: Number(row.role) as 1 | 2,
+      }));
+    return rankingPage(rows, viewer, page, (row, rank, isYou) => ({
+      rank,
+      isYou,
+      name: row.name,
+      turns: row.turns,
+      achievedAt: row.achievedAt,
+      role: row.role,
+    }));
+  }
+  private async liveLevel(id: string, expectedKey?: string) {
+    const snapshot = this.forPlay(id);
+    if (!snapshot?.ref) throw new LevelError(404, 'Published chamber unavailable or expired.');
+    if (expectedKey && snapshot.ref.entityKey !== expectedKey)
+      throw new LevelError(409, 'This chamber has a new revision. Refresh before sending a heart.');
+    const live = await this.archive.inspect(snapshot.ref);
+    if (
+      live.record.id !== id ||
+      live.record.revision !== snapshot.revision ||
+      !['campaign', 'community'].includes(live.record.category)
+    )
+      throw new LevelError(503, 'Publication identity could not be verified.');
+    this.db
+      .prepare('UPDATE level_publications SET ref=? WHERE entity_key=?')
+      .run(JSON.stringify(live.ref), live.ref.entityKey);
+    return live;
+  }
+  async leaderboard(
+    id: string,
+    viewer: string,
+    mode: 'coop' | 'solo' = 'coop',
+    page = 0,
+  ): Promise<LevelLeaderboard> {
+    const live = await this.liveLevel(id),
+      currentBlock = (await this.archive.head?.()) ?? 0n;
+    if (BigInt(live.ref.expiresAt) <= currentBlock)
+      throw new LevelError(410, 'This publication has expired.');
+    const heart = this.db
+      .prepare('SELECT status FROM level_hearts WHERE account_id=? AND entity_key=?')
+      .get(viewer, live.ref.entityKey);
+    return {
+      level: {
+        id,
+        name: live.record.level.name,
+        revision: live.record.revision,
+        entityKey: live.ref.entityKey,
+      },
+      expiry: {
+        expiresAt: live.ref.expiresAt,
+        currentBlock: currentBlock.toString(),
+        observedAt: Date.now(),
+        blockSeconds: ARKIV_BLOCK_SECONDS,
+      },
+      hearts: {
+        count: Number(
+          this.db
+            .prepare(
+              "SELECT COUNT(*) AS n FROM level_hearts WHERE entity_key=? AND status='confirmed'",
+            )
+            .get(live.ref.entityKey)!.n,
+        ),
+        hearted: heart?.status === 'confirmed',
+        pending: heart?.status === 'pending',
+      },
+      mode,
+      scores: this.scores(live.ref.entityKey, viewer, mode, page),
+    };
+  }
+  heart(id: string, viewer: string, expectedKey: string) {
+    return this.serial(async () => {
+      const live = await this.liveLevel(id, expectedKey);
+      this.db
+        .prepare(
+          "INSERT OR IGNORE INTO level_hearts(account_id,entity_key,ref,status) VALUES(?,?,?,'pending')",
+        )
+        .run(viewer, expectedKey, JSON.stringify(live.ref));
+      await this.publishHeart(viewer, expectedKey);
+      return this.leaderboard(id, viewer);
+    });
+  }
+  private async publishHeart(accountId: string, entityKey: string) {
+    const row = this.db
+      .prepare('SELECT ref,status FROM level_hearts WHERE account_id=? AND entity_key=?')
+      .get(accountId, entityKey);
+    if (!row || row.status === 'confirmed') return;
+    const ref = await this.archive.extend(JSON.parse(String(row.ref)), accountId);
+    if (this.closed) return;
+    // Extension receipts and readback were verified by the archive before counting.
+    this.db
+      .prepare(
+        "UPDATE level_hearts SET status='confirmed',ref=? WHERE account_id=? AND entity_key=?",
+      )
+      .run(JSON.stringify(ref), accountId, entityKey);
+    const live = await this.archive.inspect(ref);
+    this.db
+      .prepare('UPDATE level_publications SET ref=? WHERE entity_key=?')
+      .run(JSON.stringify(live.ref), entityKey);
+  }
+  flushHearts() {
+    return this.serial(async () => {
+      const rows = this.db
+        .prepare(
+          "SELECT rowid,account_id,entity_key FROM level_hearts WHERE status='pending' AND rowid>? ORDER BY rowid LIMIT 4",
+        )
+        .all(this.heartCursor);
+      if (!rows.length) {
+        this.heartCursor = 0;
+        return;
+      }
+      for (const row of rows) {
+        if (this.closed) return;
+        this.heartCursor = Number(row.rowid);
+        // One unavailable/expired publication must not starve other pending hearts.
+        try {
+          await this.publishHeart(String(row.account_id), String(row.entity_key));
+        } catch {
+          /* Reconcile this same operation on a later bounded sweep. */
+        }
+      }
+    });
   }
 
   canReveal(accountId: string, entityKey: string) {
@@ -906,6 +1097,9 @@ export class LevelStore {
       level,
       run: { levelKey: snapshot.ref.entityKey, role, mode, source },
     };
+    // Verified standings do not depend on replay-archive fees or network availability.
+    this.score(record);
+    if (mode === 'coop') this.recordWin([user.id], snapshot.ref.entityKey);
     this.db
       .prepare("INSERT OR IGNORE INTO game_runs(id,record,status) VALUES(?,?,'pending')")
       .run(id, JSON.stringify(record));

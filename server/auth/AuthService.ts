@@ -6,6 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createPublicClient, getAddress, http, isAddress, verifyMessage, type Hex } from 'viem';
 import { createSiweMessage } from 'viem/siwe';
 import { mainnet, sepolia } from 'viem/chains';
+import { rankingPage } from '../levels/ranking';
 import type { AuthState, PlayerProfile } from '../../src/auth/types';
 
 const SESSION_MS = 24 * 60 * 60 * 1000,
@@ -132,7 +133,40 @@ export class AuthService {
         .prepare('INSERT OR IGNORE INTO completions(account_id,level_id) VALUES(?,?)')
         .run(id, levelId);
   }
-
+  globalLeaderboard(
+    extra: Array<{ accountId: string; levelId: string }>,
+    viewer: string,
+    page = 0,
+  ) {
+    const completed = new Map<string, Set<string>>();
+    for (const row of [
+      ...extra,
+      ...this.db
+        .prepare('SELECT account_id,level_id FROM completions')
+        .all()
+        .map((row) => ({ accountId: String(row.account_id), levelId: `campaign:${row.level_id}` })),
+    ]) {
+      const set = completed.get(row.accountId) ?? new Set<string>();
+      set.add(row.levelId);
+      completed.set(row.accountId, set);
+    }
+    const rows = this.db
+      .prepare('SELECT id,display_name,kind FROM accounts')
+      .all()
+      .flatMap((row) => {
+        const count = completed.get(String(row.id))?.size ?? 0;
+        return count && (row.kind !== 'demo' || this.demoEnabled)
+          ? [{ accountId: String(row.id), name: String(row.display_name), completed: count }]
+          : [];
+      })
+      .sort((a, b) => b.completed - a.completed || a.accountId.localeCompare(b.accountId));
+    return rankingPage(rows, viewer, page, (row, rank, isYou) => ({
+      rank,
+      isYou,
+      name: row.name,
+      completed: row.completed,
+    }));
+  }
   onRevoke(fn: (key: string) => void) {
     this.revoked.add(fn);
     return () => this.revoked.delete(fn);

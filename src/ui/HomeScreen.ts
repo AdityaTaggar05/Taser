@@ -6,6 +6,7 @@ interface HomeActions {
   solo: () => void;
   create: () => void;
   community: () => void;
+  leaderboard: () => void;
   sound: () => void;
   theme: () => void;
   fullscreen: () => void;
@@ -76,6 +77,10 @@ export class HomeScreen {
           <button class="home-browse" data-home-action="community">
             Published levels
             <span>Browse chambers ↗</span>
+          </button>
+          <button class="home-browse" data-home-action="leaderboard">
+            Leaderboard
+            <span>Global standings ↗</span>
           </button>
           <div class="home-secondary">
             <button data-home-action="create">

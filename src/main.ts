@@ -17,6 +17,7 @@ import { HomeScreen } from './ui/HomeScreen';
 import { PartyLobby } from './ui/PartyLobby';
 import { joinIntent } from './network/routes';
 import { PublishedLevels } from './ui/PublishedLevels';
+import { Leaderboards } from './ui/Leaderboards';
 import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
 import { RemoteView } from './network/RemoteView';
@@ -210,6 +211,9 @@ const home = new HomeScreen({
   community: () => {
     location.hash = 'coop/community';
   },
+  leaderboard: () => {
+    location.hash = 'leaderboard';
+  },
   sound: toggleSound,
   theme: toggleTheme,
   fullscreen,
@@ -220,6 +224,12 @@ const home = new HomeScreen({
 });
 const levelApi = new LevelClient(auth);
 const library = new PublishedLevels(levelApi, {
+  home: () => {
+    location.hash = '';
+  },
+  fullscreen,
+});
+const leaderboards = new Leaderboards(levelApi, {
   home: () => {
     location.hash = '';
   },
@@ -284,6 +294,7 @@ function syncScreen() {
   const intent = joinIntent(location.hash);
   const browsing =
     !!auth.user && !intent && /^#(?:solo|coop|play|community)(?:\/|$)/.test(location.hash);
+  const ranking = !!auth.user && /^#leaderboard(?:\/[a-f0-9-]{36})?$/.test(location.hash);
   const next = !!auth.user && !!intent;
   const nextEditing = !!auth.user && location.hash === '#create';
   if (
@@ -306,15 +317,16 @@ function syncScreen() {
   hud.clearSolution();
   if (!editing) playtestEngine = null;
   hud.root.hidden = !playing;
-  home.show(!playing && !editing && !browsing && !!auth.user);
+  home.show(!playing && !editing && !browsing && !ranking && !!auth.user);
   library.show(browsing, location.hash);
+  leaderboards.show(ranking, location.hash);
   editor.show(editing);
   signin.update();
   document.body.dataset.screen = playing
     ? 'play'
     : editing
       ? 'creator'
-      : browsing
+      : browsing || ranking
         ? 'library'
         : auth.user
           ? 'home'
@@ -635,6 +647,7 @@ if (import.meta.hot)
     auth.destroy();
     editor.destroy();
     library.destroy();
+    leaderboards.destroy();
     lobby.destroy();
     home.root.remove();
     signin.root.remove();

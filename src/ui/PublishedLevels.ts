@@ -132,6 +132,7 @@ export class PublishedLevels {
           </small>
         `;
       }
+      link('Chamber leaderboard ↗', '#leaderboard/' + selected);
       link('← Choose another chamber', '#' + mode + '/' + category);
       return;
     }
@@ -181,7 +182,7 @@ export class PublishedLevels {
     title.textContent = category === 'campaign' ? 'Campaign challenges' : 'Community challenges';
     intro.textContent =
       category === 'community'
-        ? 'Verified community publications, available for about 48 hours.'
+        ? 'Verified community chambers start with 2 hours. Each operator’s heart adds 1 hour.'
         : 'Choose a campaign chamber.';
     const grid = document.createElement('div');
     grid.className = 'archive-grid';
@@ -231,7 +232,11 @@ export class PublishedLevels {
     play.href = href;
     play.className = 'archive-play';
     play.textContent = 'Choose P1 / P2 ↗';
-    card.append(play);
+    const board = document.createElement('a');
+    board.href = '#leaderboard/' + level.id;
+    board.className = 'archive-play';
+    board.textContent = 'Leaderboard & hearts ♡';
+    card.append(play, board);
     parent.append(card);
   }
 

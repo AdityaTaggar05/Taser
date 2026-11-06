@@ -38,7 +38,7 @@ it('ends a shorter fixed replay exactly, and undo/reset rewind its position', ()
   expect(state().history.at(-1)?.step).toBe(0);
   expect(state().history.at(-1)?.status).toBe('PLAYING_PHASE_1');
 });
-it('uses 48-hour creation policy, recovers pending runs, deduplicates and removes expired metadata', async () => {
+it('recovers pending runs, deduplicates and removes expired publications and runs', async () => {
   let head = 0n,
     fail = false;
   const archive = new MemoryArchive(),
@@ -49,14 +49,13 @@ it('uses 48-hour creation policy, recovers pending runs, deduplicates and remove
     records.push(structuredClone(record));
     if (fail && record.category === 'run') throw new Error('offline');
     const ref = await put(record);
-    if (record.lifetimeDays === 2) ref.expiresAt = '100';
+    if (record.category === 'community' || record.category === 'run') ref.expiresAt = '100';
     return ref;
   };
   const store = new LevelStore(':memory:', archive, new ImmediateTestRegistry());
   try {
     const draft = await store.save('atlas', 'Atlas', levels[0]);
     await store.publish('atlas', draft.id, 1);
-    expect(records.find((r) => r.category === 'community')?.lifetimeDays).toBe(2);
     const snapshot = store.forPlay(draft.id)!;
     fail = true;
     expect(

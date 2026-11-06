@@ -16,6 +16,7 @@ import {
   ExpirationTime,
   ENTITY_EVENTS_ABI,
   type TxParams,
+  type WalletArkivClient,
 } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import { asc, eq, and, or, gt } from '@arkiv-network/sdk/query';
@@ -55,7 +56,13 @@ import {
   type ThemePublication,
 } from './ThemePublication';
 type Publication = ArchiveRecord | ThemePublication;
+import { creationExpiration, HEART_EXTENSION } from './expiration';
 
+interface ExtensionIntent {
+  entityKey: Hex;
+  expiresAt: string;
+}
+const isExtension = (plan: Plan) => plan.operation.startsWith('heart:');
 const NATIVE = '0x4400000000000000000000000000000000000044';
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 interface Plan {
@@ -246,7 +253,7 @@ export class ArkivArchive implements LevelArchive {
   private optionsFor(plan: Plan) {
     const record = JSON.parse(plan.body) as ArchiveRecord;
     return {
-      expiration: record.lifetimeDays === 2 ? ExpirationTime.fromDays(2) : ExpirationTime.max(),
+      expiration: creationExpiration(record),
       flags: { readonly: true, permissionlessExtension: false },
       salt: BigInt(plan.salt),
     };
@@ -254,6 +261,7 @@ export class ArkivArchive implements LevelArchive {
 
   private trusted(row: Awaited<ReturnType<typeof this.entity>>, expected?: Plan) {
     if (
+      row.$owner.toLowerCase() !== this.signer.toLowerCase() ||
       row.$creator.toLowerCase() !== this.signer.toLowerCase() ||
       !row.$creationFlags.readonly ||
       row.$creationFlags.permissionlessExtension ||
@@ -300,7 +308,92 @@ export class ArkivArchive implements LevelArchive {
       throw this.safe(error, 'Arkiv level could not be read. It may be expired or unavailable.');
     }
   }
-
+  async inspect(ref: ArchiveRef): Promise<ArchivedLevel> {
+    try {
+      await this.identity();
+      const row = await this.entity(ref.entityKey),
+        record = await this.decode(row);
+      if (row.$expiresAt <= (await this.reader.getBlockNumber({ cacheTime: 0 })))
+        throw new ArchiveError(410, 'This publication has expired.');
+      return { record, ref: { ...ref, expiresAt: row.$expiresAt.toString() } };
+    } catch (error) {
+      throw this.safe(
+        error,
+        'Arkiv publication could not be checked. It may be expired or unavailable.',
+      );
+    }
+  }
+  extend(ref: ArchiveRef, accountId: string): Promise<ArchiveRef> {
+    const task = this.queue.then(async () => {
+      try {
+        const operation = `heart:${ref.entityKey.toLowerCase()}:${hash(accountId)}`;
+        let plan = this.plan(operation);
+        if (!plan) {
+          await this.reconcilePending();
+          const waiting = this.db
+            .prepare(
+              "SELECT body FROM arkiv_writes WHERE operation LIKE 'heart:%' AND phase='prepared'",
+            )
+            .all();
+          if (
+            waiting.some(
+              (row) =>
+                (JSON.parse(String(row.body)) as ExtensionIntent).entityKey.toLowerCase() ===
+                ref.entityKey.toLowerCase(),
+            )
+          )
+            throw new ArchiveError(
+              503,
+              'An earlier heart for this publication is awaiting confirmation. Retry shortly.',
+            );
+          const live = await this.inspect(ref);
+          if (!['community', 'campaign'].includes(live.record.category))
+            throw new ArchiveError(400, 'Only published levels can receive hearts.');
+          const body = JSON.stringify({
+            entityKey: ref.entityKey as Hex,
+            expiresAt: (BigInt(live.ref.expiresAt) + HEART_EXTENSION.minLifetime).toString(),
+          } satisfies ExtensionIntent);
+          const genesis = await this.identity();
+          this.db
+            .prepare(
+              "INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,'0','','prepared',?)",
+            )
+            .run(operation, hash(body), body, genesis);
+          plan = this.plan(operation)!;
+        }
+        // Verified operation IDs are permanent even if a later read becomes unavailable.
+        if (plan.phase === 'verified')
+          return {
+            entityKey: plan.entity_key!,
+            txHash: plan.tx_hash!,
+            expiresAt: plan.expires_at!,
+          };
+        if (plan.phase !== 'prepared') return await this.reconcile(plan);
+        await this.reconcilePending();
+        return await this.submit(plan);
+      } catch (error) {
+        throw this.safe(
+          error,
+          'Arkiv heart could not be confirmed. Retry this same heart to reconcile it.',
+        );
+      }
+    });
+    this.queue = task.catch(() => {});
+    return task;
+  }
+  private invoke(wallet: WalletArkivClient, plan: Plan, params?: TxParams) {
+    if (isExtension(plan)) {
+      const intent = JSON.parse(plan.body) as ExtensionIntent;
+      return wallet.extendEntity(
+        {
+          entityKey: intent.entityKey,
+          expiration: ExpirationTime.atBlock(BigInt(intent.expiresAt)),
+        },
+        params,
+      );
+    }
+    return this.createPublication(wallet, plan, params);
+  }
   async list(): Promise<ArchivedLevel[]> {
     try {
       await this.identity();
@@ -433,7 +526,7 @@ export class ArkivArchive implements LevelArchive {
     } as LocalAccount;
     const wallet = createWalletClient({ account: unsigned, chain: this.chain, transport });
     try {
-      await this.createPublication(wallet, plan);
+      await this.invoke(wallet, plan);
     } catch (error) {
       let cause: unknown = error;
       for (let depth = 0; cause && depth < 30; depth++) {
@@ -510,122 +603,7 @@ export class ArkivArchive implements LevelArchive {
           throw new ArchiveError(409, 'The remote archive revision has different content.');
         return prior[0].ref;
       }
-      const blocked = this.db
-        .prepare(
-          "SELECT operation FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed','reverted') AND operation!=? LIMIT 1",
-        )
-        .get(plan.operation);
-      if (blocked)
-        throw new ArchiveError(
-          503,
-          'An earlier Arkiv write needs reconciliation. New writes are paused.',
-        );
-      const { estimate, calldata } = await this.estimate(plan),
-        gas = estimate * 2n > 1_000_000n ? estimate * 2n : 1_000_000n;
-      const block = await this.reader.getBlock({ blockTag: 'latest' }),
-        gasPrice = await getGasPrice(this.reader);
-      const nonce = await this.reader.getTransactionCount({
-        address: this.account.address,
-        blockTag: 'latest',
-      });
-      if (
-        (await this.reader.getTransactionCount({
-          address: this.account.address,
-          blockTag: 'pending',
-        })) !== nonce
-      )
-        throw new ArchiveError(503, 'The Arkiv signer has an unresolved pending transaction.');
-      const maximumCost = gas * gasPrice,
-        day = new Date().toISOString().slice(0, 10);
-      const reserved = this.db
-        .prepare('SELECT maximum_cost FROM arkiv_writes WHERE day=? AND maximum_cost IS NOT NULL')
-        .all(day)
-        .reduce((n, r) => n + BigInt(String(r.maximum_cost)), 0n);
-      if (
-        gas > block.gasLimit / 2n ||
-        this.maxTxFee <= 0n ||
-        this.dailyBudget <= 0n ||
-        maximumCost > this.maxTxFee ||
-        reserved + maximumCost > this.dailyBudget ||
-        maximumCost >
-          (await this.reader.getBalance({ address: this.account.address, blockTag: 'latest' }))
-      )
-        throw new ArchiveError(
-          503,
-          'Arkiv fee estimate exceeds the configured fee budget, signer balance or block gas limit. No transaction was sent.',
-        );
-      this.db
-        .prepare(
-          'UPDATE arkiv_writes SET nonce=?,calldata=?,gas=?,gas_price=?,maximum_cost=?,day=? WHERE operation=?',
-        )
-        .run(
-          nonce,
-          calldata,
-          gas.toString(),
-          gasPrice.toString(),
-          maximumCost.toString(),
-          day,
-          plan.operation,
-        );
-      plan = this.plan(plan.operation)!;
-      const rpc = this.rpc,
-        archive = this;
-      const wallet = createWalletClient({
-        account: this.account,
-        chain: this.chain,
-        cacheTime: 0,
-        transport: custom(
-          {
-            async request(args) {
-              if (args.method === 'eth_sendRawTransaction') {
-                const raw = (args.params as readonly TransactionSerialized[])[0],
-                  tx = parseTransaction(raw),
-                  from = await recoverTransactionAddress({ serializedTransaction: raw });
-                if (
-                  from.toLowerCase() !== archive.signer.toLowerCase() ||
-                  tx.chainId !== 7794095 ||
-                  tx.nonce !== nonce ||
-                  tx.to?.toLowerCase() !== NATIVE.toLowerCase() ||
-                  tx.data !== calldata ||
-                  tx.gas !== gas ||
-                  tx.gasPrice !== gasPrice ||
-                  (tx.value ?? 0n) !== 0n ||
-                  archive.plan(plan.operation)?.phase !== 'prepared'
-                )
-                  throw new Error('Signed intent mismatch');
-                const txHash = keccak256(raw);
-                archive.db
-                  .prepare(
-                    "UPDATE arkiv_writes SET phase='submitting',signed=?,tx_hash=? WHERE operation=? AND phase='prepared'",
-                  )
-                  .run(raw, txHash, plan.operation);
-                // synchronous=FULL checkpoint precedes the first and only forwarding attempt.
-                return rpc.request(args as never);
-              }
-              if (
-                args.method.startsWith('eth_send') ||
-                args.method.startsWith('wallet_') ||
-                args.method.startsWith('personal_')
-              )
-                throw new Error('Unexpected write');
-              return rpc.request(args as never);
-            },
-          },
-          { retryCount: 0 },
-        ),
-      });
-      const params: TxParams = { nonce, gas, gasPrice };
-      try {
-        await this.createPublication(wallet, plan, params);
-      } catch {
-        // An unknown response is not a failed write. Reconcile the original saved hash only.
-        if (!this.plan(plan.operation)?.tx_hash)
-          throw new ArchiveError(
-            503,
-            'Arkiv signing failed before broadcast. No transaction was sent.',
-          );
-      }
-      return await this.reconcile(this.plan(plan.operation)!);
+      return await this.submit(plan);
     } catch (error) {
       throw this.safe(
         error,
@@ -633,7 +611,124 @@ export class ArkivArchive implements LevelArchive {
       );
     }
   }
-
+  private async submit(plan: Plan): Promise<ArchiveRef> {
+    const blocked = this.db
+      .prepare(
+        "SELECT operation FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed','reverted') AND operation!=? LIMIT 1",
+      )
+      .get(plan.operation);
+    if (blocked)
+      throw new ArchiveError(
+        503,
+        'An earlier Arkiv write needs reconciliation. New writes are paused.',
+      );
+    const { estimate, calldata } = await this.estimate(plan),
+      gas = estimate * 2n > 1_000_000n ? estimate * 2n : 1_000_000n;
+    const block = await this.reader.getBlock({ blockTag: 'latest' }),
+      gasPrice = await getGasPrice(this.reader);
+    const nonce = await this.reader.getTransactionCount({
+      address: this.account.address,
+      blockTag: 'latest',
+    });
+    if (
+      (await this.reader.getTransactionCount({
+        address: this.account.address,
+        blockTag: 'pending',
+      })) !== nonce
+    )
+      throw new ArchiveError(503, 'The Arkiv signer has an unresolved pending transaction.');
+    const maximumCost = gas * gasPrice,
+      day = new Date().toISOString().slice(0, 10);
+    const reserved = this.db
+      .prepare('SELECT maximum_cost FROM arkiv_writes WHERE day=? AND maximum_cost IS NOT NULL')
+      .all(day)
+      .reduce((n, r) => n + BigInt(String(r.maximum_cost)), 0n);
+    if (
+      gas > block.gasLimit / 2n ||
+      this.maxTxFee <= 0n ||
+      this.dailyBudget <= 0n ||
+      maximumCost > this.maxTxFee ||
+      reserved + maximumCost > this.dailyBudget ||
+      maximumCost >
+        (await this.reader.getBalance({ address: this.account.address, blockTag: 'latest' }))
+    )
+      throw new ArchiveError(
+        503,
+        'Arkiv fee estimate exceeds the configured fee budget, signer balance or block gas limit. No transaction was sent.',
+      );
+    this.db
+      .prepare(
+        'UPDATE arkiv_writes SET nonce=?,calldata=?,gas=?,gas_price=?,maximum_cost=?,day=? WHERE operation=?',
+      )
+      .run(
+        nonce,
+        calldata,
+        gas.toString(),
+        gasPrice.toString(),
+        maximumCost.toString(),
+        day,
+        plan.operation,
+      );
+    plan = this.plan(plan.operation)!;
+    const rpc = this.rpc,
+      archive = this;
+    const wallet = createWalletClient({
+      account: this.account,
+      chain: this.chain,
+      cacheTime: 0,
+      transport: custom(
+        {
+          async request(args) {
+            if (args.method === 'eth_sendRawTransaction') {
+              const raw = (args.params as readonly TransactionSerialized[])[0],
+                tx = parseTransaction(raw),
+                from = await recoverTransactionAddress({ serializedTransaction: raw });
+              if (
+                from.toLowerCase() !== archive.signer.toLowerCase() ||
+                tx.chainId !== 7794095 ||
+                tx.nonce !== nonce ||
+                tx.to?.toLowerCase() !== NATIVE.toLowerCase() ||
+                tx.data !== calldata ||
+                tx.gas !== gas ||
+                tx.gasPrice !== gasPrice ||
+                (tx.value ?? 0n) !== 0n ||
+                archive.plan(plan.operation)?.phase !== 'prepared'
+              )
+                throw new Error('Signed intent mismatch');
+              const txHash = keccak256(raw);
+              archive.db
+                .prepare(
+                  "UPDATE arkiv_writes SET phase='submitting',signed=?,tx_hash=? WHERE operation=? AND phase='prepared'",
+                )
+                .run(raw, txHash, plan.operation);
+              // synchronous=FULL checkpoint precedes the first and only forwarding attempt.
+              return rpc.request(args as never);
+            }
+            if (
+              args.method.startsWith('eth_send') ||
+              args.method.startsWith('wallet_') ||
+              args.method.startsWith('personal_')
+            )
+              throw new Error('Unexpected write');
+            return rpc.request(args as never);
+          },
+        },
+        { retryCount: 0 },
+      ),
+    });
+    const params: TxParams = { nonce, gas, gasPrice };
+    try {
+      await this.invoke(wallet, plan, params);
+    } catch {
+      // An unknown response is not a failed write. Reconcile the original saved hash only.
+      if (!this.plan(plan.operation)?.tx_hash)
+        throw new ArchiveError(
+          503,
+          'Arkiv signing failed before broadcast. No transaction was sent.',
+        );
+    }
+    return await this.reconcile(this.plan(plan.operation)!);
+  }
   private async reconcile(plan: Plan): Promise<ArchiveRef> {
     if (!plan.tx_hash || !plan.signed || !plan.calldata || plan.nonce === null)
       throw new ArchiveError(503, 'Arkiv write requires operator reconciliation.');
@@ -681,13 +776,29 @@ export class ArkivArchive implements LevelArchive {
             data: log.data,
             topics: log.topics,
           });
-          return event.eventName === 'EntityCreated' ? [event.args] : [];
+          if (event.eventName !== 'EntityCreated' && event.eventName !== 'ExpiryExtended')
+            return [];
+          return (
+            isExtension(plan)
+              ? event.eventName === 'ExpiryExtended'
+              : event.eventName === 'EntityCreated'
+          )
+            ? [event.args]
+            : [];
         } catch {
           return [];
         }
       });
     if (events.length !== 1 || events[0].owner.toLowerCase() !== this.signer.toLowerCase())
       throw new Error();
+    if (isExtension(plan)) {
+      const intent = JSON.parse(plan.body) as ExtensionIntent;
+      if (
+        events[0].entityKey.toLowerCase() !== intent.entityKey.toLowerCase() ||
+        events[0].expiresAt !== BigInt(intent.expiresAt)
+      )
+        throw new Error();
+    }
     const ref = {
       entityKey: events[0].entityKey,
       txHash,
@@ -698,9 +809,11 @@ export class ArkivArchive implements LevelArchive {
         "UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?",
       )
       .run(ref.entityKey, ref.expiresAt, plan.operation);
+    let observedExpiry: bigint;
     if (plan.operation.startsWith('theme:')) {
       const entity = await this.reader.getEntity(ref.entityKey, ThemeEntities),
         record = decodeThemePublication(entity, this.signer, this.options.namespace, ref.entityKey);
+      observedExpiry = entity.$expiresAt;
       if (
         entity.$expiresAt < BigInt(ref.expiresAt) ||
         entity.payload.value.toLowerCase() !== plan.ciphertext.toLowerCase() ||
@@ -709,15 +822,17 @@ export class ArkivArchive implements LevelArchive {
         throw new Error();
     } else {
       const entity = await this.entity(ref.entityKey);
-      this.trusted(entity, plan);
+      observedExpiry = entity.$expiresAt;
+      this.trusted(entity, isExtension(plan) ? undefined : plan);
       if (entity.$expiresAt < BigInt(ref.expiresAt)) throw new Error();
       const record = await this.decode(entity);
-      if (canonicalJSON(record) !== canonicalJSON(JSON.parse(plan.body))) throw new Error();
+      if (!isExtension(plan) && canonicalJSON(record) !== canonicalJSON(JSON.parse(plan.body)))
+        throw new Error();
     }
     this.db
       .prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?")
       .run(plan.operation);
-    return ref;
+    return { ...ref, expiresAt: observedExpiry.toString() };
   }
 
   async reconcilePending() {
