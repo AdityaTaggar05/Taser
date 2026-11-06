@@ -1,6 +1,6 @@
 # Arkiv activity and move records
 
-The `block-explorer` branch adds one shared, minimizable explorer to gameplay, private-party lobbies, challenge browsing, solo replay selection/player runs, and the level creator. This branch has player-run lists rather than a separate global leaderboard; the player-run lists now expose publication transaction and entity links. Draft saves, community/campaign publications, winning runs and completed gameplay turns appear in the account's activity timeline. Read references are listed separately and never counted as writes.
+Challenge browsing, solo replay selection/player runs and the level creator share a minimizable activity explorer. Running levels use the paired-move database explorer beside the timeline, described below. This branch has player-run lists rather than a separate global leaderboard; the player-run lists now expose publication transaction and entity links. Draft saves, community/campaign publications, winning runs and completed gameplay turns appear in the account's activity timeline. Read references are listed separately and never counted as writes.
 
 ## Arkiv trace
 
@@ -9,7 +9,7 @@ The `block-explorer` branch adds one shared, minimizable explorer to gameplay, p
 | Server startup | Reconcile saved receipts; trusted encrypted catalog traversal | No automatic seed/migration |
 | Campaign/community discovery | SQLite projection plus cached fresh chain head | None |
 | Start/replay/reconnect | Starts validate the level entity; player echoes also read their run entity. Reconnect resumes the pinned room. | None from joining/reconnecting |
-| Gameplay | Server simulation; no RPC in move handling | One encrypted `move` entity per completed P1/P2 turn |
+| Gameplay | Server simulation; no RPC in move handling. The move strip queries committed records asynchronously every three seconds. | One encrypted `move` entity per completed P1/P2 turn |
 | Winning run | Independently verifies the recorded solution | Existing durable run queue, now also tracked in activity |
 | Creator templates/reference solutions | Authenticated entity read and decryption after existing access checks | None |
 | Creator save/publish | Existing layout and solution validation, receipt verification and encrypted readback | Encrypted draft and community/campaign entities, now tracked in activity |
@@ -40,7 +40,7 @@ The actual `.env.local`, keys, account database and live journal were not modifi
 
 ## Validation
 
-- 151 automated tests pass, covering move pairing, rejected/cancelled/stale inputs, both solo roles, undo/reset/level changes/reconnect, durable restart recovery, frozen intent deduplication, gated confirmation without blocking moves, encrypted calldata, lost replies, readback failure, reverted receipts, authenticated status propagation and audience isolation. Existing gameplay/editor/auth/run/socket regressions pass.
+- 155 automated tests pass, covering move pairing, rejected/cancelled/stale inputs, both solo roles, undo/reset/level changes/reconnect, durable restart recovery, frozen intent deduplication, gated confirmation without blocking moves, encrypted calldata, lost replies, readback failure, reverted receipts, authenticated status propagation and audience isolation. Existing gameplay/editor/auth/run/socket regressions pass.
 - Production TypeScript check and Vite build pass. The existing Phaser bundle-size warning remains.
 - Headless Chromium exercised the production build with real HTTP/WebSocket gameplay and an explicit in-memory archive: keyboard minimize/expand/Escape, route navigation, solo play, undo/reset/reload reconnect, write failure/recovery, winning-run publication, creator save and stopping polling on home. Narrow viewport: 390 × 844, no panel overflow, no page errors.
 - A second two-account Chromium check passed co-op lobby/Ready/start, partial/cancelled pairs, shared participant activity, reset and guest reconnect at desktop and narrow viewports, using only the test archive.
@@ -52,8 +52,20 @@ Reproduce the primary browser check after `npm run build`:
 node --import tsx scripts/browser/block-explorer.fixture.ts
 # In another terminal, with Playwright and Chromium installed:
 node scripts/browser/block-explorer.mjs
+# Focused paired-move query, polling, undo/reset and mobile checks:
+node scripts/browser/paired-moves.mjs
 # With a fresh fixture, optionally run the two-account co-op check:
 node scripts/browser/block-explorer-coop.mjs
 ```
 
 The fixture uses port 5191, only in-memory test storage, and never loads `.env.local`. Playwright is optional and not added to application dependencies. If it is installed outside this repo, set `PLAYWRIGHT_MODULE_PATH` to its absolute `index.mjs` path. Screenshots are written to `/tmp/block-explorer-*.png`.
+
+## Paired-move database explorer
+
+Gameplay now uses `MoveSequence` beside the timeline, replacing the floating activity panel during a level. Each active committed turn has exactly two cells (P1 and P2), with arrows or WAIT. The strip scrolls horizontally and wraps below the timeline on narrower screens. Selecting a pair reviews the operator's board at that turn.
+
+The authenticated `GET /levels/moves/:sessionId?sequences=1,2` endpoint accepts at most 32 unique positive sequence IDs. SQLite first restricts records to that session and the requesting participant's audience. Confirmed records are fetched afresh with the existing Arkiv client's typed query builder, scoped to the trusted creator, namespace, move category and exact record IDs. Decryption, publication policy, content and entity identity checks precede returning the two committed directions. No credentials, puzzle layouts, player account IDs or future/queued inputs are returned. Missing chain entities show Unavailable rather than reusing cached directions as confirmed. Test adapters show TEST and do not link fake transactions.
+
+Polling happens immediately when the active sequence changes and every three seconds thereafter, with no overlapping requests. Route, account and sequence changes abort outstanding requests; generation checks discard late replies. Hidden tabs stop querying until visible again. Query failures mark displayed data stale and retry; they never initiate writes. `CoopRoom` supplies only active sequence IDs, trimming on undo and clearing on reset, lobby return and level changes; immutable historical move records remain intact.
+
+Verification adds real SDK query-encoding/provenance tests, participant/session isolation, bounded request validation, missing-entity handling and active-sequence undo/reset tests. Chromium checks with the explicit in-memory HTTP/WebSocket fixture cover paired arrows, three-second polling without new moves, undo/reset, query outage/recovery, mobile containment and polling cleanup. These checks do not claim live Rabdi availability. CRE is not part of this change.

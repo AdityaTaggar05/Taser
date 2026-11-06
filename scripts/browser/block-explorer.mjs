@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const level=JSON.parse(readFileSync(new URL('../../server/data/levels.json',import.meta.url),'utf8'))[0];
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-const base='http://127.0.0.1:5191';let polls=0;page.on('request',r=>{if(r.url().endsWith('/levels/activity'))polls++;});
+const base='http://127.0.0.1:5191';let polls=0;page.on('request',r=>{if(r.url().endsWith('/levels/activity')||r.url().includes('/levels/moves/'))polls++;});
 try{
 await page.goto(base);await page.getByRole('button',{name:'Use Atlas',exact:true}).click();await page.getByRole('button',{name:'Sign in ↗',exact:true}).click();
 await page.evaluate(()=>location.hash='solo/campaign');await page.locator('.archive-card').first().waitFor();
@@ -15,16 +15,16 @@ await page.locator('.archive-card').first().getByRole('link',{name:'Choose P1 / 
 assert.equal(await page.locator('.archive-proof-links a').count(),0);
 await page.getByRole('link',{name:'← Replay sources'}).click();await page.getByRole('link',{name:'Creator solution →'}).click();await page.locator('#operator button[data-move=U]').waitFor();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='00');
 await page.getByRole('button',{name:'Move up',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');
-await toggle.click();await panel.getByText('Turn 1 · move pair 1',{exact:true}).waitFor();await panel.getByText('TEST · recorded',{exact:true}).first().waitFor();
-await page.locator('#undo').click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='00');await page.getByRole('button',{name:'Move up',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');await panel.getByText('Turn 1 · move pair 2',{exact:true}).waitFor();
+await page.locator('.move-pairs [data-sequence="1"]').waitFor();await page.locator('.move-pairs').getByText('Test record',{exact:true}).first().waitFor();
+await page.locator('#undo').click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='00');await page.getByRole('button',{name:'Move up',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');await page.locator('.move-pairs [data-sequence="2"]').waitFor();
 await page.reload();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');
-await page.request.get(base+'/__test/fail');await page.locator('#reset').click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='00');await page.getByRole('button',{name:'Move up',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');await panel.getByText('TEST · failed',{exact:true}).waitFor();
-await page.request.get(base+'/__test/recover');await page.waitForFunction(()=>!Array.from(document.querySelectorAll('.arkiv-write-state')).some(e=>e.textContent==='TEST · failed'));
+await page.request.get(base+'/__test/fail');await page.locator('#reset').click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='00');await page.getByRole('button',{name:'Move up',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#turn')?.textContent==='01');await page.locator('.move-pairs').getByText('Failed',{exact:true}).waitFor();
+await page.request.get(base+'/__test/recover');await page.waitForFunction(()=>document.querySelector('.move-pairs [data-state=confirmed]')!==null);
 // Finish a real server-simulated win, using the test archive, then verify publication reaches the panel.
 for(let i=1;i<level.solutionP1.length;i++){await page.locator(`[data-move=${level.solutionP1[i]}]`).click();await page.waitForFunction(step=>Number(document.querySelector('#turn')?.textContent)===step,i+1);}
-await page.locator('#outcome.victory').waitFor();await panel.getByText('Winning run · P1',{exact:true}).waitFor();
+await page.locator('#outcome.victory').waitFor();await page.waitForFunction(()=>document.querySelector('#outcome-message')?.textContent?.includes('Your winning run is published.'));
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/block-explorer-gameplay-mobile.png'});
-const rect=await panel.boundingBox();assert(rect.x>=0&&rect.x+rect.width<=390&&rect.y>=0);await toggle.click();await page.screenshot({path:'/tmp/block-explorer-minimized-mobile.png'});
+const rect=await page.locator('.move-sequence').boundingBox();assert(rect.x>=0&&rect.x+rect.width<=390&&rect.y>=0);await page.screenshot({path:'/tmp/block-explorer-minimized-mobile.png'});
 await page.getByRole('button',{name:'Return to home',exact:true}).click();await panel.waitFor({state:'hidden'});await page.waitForTimeout(200);const stopped=polls;await page.waitForTimeout(3300);assert.equal(polls,stopped,'polling stops on home');
 await page.evaluate(()=>location.hash='create');await panel.waitFor();await toggle.click();await page.locator('[data-editor=save]').click();await panel.getByText('Draft revision 1',{exact:true}).waitFor();
 await page.screenshot({path:'/tmp/block-explorer-creator-mobile.png'});
