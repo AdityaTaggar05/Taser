@@ -13,6 +13,7 @@ import {LevelEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
 import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from './archive';
 import {canonicalJSON} from './canonical';
+import {creationExpiration} from './expiration';
 
 const NATIVE='0x4400000000000000000000000000000000000044';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
@@ -64,7 +65,7 @@ export class ArkivArchive implements LevelArchive {
     this.db.prepare("INSERT OR IGNORE INTO arkiv_identity VALUES('genesis',?)").run(genesis);return genesis;
   }
   private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
-  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:record.lifetimeDays===2?ExpirationTime.fromDays(2):ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
+  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:creationExpiration(record),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||

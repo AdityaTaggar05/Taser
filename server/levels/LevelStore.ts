@@ -86,7 +86,7 @@ export class LevelStore {
     if(row.archived_revision!==revision)throw new LevelError(409,'This draft has not been confirmed on Arkiv. Reload it and save before publishing.');
     const prior=this.campaign().find(c=>c.id===id),slot=prior?.slot??Math.max(0,...this.campaign().map(c=>c.slot))+1;
     const record:ArchiveRecord={id,revision,category:target,ownerId,ownerName:draft.ownerName,updatedAt:row.updated_at,
-      ...(target==='campaign'?{campaignSlot:slot}:{lifetimeDays:2 as const}),level:{...draft.level,...(target==='campaign'?{id:slot}:{})}};
+      ...(target==='campaign'?{campaignSlot:slot}:{}),level:{...draft.level,...(target==='campaign'?{id:slot}:{})}};
     const ref=await this.archive.put(record);this.project({record,ref});return {...this.get(ownerId,id),publication:{...ref,category:target}};
   });}
   private latest(category:'community'|'campaign',id?:string){const rows=this.db.prepare('SELECT record,ref FROM level_publications WHERE category=?'+(id?' AND record_id=?':'')+' ORDER BY revision DESC').all(...(id?[category,id]:[category]));const seen=new Set<string>();return rows.flatMap(row=>{const record=JSON.parse(String(row.record)) as ArchiveRecord;if(seen.has(record.id))return [];seen.add(record.id);const ref=JSON.parse(String(row.ref)) as ArchiveRef;if(BigInt(ref.expiresAt)<=this.observedHead)return [];return [{record,ref}];});}
