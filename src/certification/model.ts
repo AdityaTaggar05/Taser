@@ -1,9 +1,12 @@
 import {keccak256,stringToHex,type Hex,isAddress} from 'viem';
 import type {LevelConfig} from '../core/types';
 export const RULES_HASH=keccak256(stringToHex('taser-rules-v1'));
-export type CertificationMode='simulation'|'don'|'test';
+export type CertificationMode='cli-simulation'|'simulation'|'don'|'test';
 export interface CertificationRequest {id:Hex;levelId:string;target:'community'|'campaign';draftKey:Hex;levelHash:Hex;witnessCommitment:Hex;rulesHash:Hex}
-export interface CertificationProof {request:CertificationRequest;mode:CertificationMode;chainId:number;registry:Hex;blockNumber:string;valid:boolean;steps:number}
+export interface EvmCertificationProof {request:CertificationRequest;mode:'simulation'|'don'|'test';chainId:number;registry:Hex;blockNumber:string;valid:boolean;steps:number}
+/** A trusted-server receipt for a real local CLI execution; never an EVM certificate. */
+export interface CliSimulationProof {request:CertificationRequest;mode:'cli-simulation';valid:boolean;steps:number;receiptId:Hex;workflowHash:Hex;completedAt:number}
+export type CertificationProof=EvmCertificationProof|CliSimulationProof;
 export interface CertificationInfo {id:Hex;status:'pending'|'approved'|'published'|'rejected';mode:CertificationMode|'unconfigured';target:'community'|'campaign';submittedAt:number;message:string;proof?:CertificationProof}
 export interface VerificationInput {request:CertificationRequest;level:LevelConfig;salt:Hex}
 export function canonical(value:unknown):string{
@@ -25,8 +28,11 @@ export function checkInput(input:VerificationInput){
 }
 export function validProof(value:unknown):value is CertificationProof {
   if(!value||typeof value!=='object')return false;const p=value as CertificationProof;
-  return validRequest(p.request)&&['simulation','don','test'].includes(p.mode)&&p.chainId===11155111&&typeof p.registry==='string'&&isAddress(p.registry)&&typeof p.blockNumber==='string'&&/^\d+$/.test(p.blockNumber)&&typeof p.valid==='boolean'&&Number.isInteger(p.steps)&&p.steps>=0&&p.steps<=32;
+  if(!validRequest(p.request)||typeof p.valid!=='boolean'||!Number.isInteger(p.steps)||p.steps<0||p.steps>32||p.valid&&p.steps===0)return false;
+  if(p.mode==='cli-simulation')return hash32(p.receiptId)&&hash32(p.workflowHash)&&Number.isSafeInteger(p.completedAt)&&p.completedAt>0;
+  return ['simulation','don','test'].includes(p.mode)&&p.chainId===11155111&&typeof p.registry==='string'&&isAddress(p.registry)&&typeof p.blockNumber==='string'&&/^\d+$/.test(p.blockNumber);
 }
+export function verificationLabel(mode:CertificationMode|'legacy'|undefined){return mode==='cli-simulation'?'CRE SIMULATION VERIFIED':mode==='simulation'?'CRE SIMULATION · SEPOLIA':mode==='don'?'CRE DON VERIFIED':mode==='test'?'TEST VERIFICATION':'LEGACY · SERVER VERIFIED';}
 export const registryAbi=[
   {type:'function',name:'simulation',stateMutability:'view',inputs:[],outputs:[{type:'bool'}]},
   {type:'function',name:'requests',stateMutability:'view',inputs:[{name:'id',type:'bytes32'}],outputs:[{type:'bytes32'}]},

@@ -1,7 +1,9 @@
 import {createPublicClient,http,zeroAddress,type Hex} from 'viem';
 import {sepolia} from 'viem/chains';
 import {registryAbi,requestHash,type CertificationRequest,type CertificationProof,type CertificationMode} from '../../src/certification/model';
-export interface CertificationRegistry {readonly mode:CertificationMode|'unconfigured';read(request:CertificationRequest):Promise<CertificationProof|null>}
+import {resolve} from 'node:path';
+import {CliSimulationVerifier} from './CliSimulationVerifier';
+export interface CertificationRegistry {readonly mode:CertificationMode|'unconfigured';read(request:CertificationRequest):Promise<CertificationProof|null>;verify?(request:CertificationRequest):Promise<CertificationProof|null>;close?():void}
 export class UnconfiguredRegistry implements CertificationRegistry {readonly mode='unconfigured';async read(_request:CertificationRequest){return null;}}
 export class SepoliaRegistry implements CertificationRegistry {
   private client;
@@ -18,6 +20,10 @@ export class SepoliaRegistry implements CertificationRegistry {
 }
 export function configuredRegistry():CertificationRegistry {
   const mode=process.env.CRE_MODE??'unconfigured';if(mode==='unconfigured')return new UnconfiguredRegistry();
+  if(mode==='cli-simulation'){
+    if((process.env.CRE_API_TOKEN?.length??0)<32)throw new Error('Configure the verifier API token before enabling CRE CLI simulation.');
+    return new CliSimulationVerifier({apiBase:process.env.CRE_API_BASE??process.env.APP_ORIGIN??'http://127.0.0.1:5173',databasePath:resolve(process.env.CRE_CLI_RECEIPTS_PATH??'.data/cre/cli-receipts.sqlite'),bin:process.env.CRE_BIN});
+  }
   if(!['simulation','don'].includes(mode)||!/^0x[a-fA-F0-9]{40}$/.test(process.env.CRE_REGISTRY_ADDRESS??'')||process.env.CRE_REGISTRY_ADDRESS===zeroAddress||!process.env.CRE_SEPOLIA_RPC_URL)throw new Error('Complete CRE_MODE, CRE_REGISTRY_ADDRESS and CRE_SEPOLIA_RPC_URL.');
   return new SepoliaRegistry(mode as 'simulation'|'don',process.env.CRE_REGISTRY_ADDRESS as Hex,process.env.CRE_SEPOLIA_RPC_URL);
 }

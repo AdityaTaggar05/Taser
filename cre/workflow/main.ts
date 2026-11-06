@@ -19,9 +19,9 @@ const handle=(runtime:Runtime<Config>,payload:HTTPPayload):string=>{
   if(!hash32(submissionId))throw new Error('Invalid submission ID.');
   const tokenCall=runtime.getSecret({id:'TASER_VERIFIER_TOKEN'});
   if(runtime.config.mode==='local-simulation'){
-    const result=JSON.parse(runtime.runInNodeMode(replay,consensusIdenticalAggregation<string>())(submissionId,'',tokenCall.result().value).result()) as {valid:boolean;steps:number};
+    const result=JSON.parse(runtime.runInNodeMode(replay,consensusIdenticalAggregation<string>())(submissionId,'',tokenCall.result().value).result()) as {commitment:Hex;valid:boolean;steps:number};
     runtime.log('Taser local-simulation: '+(result.valid?'WINNING':'REJECTED')+' solution; '+result.steps+' turns. No certificate or publication created.');
-    return JSON.stringify({submissionId,valid:result.valid,steps:result.steps,mode:'local-simulation',certified:false});
+    return JSON.stringify({submissionId,commitment:result.commitment,valid:result.valid,steps:result.steps,mode:'local-simulation',certified:false});
   }
   const evm=new EVMClient(EVMClient.SUPPORTED_CHAIN_SELECTORS['ethereum-testnet-sepolia']);
   const data=encodeFunctionData({abi:registryAbi,functionName:'requests',args:[submissionId]});

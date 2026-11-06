@@ -60,7 +60,8 @@ export class LevelStore {
     for(const {record} of entries)if(record.certification){
       const {proof,salt}=record.certification;checkInput({request:proof.request,level:record.level,salt});
       const observed=await this.registry.read(proof.request);
-      if(!observed||!observed.valid||observed.steps!==proof.steps||observed.mode!==proof.mode||observed.registry.toLowerCase()!==proof.registry.toLowerCase())throw new LevelError(503,'Could not confirm an archived CRE certificate. Check certification configuration and connectivity.');
+      const identityMatches=observed&&observed.mode===proof.mode&&(proof.mode==='cli-simulation'?observed.mode==='cli-simulation'&&observed.receiptId===proof.receiptId&&observed.workflowHash===proof.workflowHash:observed.mode!=='cli-simulation'&&observed.registry.toLowerCase()===proof.registry.toLowerCase());
+      if(!observed||!observed.valid||observed.steps!==proof.steps||!identityMatches)throw new LevelError(503,'Could not confirm an archived CRE verification. Check verification configuration and the private receipts.');
     }
     this.db.exec('BEGIN IMMEDIATE');try{
       // Keep private legacy/recovery snapshots until migration confirms them. Public discovery
@@ -107,7 +108,7 @@ export class LevelStore {
       if(!proof)return;return {id:proof.request.id,status:'published',target:proof.request.target,submittedAt:record!.updatedAt,mode:proof.mode,message:'Published. This level is permanently read-only.',proof};
     }const proof=row.proof?JSON.parse(row.proof) as CertificationProof:undefined;
     return {id:row.id as `0x${string}`,status:row.status,target:row.target,submittedAt:row.submitted_at,mode:proof?.mode??this.registry.mode,
-      message:row.status==='published'?'Published. This level is permanently read-only.':row.status==='rejected'?'The submitted solution was rejected. Correct the draft and submit again.':row.status==='approved'?'Certificate confirmed. Arkiv publication is pending.':row.error??(this.registry.mode==='unconfigured'?'Waiting for CRE configuration. Your submitted level is locked.':'Waiting for CRE verification.'),...(proof?{proof}:{})};
+      message:row.status==='published'?'Published. This level is permanently read-only.':row.status==='rejected'?'The submitted solution was rejected. Correct the draft and submit again.':row.status==='approved'?'Verification confirmed. Arkiv publication is pending.':row.error??(this.registry.mode==='unconfigured'?'Waiting for CRE configuration. Your submitted level is locked.':this.registry.mode==='cli-simulation'?'Queued for CRE CLI simulation. Your submitted level is locked.':'Waiting for CRE verification.'),...(proof?{proof}:{})};
   }
   publish(ownerId:string,id:string,revision:number,target:'community'|'campaign'='community'):Promise<StoredLevel>{return this.serial(async()=>{
     const draft=this.get(ownerId,id),prior=this.submission(id);
@@ -141,21 +142,24 @@ export class LevelStore {
   }
   pendingCertifications(){return (this.db.prepare("SELECT payload FROM certification_submissions WHERE status='pending' ORDER BY rowid LIMIT 10").all()).map(row=>(JSON.parse(String(row.payload)) as SubmissionPayload).input.request);}
   verificationRequest(id:string){const row=this.db.prepare("SELECT payload FROM certification_submissions WHERE id=? AND status='pending'").get(id);if(!row)throw new LevelError(404,'Pending submission unavailable.');return (JSON.parse(String(row.payload)) as SubmissionPayload).input.request;}
-  refreshCertification(ownerId:string,id:string){return this.serial(async()=>{this.get(ownerId,id);const row=this.submission(id);if(row)await this.reconcileSubmission(row);return this.get(ownerId,id);});}
-  private async reconcileSubmission(row:SubmissionRow){
+  refreshCertification(ownerId:string,id:string){return this.serial(async()=>{this.get(ownerId,id);const row=this.submission(id);if(row)await this.reconcileSubmission(row,true);return this.get(ownerId,id);});}
+  private async reconcileSubmission(row:SubmissionRow,execute=false){
     if(this.closed||row.status==='rejected'||row.status==='published')return;
     const payload=JSON.parse(row.payload) as SubmissionPayload;
     try{
       let proof=row.proof?JSON.parse(row.proof) as CertificationProof:null;
       if(row.status==='pending'){
-        proof=await this.registry.read(payload.input.request);if(!proof)return;
+        proof=await this.registry.read(payload.input.request);
+        if(!proof&&execute&&this.registry.verify)proof=await this.registry.verify(payload.input.request);
+        if(!proof)return;
         if(!validProof(proof)||requestHash(proof.request)!==requestHash(payload.input.request)||proof.mode!==this.registry.mode)throw new Error('Certificate mismatch.');
-        if(proof.valid&&proof.steps!==verifySolution(payload.input.level).step)throw new Error('Winning turn mismatch.');
+        const replay=verifySolution(payload.input.level);if(proof.valid&&(!replay.valid||proof.steps!==replay.step))throw new Error('Winning turn mismatch.');
         if(this.closed)return;
         this.db.prepare('UPDATE certification_submissions SET status=?,proof=?,error=NULL WHERE id=?').run(proof.valid?'approved':'rejected',JSON.stringify(proof),row.id);
         if(!proof.valid)return;
       }
       if(!proof?.valid)return;
+      if(proof.mode!==this.registry.mode)throw new Error('The verification mode changed before publication.');
       const record={...payload.publication,certification:{proof,salt:payload.input.salt}};
       const ref=await this.archive.put(record);if(this.closed)return;this.project({record,ref});
       this.db.prepare("UPDATE certification_submissions SET status='published',error=NULL WHERE id=?").run(row.id);
@@ -165,7 +169,7 @@ export class LevelStore {
     // Rotate bounded batches so an unavailable certificate cannot starve later submissions.
     let rows=this.db.prepare("SELECT rowid AS cursor,id FROM certification_submissions WHERE status IN ('pending','approved') AND rowid>? ORDER BY rowid LIMIT 2").all(this.certificationCursor);
     if(!rows.length){this.certificationCursor=0;rows=this.db.prepare("SELECT rowid AS cursor,id FROM certification_submissions WHERE status IN ('pending','approved') ORDER BY rowid LIMIT 2").all();}
-    for(const row of rows){if(this.closed)return;this.certificationCursor=Number(row.cursor);await this.serial(async()=>{const current=this.db.prepare('SELECT * FROM certification_submissions WHERE id=?').get(row.id) as unknown as SubmissionRow|undefined;if(current)await this.reconcileSubmission(current);});}
+    for(const row of rows){if(this.closed)return;this.certificationCursor=Number(row.cursor);await this.serial(async()=>{const current=this.db.prepare('SELECT * FROM certification_submissions WHERE id=?').get(row.id) as unknown as SubmissionRow|undefined;if(current)await this.reconcileSubmission(current,true);});}
   }
   private latest(category:'community'|'campaign',id?:string){const rows=this.db.prepare('SELECT record,ref FROM level_publications WHERE category=?'+(id?' AND record_id=?':'')+' ORDER BY revision DESC').all(...(id?[category,id]:[category]));const seen=new Set<string>();return rows.flatMap(row=>{const record=JSON.parse(String(row.record)) as ArchiveRecord;if(seen.has(record.id))return [];seen.add(record.id);const ref=JSON.parse(String(row.ref)) as ArchiveRef;if(BigInt(ref.expiresAt)<=this.observedHead)return [];return [{record,ref}];});}
   campaign():CampaignSummary[]{return this.latest('campaign').map(({record:r,ref})=>({id:r.id,name:r.level.name,subtitle:r.level.subtitle,ownerName:r.ownerName,revision:r.revision,publishedRevision:r.revision,updatedAt:r.updatedAt,width:r.level.width,height:r.level.height,totalSteps:r.level.totalSteps,slot:r.campaignSlot!,entityKey:ref.entityKey,verification:r.certification?.proof.mode??('legacy' as const)})).sort((a,b)=>a.slot-b.slot);}
@@ -217,5 +221,5 @@ export class LevelStore {
   });}
   async flushRuns(){for(const row of this.db.prepare("SELECT id FROM game_runs WHERE status='pending' ORDER BY rowid LIMIT 4").all()){if(this.closed)return;const status=await this.publishRun(String(row.id));if(status!=='confirmed')break;}}
   async drain(){await this.queue;}
-  close(){this.closed=true;this.db.close();this.archive.close();}
+  close(){this.closed=true;this.db.close();this.archive.close();this.registry.close?.();}
 }
