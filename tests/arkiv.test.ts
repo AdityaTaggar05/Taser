@@ -64,7 +64,7 @@ it('enforces campaign publishing and template access on authenticated server end
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
 function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   const directory=mkdtempSync(join(tmpdir(),'taser-writer-')),path=join(directory,'journal.sqlite'),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
-  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true;
+  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true;const queries:unknown[]=[];
   const entityKey=('0x'+'ab'.repeat(32)) as Hex,blockHash=('0x'+'cd'.repeat(32)) as Hex;
   const transport=custom({async request({method,params}){
     if(method==='eth_chainId')return '0x76edaf';
@@ -73,7 +73,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
     if(method==='eth_gasPrice')return '0x3b9aca00';
     if(method==='eth_getBalance')return '0x8ac7230489e80000';
     if(method==='eth_estimateGas')return '0x493e0';
-    if(method==='arkiv_query')return {data:[],blockNumber:'0x64'};
+    if(method==='arkiv_query'){queries.push(params);return {data:[],blockNumber:'0x64'};}
     if(method==='eth_sendRawTransaction'){
       sends++;raw=(params as TransactionSerialized[])[0];
       const db=new DatabaseSync(path);const saved=db.prepare("SELECT phase,signed,tx_hash FROM arkiv_writes WHERE phase='submitting'").get();db.close();
@@ -96,7 +96,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
     return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:7_884_100n,
       namespace:str('test'),record_id:str(record().id),revision:u64(1),category:str('community'),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
   });
-  return {archive,path,reader,get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
+  return {archive,path,reader,queries,get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
 }
 it('journals signed bytes before forwarding and reconciles a lost reply without a second send',async()=>{
   const f=writerFixture();try{
@@ -150,4 +150,8 @@ it('retains legacy snapshots across a partial campaign migration and resumes wit
     expect(store.campaign()).toHaveLength(levels.length);expect(store.community()).toHaveLength(1);expect(store.published(record().id)?.level.solutionP1).toEqual(levels[0].solutionP1);
     const count=archive.entries.size;await store.migrate(levels);expect(archive.entries.size).toBe(count);
   }finally{store.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+it('scopes the level catalog query to level categories when other feature records share the namespace',async()=>{
+  const f=writerFixture();try{expect(await f.archive.list()).toEqual([]);const query=JSON.stringify(f.queries.at(-1));for(const value of ['category','draft','community','campaign'])expect(query).toContain(value);}finally{f.close();}
 });

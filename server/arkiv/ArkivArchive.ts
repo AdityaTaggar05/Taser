@@ -4,7 +4,7 @@ import {resolve,dirname} from 'node:path';
 import {createHash,randomBytes} from 'node:crypto';
 import {createPublicClient,createWalletClient,ExpirationTime,ENTITY_EVENTS_ABI,type TxParams} from '@arkiv-network/sdk';
 import {rabdi} from '@arkiv-network/sdk/chains';
-import {asc,eq,and,gt} from '@arkiv-network/sdk/query';
+import {asc,eq,and,or,gt} from '@arkiv-network/sdk/query';
 import {key,u64} from '@arkiv-network/sdk/schema';
 import {custom,http,hexToBytes,bytesToHex,keccak256,parseEther,parseTransaction,recoverTransactionAddress,decodeEventLog,MethodNotFoundRpcError,type Hex,type LocalAccount,type TransactionSerialized,type Transport} from 'viem';
 import {getGasPrice} from 'viem/actions';
@@ -79,8 +79,10 @@ export class ArkivArchive implements LevelArchive {
       await this.identity();const found:ArchivedLevel[]=[];let last:Hex|undefined;
       // Bounded current-state traversal, not a historical snapshot. Fail on incomplete scans.
       for(let page=0;page<100;page++){
+        const categories=or(eq('category','draft'),eq('category','community'),eq('category','campaign'));
+        const scope=and(eq('namespace',this.options.namespace),categories);
         const query=this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
-          .where(last?and(eq('namespace',this.options.namespace),gt('$key',key(last))):eq('namespace',this.options.namespace)).orderBy(asc('$key')).limit(100);
+          .where(last?and(scope,gt('$key',key(last))):scope).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
         for(const row of result.entities){const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});}
         if(result.entities.length<100)return found;
