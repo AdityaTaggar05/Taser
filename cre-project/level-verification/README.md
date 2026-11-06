@@ -20,6 +20,18 @@ scaffold runs inside the Taser repository rather than as a standalone package.
 
 ## Local rehearsal
 
+To verify actual newly submitted levels automatically, use `npm run cre:local-mode`
+from the Taser root and restart the game server. The server then runs this
+workflow's `local-simulation` target against its protected pending-submission API,
+with an isolated per-run config. It checks the final result against the frozen
+request, persists a private execution receipt, and publishes the approved level
+through the encrypted Arkiv writer. Cards say **CRE SIMULATION VERIFIED**. Keep
+`.data/cre/cli-receipts.sqlite` and its SQLite state when backing up the server.
+No CRE signing key or Sepolia contract is needed for this publication mode.
+
+The standalone rehearsal below is separate: it uses a stored campaign snapshot
+and never creates a publication or execution receipt for an actual submission.
+
 From the Taser root, start:
 
 ```sh

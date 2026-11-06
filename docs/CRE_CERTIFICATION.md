@@ -6,9 +6,9 @@ New community and campaign publications use the same immutable submission pipeli
 
 1. Save the encrypted draft through the existing Arkiv writer and approved Rabdi caps. Publish first runs local validation for immediate feedback, then freezes the exact confirmed draft, destination and optional campaign slot in private durable SQLite.
 2. A pending submission has a random 32-byte request ID, layout hash, salted witness commitment and rules hash. The private salt and move lists never enter public metadata. The creator sees **Submission frozen** and can inspect/playtest the read-only layout. Pending content is absent from discovery and cannot start a game.
-3. An operator registers the request commitment on the Sepolia registry. The CRE workflow reads that immutable commitment, retrieves the pinned draft through the separately authenticated API, verifies its fingerprints and independently runs the shared deterministic engine on each node. Only the compact verdict enters consensus.
-4. CRE generates an EVM report and delivers it through the configured forwarder. The report binds request, commitment, pass/fail, winning turn, Sepolia chain ID and registry address. The registry validates sender, known request and destination; production additionally validates the exact workflow ID. Conflicting results cannot overwrite an existing certificate.
-5. The server reads the registry, validates its simulation/DON identity and the exact submission commitment, then archives the approved publication through the same exclusive Arkiv signer/journal. Publication begins its normal two-day community lifetime only at that final write. Campaign lifetime is unchanged. Only confirmed Arkiv publication enters discovery.
+3. The selected verification mode checks the frozen submission. In `cli-simulation`, background maintenance invokes the actual CRE CLI over the protected pending-submission API and accepts only a successful final result matching the request ID and complete commitment. In the Sepolia modes, an operator first registers the request commitment onchain; the workflow reads that commitment before fetching the pinned draft. All paths check the fingerprints and replay the same deterministic engine. Only the compact verdict enters consensus aggregation; the local simulator does not perform real DON consensus.
+4. CLI mode persists a private execution receipt before approving the submission. The receipt includes request, verdict, winning turn, workflow binary fingerprint, random receipt ID and completion time. It contains no fabricated chain ID, address or transaction. In Sepolia modes, CRE instead generates an EVM report and delivers it through the configured forwarder. The report binds request, commitment, pass/fail, winning turn, Sepolia chain ID and registry address; the registry checks its sender and immutable request, with workflow identity checks in DON mode.
+5. The server validates the durable receipt or registry result, then archives the approved publication through the same exclusive Arkiv signer/journal. Publication begins its normal two-day community lifetime only at that final write. Campaign lifetime is unchanged. Only confirmed Arkiv publication enters discovery. CLI-approved cards say **CRE SIMULATION VERIFIED**; the receipt is a trusted-server execution record, not a DON or Sepolia certificate.
 
 A rejected solution unlocks the draft. A corrected submission gets a new request ID and salt. An RPC/API timeout remains pending and locked. An approved result with an uncertain Arkiv write stays approved and locked; receipt reconciliation does not resubmit a different entity. Background maintenance processes at most two certification jobs per pass. Refresh verification is an authenticated owner action; polling GETs never invoke a writer.
 
@@ -16,8 +16,8 @@ The final public record remains permanently read-only after the entity expires. 
 
 ## Scope and trust
 
-- The first version targets **CRE CLI simulation**, with a separate simulation registry. Compiling WASM or replaying a local unit test is not a successful CRE CLI simulation and is never reported as live DON execution.
-- The game server never accepts an HTTP callback saying `approved: true`. It reads the configured Sepolia contract. Unconfigured verification does not fall back to the server's initial verdict.
+- **CRE CLI simulation** can approve publications without a Sepolia receiver when explicitly selected. EVM simulation uses a separate simulation registry. Compiling WASM or replaying a local unit test is not a successful CRE CLI simulation and is never reported as live DON execution.
+- The game server never accepts an HTTP callback saying `approved: true`. It validates its own successful CLI subprocess result or reads the configured Sepolia contract. Unconfigured verification does not fall back to the server's initial verdict.
 - The authenticated witness gateway decrypts the pinned Arkiv draft and checks that it matches the frozen submission before supplying it. This gateway remains trusted for plaintext-to-archive binding. The authorized verifier can see the solution. This is not confidential computation or a zero-knowledge proof.
 - The workflow verifies the submitted winning witness, not every solution, uniqueness, shortest path, human authorship or level quality. Alternate winning routes remain valid.
 - Rules are currently identified by the shared `taser-rules-v1` hash. A mechanics change requires an explicit rules-version/compatibility plan and new workflow build; do not silently reuse the identifier for changed rules.
@@ -41,6 +41,66 @@ The CRE SDK and Bun are pinned development dependencies. `cre:build` uses the of
 No command above deploys a contract, registers a request, broadcasts a report, or writes an Arkiv entity. CRE CLI simulation additionally needs a separately installed CRE CLI and a logged-in Chainlink account.
 
 ## Verified receiver-free rehearsal
+
+### Automatic publication after a real CLI execution
+
+Install the generated workflow dependencies and WASM tooling, keep the CLI logged
+in, then run this from the Taser root:
+
+```sh
+npm run cre:local-mode
+npm run dev
+```
+
+The first command preserves other local settings and selects
+`CRE_MODE=cli-simulation`. It performs no workflow execution or transaction itself.
+The server uses `CRE_API_BASE` (or `APP_ORIGIN`, then loopback port 5173) to fetch
+its own frozen submissions. Configure that origin when serving another port.
+Publication requires the existing working Arkiv storage and approved write caps;
+no Sepolia registry, CRE wallet key or DON deployment is needed in this mode.
+
+Publish initially returns **Pending**. The ten-second maintenance loop runs at
+most two jobs per pass and only one CLI subprocess at a time. An owner can also
+use Refresh verification. Plain GET polling never launches the CLI. Each execution
+uses the equivalent of:
+
+```sh
+cre workflow simulate level-verification --target local-simulation \
+  --non-interactive --trigger-index 0 --config /private/run/config.json \
+  --env /private/run/.env --http-payload '{"submissionId":"0x..."}'
+```
+
+The paths and ID above illustrate per-run values generated by the server; do not
+copy this illustrative command. The executable command for manual rehearsal is
+shown below. The actual worker uses fixed arguments without a shell, no broadcast
+flag, the existing official scaffold, and normal compilation/typechecking. It
+passes an empty environment file and a minimal process environment containing the
+verifier token, CLI authentication and network settings. Arkiv credentials and
+wallet signing keys are not passed. Private configs are removed after execution;
+raw child logs are not stored or returned to the browser.
+
+The worker requires exit code zero, exactly one final structured workflow result,
+the exact submission ID/commitment, a bounded verdict, and the CLI's workflow
+fingerprint. Logs that merely say `WINNING`, client flags and owner callbacks cannot
+approve anything. Timeouts, unavailable CLI/authentication, malformed results and
+mismatches leave the submission pending, with at least a minute between retries.
+Arkiv publication failures preserve the approved receipt for writer reconciliation
+without rerunning verification.
+
+Receipts live in `.data/cre/cli-receipts.sqlite` by default, configurable through
+`CRE_CLI_RECEIPTS_PATH`, under an exclusive process lock. Preserve a consistent
+SQLite backup including active WAL state alongside the account/archive databases.
+Startup validates archived CLI proofs against these private receipts and fails
+closed if a receipt is missing or differs. Restoring only public Arkiv entities is
+not sufficient to re-establish the local execution evidence. A later DON move
+needs an explicit historical-verifier migration plan.
+
+This is an explicitly trusted-server mode. The server owns the executable and
+receipt store; a receipt is not a cryptographic proof of independent execution.
+The published payload still encrypts the solution and salt, and successful
+publication permanently locks the submitted identity.
+
+### Standalone catalog rehearsal
 
 The project-local Chainlink skill is installed at `.agents/skills/chainlink-cre-skill`.
 The official `cre init` TypeScript scaffold is under `cre-project/level-verification`;

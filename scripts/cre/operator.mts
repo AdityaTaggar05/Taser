@@ -46,6 +46,15 @@ async function transaction(operation:string,data:Hex,to?:Hex){
   }finally{closeSync(lockFd);unlinkSync(lock);}
 }
 async function run(){
+  if(action==='local-mode'){
+    if((env.CRE_API_TOKEN?.length??0)<32)throw new Error('Configure CRE_API_TOKEN before enabling local publication verification.');
+    if(spawnSync(env.CRE_BIN??'cre',['version'],{encoding:'utf8'}).status!==0)throw new Error('The CRE CLI must be installed before enabling local publication verification.');
+    const file='.env.local',old=existsSync(file)?readFileSync(file,'utf8'):'',line='CRE_MODE=cli-simulation';
+    const updated=/^CRE_MODE\s*=/m.test(old)?old.replace(/^CRE_MODE\s*=.*$/gm,line):old+(old.endsWith('\n')?'':'\n')+line+'\n';
+    writeFileSync(file,updated,{mode:0o600});
+    console.log('CRE_MODE=cli-simulation saved locally. Restart the game server to enable automatic CLI verification and Arkiv publication.');
+    console.log('No transaction or workflow execution was performed.');return;
+  }
   if(action==='setup'){
     const file='.env.local',old=existsSync(file)?readFileSync(file,'utf8'):'',values=parseEnv(old),lines:string[]=[];
     if(!values.CRE_ETH_PRIVATE_KEY&&!env.CRE_ETH_PRIVATE_KEY)lines.push('CRE_ETH_PRIVATE_KEY='+generatePrivateKey());
@@ -55,7 +64,7 @@ async function run(){
   }
   if(action==='check'){
     console.log('CRE mode:',env.CRE_MODE??'unconfigured');console.log('CLI:',spawnSync(env.CRE_BIN??'cre',['version'],{encoding:'utf8'}).status===0?'installed':'install CRE CLI and run cre login');
-    console.log('API token:',(env.CRE_API_TOKEN?.length??0)>=32?'configured':'missing');console.log('Registry:',env.CRE_REGISTRY_ADDRESS??'not configured');
+    console.log('API token:',(env.CRE_API_TOKEN?.length??0)>=32?'configured':'missing');console.log('Registry:',env.CRE_MODE==='cli-simulation'?'not required for CLI simulation verification':env.CRE_REGISTRY_ADDRESS??'not configured');
     if(env.CRE_ETH_PRIVATE_KEY)console.log('Signer:',privateKeyToAccount(env.CRE_ETH_PRIVATE_KEY as Hex).address);return;
   }
   if(action==='deploy'){
