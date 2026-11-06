@@ -147,6 +147,15 @@ html[data-theme] .role-options [data-player='2'] {
   font: 11px/1.6 monospace;
   z-index: 100;
 }
+.theme-asset-warning button {
+  margin-left: 12px;
+  padding: 6px 10px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
 
 .party-members .archive-card {
   position: relative;

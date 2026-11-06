@@ -7,7 +7,7 @@ import { BoardView } from './render/BoardView';
 import {
   environments,
   buildEnvironment,
-  preloadEnvironment,
+  loadEnvironmentSheet,
   type EnvironmentPack,
 } from './render/environment';
 import { KEY_MOVES } from './input/TurnBuffer';
@@ -30,10 +30,11 @@ import type { GameEngine } from './core/engine';
 import { registeredThemes, initializeThemes } from './assets/catalog';
 import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
+import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
 
-let resolveArtwork!: () => void;
-const artworkAvailable = new Promise<void>((resolve) => {
-  resolveArtwork = resolve;
+let resolveScene!: (scene: ChamberScene) => void;
+const sceneAvailable = new Promise<ChamberScene>((resolve) => {
+  resolveScene = resolve;
 });
 let connectingParty = false;
 
@@ -48,6 +49,10 @@ try {
 } catch {
   artworkStatus.setAttribute('role', 'alert');
   artworkStatus.textContent = 'Chamber artwork is unavailable. Please reload to retry.';
+  const reload = document.createElement('button');
+  reload.textContent = 'Retry';
+  reload.onclick = () => location.reload();
+  artworkStatus.append(reload);
   throw new Error('Artwork initialization failed');
 }
 
@@ -100,7 +105,8 @@ function refresh() {
 }
 function queue(direction: Direction) {
   const session = client?.state;
-  if (!session || !client?.playable || hud.helpOpen || inspection !== null) return;
+  if (!session || !client?.playable || !scene?.artworkReady || hud.helpOpen || inspection !== null)
+    return;
   const error = session.moveErrors[direction];
   if (error) {
     client.showNotice(error);
@@ -319,7 +325,7 @@ function syncScreen() {
     client = new CoopClient(
       receive,
       async () => {
-        await artworkAvailable;
+        await (await sceneAvailable).prepareArtwork(pack);
         return auth.ticket();
       },
       () => auth.expired(),
@@ -387,38 +393,77 @@ function receive(previous: SessionState | null) {
 class ChamberScene extends Phaser.Scene {
   private board: BoardView | undefined;
   private title: TitleBackdrop | undefined;
-  private artworkReady = false;
+  private artwork!: ArtworkLoader;
+  private artworkRequests = new Map<string, Promise<void>>();
+  private artworkErrors = new Set<string>();
 
   constructor() {
     super('chamber');
   }
 
-  preload() {
-    for (const p of registeredThemes) preloadEnvironment(this, p);
-    this.load.on('loaderror', () => {
-      artworkStatus.setAttribute('role', 'alert');
-      artworkStatus.textContent =
-        'Artwork could not be loaded. Check the asset gateway and reload to retry.';
-      document.body.append(artworkStatus);
-    });
+  private activeEnvironment() {
+    const id =
+      editing && playtestEngine ? (playtestEngine.level.environment ?? 'foundry') : undefined;
+    return id && Object.hasOwn(environments, id) ? environments[id] : pack;
+  }
+
+  get artworkReady() {
+    return this.artwork.isReady(this.activeEnvironment());
+  }
+
+  prepareArtwork(environment: EnvironmentPack): Promise<void> {
+    const key = artworkKey(environment);
+    const existing = this.artworkRequests.get(key);
+    if (existing) {
+      if (this.artworkErrors.has(key) && this.activeEnvironment() === environment)
+        this.showArtworkError(environment);
+      return existing;
+    }
+    const request = this.artwork.ensure(environment).then(
+      () => this.redraw(),
+      (error) => {
+        this.artworkErrors.add(key);
+        console.error('Theme artwork failed', error);
+        if (this.activeEnvironment() === environment) this.showArtworkError(environment);
+        throw error;
+      },
+    );
+    this.artworkRequests.set(key, request);
+    return request;
+  }
+
+  private showArtworkError(environment: EnvironmentPack) {
+    artworkStatus.setAttribute('role', 'alert');
+    artworkStatus.textContent = `${environment.name} artwork could not be loaded. Check your connection and retry.`;
+    const retry = document.createElement('button');
+    retry.textContent = 'Retry artwork';
+    retry.onclick = () => {
+      this.artwork.retry(environment);
+      this.artworkRequests.delete(artworkKey(environment));
+      this.artworkErrors.delete(artworkKey(environment));
+      this.redraw();
+    };
+    artworkStatus.append(retry);
+    document.body.append(artworkStatus);
   }
 
   create() {
     scene = this;
     this.title = new TitleBackdrop(this);
-    try {
-      for (const p of registeredThemes) buildEnvironment(this, p);
-    } catch (error) {
-      console.error('Theme registration failed', error);
-      artworkStatus.setAttribute('role', 'alert');
-      artworkStatus.textContent = 'Chamber artwork could not be prepared. Please reload to retry.';
-      document.body.append(artworkStatus);
-      this.cameras.main.setBackgroundColor(pack.palette.background);
-      return;
-    }
-    this.artworkReady = true;
-    resolveArtwork();
-    artworkStatus.remove();
+    this.artwork = new ArtworkLoader(
+      {
+        has: (key) => this.textures.exists(key),
+        load: (environment, id, signal) => loadEnvironmentSheet(this, environment, id, signal),
+        register: (environment) => buildEnvironment(this, environment),
+      },
+      (environment, loaded, total) => {
+        if (this.activeEnvironment() !== environment) return;
+        artworkStatus.setAttribute('role', 'status');
+        artworkStatus.textContent = `Loading ${environment.name} artwork… ${loaded}/${total}`;
+        document.body.append(artworkStatus);
+      },
+    );
+    resolveScene(this);
     this.scale.on('resize', () => this.redraw());
     this.redraw();
   }
@@ -452,7 +497,15 @@ class ChamberScene extends Phaser.Scene {
   }
 
   redraw(previous?: StepSnapshot, animate = false) {
-    if (!this.artworkReady) return;
+    if (!this.artworkReady) {
+      this.board?.destroy();
+      this.board = undefined;
+      this.title?.clear();
+      this.cameras.main.setBackgroundColor(this.activeEnvironment().palette.background);
+      void this.prepareArtwork(this.activeEnvironment()).catch(() => {});
+      return;
+    }
+    artworkStatus.remove();
     this.cameras.main.setBackgroundColor(pack.palette.background);
     document.body.dataset.environment = pack.id;
     if (editing) {

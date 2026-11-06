@@ -40,6 +40,8 @@ The owned-Bee commands (`assets:upload`, `assets:verify`) remain a backup requir
 
 The root HTML `data-asset-source` reports `swarm` for the verified deployed pack. Public read endpoints must allow browser CORS. Keep original files available for republishing and confirm operator-funded retention before relying on it beyond the demo. Content references remain independent of read gateway choice.
 
+Sprite sheets load on demand for the active theme, with at most six concurrent reads and a 45-second deadline covering downloads and image decoding. Switching themes or entering an editor playtest loads that pack before rendering; unused packs do not block the landing page. A failed attempt shows **Retry artwork** and keeps successfully cached textures for the retry. Sessions wait for their selected theme before joining, and move selection waits for artwork readiness. There is no local fallback on gateway failure.
+
 ## Diwali pack
 
 `diwali` 1.1.0 provides both players’ complete eight-action, four-facing animation sets, festive exit states and matching kurta avatars. P1 wears burgundy with gold trim; P2 retains the green helmet and two eyes but wears a dark navy kurta. Neither costume uses chest identity bars. Exits carry warm lights and marigold trim. Neutral gameplay objects retain the approved Modern Gray art, and every semantic sprite/animation ID is preserved.

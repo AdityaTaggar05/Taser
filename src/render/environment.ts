@@ -1,26 +1,53 @@
 import Phaser from 'phaser';
 import { environments, semantic, type ThemePack } from '../assets/catalog';
 import { spriteUrl, type AssetRole } from '../assets/schema';
+import { artworkSheetKey } from '../assets/ArtworkLoader';
 export { environments };
 export type { AssetRole };
 export type EnvironmentPack = ThemePack;
-const queued = new WeakMap<Phaser.Scene, Set<string>>();
-export const sheetKey = (pack: ThemePack, id: string) =>
-  `${pack.id}@${pack.manifest.version}:${id}`;
+export const sheetKey = artworkSheetKey;
 export const animationKey = (pack: ThemePack, id: string) =>
   `${pack.id}@${pack.manifest.version}:${id}`;
-export function preloadEnvironment(scene: Phaser.Scene, pack: ThemePack) {
-  let seen = queued.get(scene);
-  if (!seen) {
-    seen = new Set();
-    queued.set(scene, seen);
-  }
-  scene.load.crossOrigin = 'anonymous';
-  for (const id of new Set(Object.values(pack.manifest.sprites).map((s) => s.sheet))) {
-    const key = sheetKey(pack, id);
-    if (seen.has(key) || scene.textures.exists(key)) continue;
-    seen.add(key);
-    scene.load.image(key, spriteUrl(pack.manifest, pack.deployment, id));
+/** Abort both the remote read and image decoding when a theme attempt ends. */
+export async function loadEnvironmentSheet(
+  scene: Phaser.Scene,
+  pack: ThemePack,
+  id: string,
+  signal: AbortSignal,
+) {
+  const response = await fetch(spriteUrl(pack.manifest, pack.deployment, id), { signal });
+  if (!response.ok) throw new Error(`Artwork read failed: ${id}`);
+  const blob = await response.blob();
+  signal.throwIfAborted();
+  const url = URL.createObjectURL(blob);
+  const image = new Image();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        image.onload = image.onerror = null;
+        signal.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        cleanup();
+        image.src = '';
+        reject(signal.reason);
+      };
+      image.onload = () => {
+        cleanup();
+        resolve();
+      };
+      image.onerror = () => {
+        cleanup();
+        reject(new Error(`Artwork decode failed: ${id}`));
+      };
+      signal.addEventListener('abort', abort, { once: true });
+      image.src = url;
+    });
+    signal.throwIfAborted();
+    if (!scene.textures.addImage(sheetKey(pack, id), image))
+      throw new Error(`Artwork registration failed: ${id}`);
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
 /** Register original source rectangles; never synthesize replacement artwork. */
