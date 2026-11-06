@@ -228,6 +228,10 @@ function writerFixture(
         };
     return {
       status: 'success',
+      from: account.address,
+      to: '0x4400000000000000000000000000000000000044',
+      gasUsed: 300_000n,
+      effectiveGasPrice: 1_000_000_000n,
       transactionHash: keccak256(raw),
       blockNumber: 100n,
       blockHash,
@@ -371,6 +375,38 @@ it('stops before sending when either the per-transaction or daily approved fee c
     }
   }
 });
+it('settles confirmed fees and backfills older reservations only from authenticated receipts', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    await f.archive.put(record());
+    const fees = () =>
+      (f.archive as unknown as { dailyFees(day: string): Promise<bigint> }).dailyFees(
+        new Date().toISOString().slice(0, 10),
+      );
+    expect(await fees()).toBe(300_000_000_000_000n);
+    const db = new DatabaseSync(f.path);
+    db.prepare('UPDATE arkiv_writes SET actual_cost=NULL').run();
+    const receipt = vi.mocked(f.reader.getTransactionReceipt).getMockImplementation()!;
+    vi.mocked(f.reader.getTransactionReceipt).mockRejectedValue(new Error('Unavailable'));
+    expect(await fees()).toBe(1_000_000_000_000_000n);
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(async (args) => ({
+      ...(await receipt(args)),
+      effectiveGasPrice: 0n,
+    }));
+    expect(await fees()).toBe(1_000_000_000_000_000n);
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(receipt);
+    expect(await fees()).toBe(300_000_000_000_000n);
+    expect(db.prepare('SELECT actual_cost FROM arkiv_writes').get()?.actual_cost).toBe(
+      '300000000000000',
+    );
+    expect(f.sends).toBe(1);
+    db.close();
+  } finally {
+    f.close();
+  }
+});
+
 it('refuses a new send when the signer balance cannot cover the maximum transaction fee', async () => {
   const f = writerFixture();
   try {

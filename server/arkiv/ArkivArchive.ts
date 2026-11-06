@@ -85,6 +85,7 @@ interface Plan {
   gas: string | null;
   gas_price: string | null;
   maximum_cost: string | null;
+  actual_cost: string | null;
   day: string | null;
   genesis: string;
 }
@@ -169,6 +170,13 @@ export class ArkivArchive implements LevelArchive {
       this.db.exec(`PRAGMA journal_mode=WAL;PRAGMA synchronous=FULL;
         CREATE TABLE IF NOT EXISTS arkiv_identity(name TEXT PRIMARY KEY,value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS arkiv_writes(operation TEXT PRIMARY KEY,input_hash TEXT NOT NULL,body TEXT NOT NULL,salt TEXT NOT NULL,ciphertext TEXT NOT NULL,phase TEXT NOT NULL,signed TEXT,tx_hash TEXT,entity_key TEXT,expires_at TEXT,nonce INTEGER,calldata TEXT,gas TEXT,gas_price TEXT,maximum_cost TEXT,day TEXT,genesis TEXT NOT NULL);`);
+      if (
+        !this.db
+          .prepare('PRAGMA table_info(arkiv_writes)')
+          .all()
+          .some((c) => c.name === 'actual_cost')
+      )
+        this.db.exec('ALTER TABLE arkiv_writes ADD COLUMN actual_cost TEXT');
       chmodSync(options.databasePath, 0o600);
       const fingerprint = hash(options.encryptionKey.toLowerCase()),
         identity = `${this.signer.toLowerCase()}:${options.namespace}:${fingerprint}`;
@@ -675,6 +683,66 @@ export class ArkivArchive implements LevelArchive {
       );
     }
   }
+  /** Release unused gas reservations only after authenticating a canonical receipt. */
+  private async settleFee(plan: Plan) {
+    if (!plan.signed || !plan.tx_hash || !plan.gas || !plan.gas_price || !plan.maximum_cost)
+      throw new ArchiveError(503, 'Arkiv fee reservation needs journal reconciliation.');
+    const raw = plan.signed as TransactionSerialized;
+    const signed = parseTransaction(raw);
+    const receipt = await this.reader.getTransactionReceipt({ hash: plan.tx_hash as Hex });
+    const block = await this.reader.getBlock({ blockNumber: receipt.blockNumber });
+    if (
+      keccak256(raw) !== plan.tx_hash ||
+      (await recoverTransactionAddress({ serializedTransaction: raw })).toLowerCase() !==
+        this.signer.toLowerCase() ||
+      signed.chainId !== 7794095 ||
+      signed.gas !== BigInt(plan.gas) ||
+      signed.gasPrice !== BigInt(plan.gas_price) ||
+      signed.nonce !== plan.nonce ||
+      signed.data !== plan.calldata ||
+      signed.to?.toLowerCase() !== NATIVE.toLowerCase() ||
+      receipt.transactionHash !== plan.tx_hash ||
+      block.hash !== receipt.blockHash ||
+      receipt.from.toLowerCase() !== this.signer.toLowerCase() ||
+      receipt.to?.toLowerCase() !== NATIVE.toLowerCase() ||
+      !['success', 'reverted'].includes(receipt.status) ||
+      receipt.gasUsed < 0n ||
+      receipt.gasUsed > signed.gas ||
+      receipt.effectiveGasPrice !== signed.gasPrice
+    )
+      throw new ArchiveError(
+        503,
+        'Arkiv fee receipt could not be authenticated. Existing reservations are retained.',
+      );
+    const actual = receipt.gasUsed * receipt.effectiveGasPrice;
+    if (actual > BigInt(plan.maximum_cost))
+      throw new ArchiveError(503, 'Arkiv fee receipt exceeds its journal reservation.');
+    this.db
+      .prepare('UPDATE arkiv_writes SET actual_cost=? WHERE operation=?')
+      .run(actual.toString(), plan.operation);
+    return actual;
+  }
+
+  private async dailyFees(day: string) {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM arkiv_writes WHERE day=? AND maximum_cost IS NOT NULL AND phase!='prepared'",
+      )
+      .all(day) as unknown as Plan[];
+    let total = 0n;
+    for (const plan of rows) {
+      if (plan.actual_cost !== null) total += BigInt(plan.actual_cost);
+      else if (['verified', 'receipt_confirmed', 'reverted'].includes(plan.phase)) {
+        try {
+          total += await this.settleFee(plan);
+        } catch {
+          total += BigInt(plan.maximum_cost!);
+        }
+      } else total += BigInt(plan.maximum_cost!);
+    }
+    return total;
+  }
+
   private async submit(plan: Plan): Promise<ArchiveRef> {
     const blocked = this.db
       .prepare(
@@ -703,22 +771,29 @@ export class ArkivArchive implements LevelArchive {
       throw new ArchiveError(503, 'The Arkiv signer has an unresolved pending transaction.');
     const maximumCost = gas * gasPrice,
       day = new Date().toISOString().slice(0, 10);
-    const reserved = this.db
-      .prepare('SELECT maximum_cost FROM arkiv_writes WHERE day=? AND maximum_cost IS NOT NULL')
-      .all(day)
-      .reduce((n, r) => n + BigInt(String(r.maximum_cost)), 0n);
+    const reserved = await this.dailyFees(day);
+    if (gas > block.gasLimit / 2n)
+      throw new ArchiveError(
+        503,
+        'Arkiv gas estimate exceeds the safe block gas limit. No transaction was sent.',
+      );
+    if (this.maxTxFee <= 0n || maximumCost > this.maxTxFee)
+      throw new ArchiveError(
+        503,
+        'Arkiv fee budget per transaction is exceeded. No transaction was sent.',
+      );
+    if (this.dailyBudget <= 0n || reserved + maximumCost > this.dailyBudget)
+      throw new ArchiveError(
+        503,
+        'Arkiv daily fee budget is exhausted. Confirmed fees and pending reservations count toward the limit; it resets at 00:00 UTC. No transaction was sent.',
+      );
     if (
-      gas > block.gasLimit / 2n ||
-      this.maxTxFee <= 0n ||
-      this.dailyBudget <= 0n ||
-      maximumCost > this.maxTxFee ||
-      reserved + maximumCost > this.dailyBudget ||
       maximumCost >
-        (await this.reader.getBalance({ address: this.account.address, blockTag: 'latest' }))
+      (await this.reader.getBalance({ address: this.account.address, blockTag: 'latest' }))
     )
       throw new ArchiveError(
         503,
-        'Arkiv fee estimate exceeds the configured fee budget, signer balance or block gas limit. No transaction was sent.',
+        'Arkiv signer balance cannot cover the maximum transaction fee. No transaction was sent.',
       );
     this.db
       .prepare(
@@ -822,6 +897,7 @@ export class ArkivArchive implements LevelArchive {
       signed.chainId !== 7794095
     )
       throw new Error();
+    await this.settleFee(plan);
     if (receipt.status !== 'success') {
       this.db
         .prepare("UPDATE arkiv_writes SET phase='reverted' WHERE operation=?")
