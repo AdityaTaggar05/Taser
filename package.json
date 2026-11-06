@@ -16,7 +16,15 @@
     "assets:prepare": "node scripts/prepare-theme.mjs",
     "assets:check": "node --import tsx scripts/swarm-assets.ts",
     "assets:upload": "node --import tsx scripts/swarm-assets.ts --write",
-    "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify"
+    "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify",
+    "cre:typecheck": "tsc --noEmit -p cre/tsconfig.json && tsc --noEmit -p scripts/cre/tsconfig.json",
+    "cre:contract": "node scripts/cre/compile-contract.mjs",
+    "cre:build": "bun node_modules/@chainlink/cre-sdk/bin/cre-compile.ts cre/workflow/main.ts .data/cre/workflow.wasm",
+    "cre:setup": "node --import tsx scripts/cre/operator.mts setup",
+    "cre:check": "node --import tsx scripts/cre/operator.mts check",
+    "cre:deploy": "node --import tsx scripts/cre/operator.mts deploy",
+    "cre:register": "node --import tsx scripts/cre/operator.mts register",
+    "cre:simulate": "node --import tsx scripts/cre/operator.mts simulate"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",
@@ -27,8 +35,13 @@
     "ws": "^8.22.1"
   },
   "devDependencies": {
+    "@chainlink/cre-sdk": "1.23.0",
+    "@ethereumjs/common": "10.1.2",
+    "@ethereumjs/vm": "10.1.2",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
+    "bun": "1.4.4",
+    "solc": "0.8.28",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vitest": "^5.1.0"

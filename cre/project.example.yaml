@@ -1,0 +1,4 @@
+staging-settings:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia
+      url: ${CRE_SEPOLIA_RPC_URL}
