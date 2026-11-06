@@ -4,6 +4,7 @@ import type {AuthService} from '../auth/AuthService';
 import {LevelError,type LevelStore,type PublishedSnapshot} from '../levels/LevelStore';
 import type {PlayerProfile} from '../../src/auth/types';
 import type {JoinIntent,Player,PlayMode,ServerMessage} from '../../src/network/protocol';
+import {INVITE_ALPHABET,INVITE_LENGTH,normalizeInviteCode} from '../../src/network/invite';
 interface Member {user:PlayerProfile;role:Player;peer:Peer|null;bridge:Peer;ready:boolean;publicationVersion?:number;disconnectedAt?:number;runPublication?:'pending'|'confirmed'}
 interface Session {id:string;code:string;mode:PlayMode;host:string;room:CoopRoom;snapshot:PublishedSnapshot;members:Map<string,Member>;started:boolean;echoName?:string;touched:number}
 /** Authenticated private sessions. Invite codes grant a seat, never puzzle data or an account. */
@@ -25,7 +26,7 @@ export class Sessions {
         await this.store.validateSnapshot(snapshot);
         const echo=intent.mode==='solo'?await this.store.echo(snapshot,intent.player===1?2:1,intent.runId):undefined;
         if(this.closed)throw new LevelError(503,'Game service is closing.');this.checkAccount(user.id);
-        const id=randomUUID();let code:string;do{code=randomBytes(6).toString('hex').toUpperCase();}while([...this.sessions.values()].some(s=>s.code===code));
+        const id=randomUUID();let code:string;do{code=Array.from(randomBytes(INVITE_LENGTH),byte=>INVITE_ALPHABET[byte%INVITE_ALPHABET.length]).join('');}while([...this.sessions.values()].some(s=>s.code===code));
         const members=new Map<string,Member>();
         const room=new CoopRoom(randomUUID,()=>Date.now(),45_000,ids=>{if(snapshot.slot)this.auth.recordCompletion(ids,snapshot.slot);},undefined,[snapshot],
           (ids,key)=>this.store.recordWin(ids,key),(id,key)=>this.store.canReveal(id,key),{
@@ -40,8 +41,8 @@ export class Sessions {
         this.sessions.set(id,session);role=intent.player;
       }finally{this.creating.delete(user.id);}
     }else if(intent.kind==='invite'){
-      if(typeof intent.code!=='string'||!/^[a-fA-F0-9]{12}$/.test(intent.code))throw new LevelError(400,'Enter the 12-character invitation code.');
-      session=[...this.sessions.values()].find(s=>s.mode==='coop'&&s.code===intent.code.toUpperCase());
+      const code=normalizeInviteCode(intent.code);if(!code)throw new LevelError(400,'Enter the 6-character invitation code.');
+      session=[...this.sessions.values()].find(s=>s.mode==='coop'&&s.code===code);
       if(!session)throw new LevelError(404,'Invitation expired or party closed.');
       const prior=session.members.get(user.id);
       if(prior)role=prior.role;

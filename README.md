@@ -18,7 +18,7 @@ npm run dev
 
 Open the printed URL and sign in. Choose **Play co-op** or **Play solo**, then **Campaign** or **Community**, a chamber, and P1/P2. Browsing the menus does not start a game or occupy a party seat. The default port is 5173; another port can be selected with `npm run dev -- --port 5174`. Use the same server address in both browsers. Open fresh tabs rather than Duplicate Tab, which can copy the authenticated tab context.
 
-For co-op, the first operator hosts a private party and shares its invite link or 12-character code. The invited account takes the opposite role. Both operators choose **Ready**, then the host chooses **Start challenge**. Enter a code from Home → Play co-op. There is no automatic public-room matching. Separate parties and solo attempts run independently. One account can participate in one session at a time.
+For co-op, the first operator hosts a private party and shares its invite link or six-character code. Codes accept either letter case and omit I, O, 0 and 1 to avoid confusion. The invited account takes the opposite role. Both operators choose **Ready**, then the host chooses **Start challenge**. Enter a code from Home → Play co-op. There is no automatic public-room matching. Separate parties and solo attempts run independently. One account can participate in one session at a time.
 
 For solo, choose **Creator solution** or **Player runs** after selecting your role. The server retrieves and decrypts the selected replay, then commits one recorded partner input per valid human move. A replay never adapts, skips a move, or pads its ending with waits. If it finishes before both operators exit, the attempt ends; Undo and Reset remain available.
 

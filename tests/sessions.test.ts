@@ -1,4 +1,6 @@
 import {it,expect,vi} from 'vitest';
+import {randomBytes} from 'node:crypto';
+vi.mock('node:crypto',async importOriginal=>{const original=await importOriginal<typeof import('node:crypto')>();return {...original,randomBytes:vi.fn(original.randomBytes)};});
 import {Sessions} from '../server/game/Sessions';
 import {LevelStore} from '../server/levels/LevelStore';
 import {MemoryArchive} from '../server/arkiv/archive';
@@ -9,6 +11,18 @@ import type {ServerMessage,SessionState} from '../src/network/protocol';
 import {levels} from '../server/data/campaign';
 class TestPeer implements Peer {messages:ServerMessage[]=[];closed=false;send(m:ServerMessage){this.messages.push(structuredClone(m));}close(){this.closed=true;}get state(){return this.messages.filter((m):m is SessionState=>m.type==='state').at(-1)!;}}
 const user=(id:string):PlayerProfile=>({id,displayName:id,walletAddress:null,ensName:null,kind:'demo',completed:[]});
+it('issues six-character codes, retries collisions and accepts lowercase invitation input',async()=>{
+  const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store,0),id=store.campaign()[0].id;
+  const a=new TestPeer(),b=new TestPeer(),guest=new TestPeer();
+  const random=vi.mocked(randomBytes);random.mockClear();random.mockImplementationOnce(size=>Buffer.alloc(size,0)).mockImplementationOnce(size=>Buffer.alloc(size,0)).mockImplementationOnce(size=>Buffer.alloc(size,1));
+  try{
+    await hub.join(a,user('a'),{kind:'create',mode:'coop',levelId:id,player:1});
+    await hub.join(b,user('b'),{kind:'create',mode:'coop',levelId:id,player:2});
+    expect(a.state.party?.code).toBe('AAAAAA');expect(b.state.party?.code).toBe('BBBBBB');expect(random).toHaveBeenCalledTimes(3);
+    await hub.join(guest,user('guest'),{kind:'invite',code:'  aaaaaa  '});expect(guest.state.party?.id).toBe(a.state.party?.id);expect(guest.state.player).toBe(2);
+    for(const code of ['AAAAA','AAAAAAA','AAAIO1','ABCDEF123456'])await expect(hub.join(new TestPeer(),user('bad'),{kind:'invite',code})).rejects.toThrow('6-character');
+  }finally{random.mockRestore();hub.close();await store.drain();store.close();auth.close();}
+});
 it('keeps separate live parties isolated and expires disconnected guest/host memberships',async()=>{
   const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store,0),id=store.campaign()[0].id;
   const a=new TestPeer(),b=new TestPeer(),c=new TestPeer(),d=new TestPeer();

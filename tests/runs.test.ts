@@ -24,7 +24,8 @@ it('uses 48-hour creation policy, recovers pending runs, deduplicates and remove
   }finally{await store.drain();store.close();}
 });
 it('parses only complete launch choices and leaves solo source selection in the menu',()=>{
-  const id='00000000-0000-4000-8000-000000000001';expect(joinIntent('#solo/campaign/'+id+'/p1')).toBeNull();expect(joinIntent('#solo/campaign/'+id+'/p2/creator')).toMatchObject({mode:'solo',player:2});expect(joinIntent('#coop/campaign/'+id+'/p1')).toMatchObject({mode:'coop',player:1});expect(joinIntent('#coop/campaign/'+id+'/p1/creator')).toBeNull();expect(joinIntent('#invite/012345ABCDEF')).toEqual({kind:'invite',code:'012345ABCDEF'});
+  const id='00000000-0000-4000-8000-000000000001';expect(joinIntent('#solo/campaign/'+id+'/p1')).toBeNull();expect(joinIntent('#solo/campaign/'+id+'/p2/creator')).toMatchObject({mode:'solo',player:2});expect(joinIntent('#coop/campaign/'+id+'/p1')).toMatchObject({mode:'coop',player:1});expect(joinIntent('#coop/campaign/'+id+'/p1/creator')).toBeNull();expect(joinIntent('#invite/abc234')).toEqual({kind:'invite',code:'ABC234'});
+  for(const code of ['ABC23','ABC2345','ABC120','ABCIO2','ABC234/more'])expect(joinIntent('#invite/'+code)).toBeNull();
 });
 it('restores pending run publication after a server restart without creating extra runs',async()=>{
   const {mkdtempSync,rmSync}=await import('node:fs'),{tmpdir}=await import('node:os'),{join}=await import('node:path');

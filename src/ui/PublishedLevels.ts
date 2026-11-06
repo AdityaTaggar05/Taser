@@ -1,6 +1,7 @@
 import './published.css';
 import type {LevelClient} from '../editor/LevelClient';
 import type {LevelSummary} from '../editor/types';
+import {INVITE_LENGTH,INVITE_PATTERN,normalizeInviteCode} from '../network/invite';
 export class PublishedLevels {
   readonly root=document.createElement('main');private request=0;
   constructor(private api:LevelClient,private actions:{home:()=>void;fullscreen:()=>void}){
@@ -28,8 +29,8 @@ export class PublishedLevels {
       const choices=document.createElement('div');choices.className='collection-choice';body.append(choices);
       link('Campaign →','#'+mode+'/campaign',choices);link('Community →','#'+mode+'/community',choices);
       if(mode==='coop'){
-        const form=document.createElement('form');form.className='join-code-form';form.innerHTML='<label for="invite-code">Have an invitation?</label><input id="invite-code" required maxlength="12" minlength="12" placeholder="12-character code" autocomplete="off" pattern="[a-fA-F0-9]{12}"/><button type="submit">Join party ↗</button>';
-        form.onsubmit=event=>{event.preventDefault();const code=form.querySelector('input')!.value.trim().toUpperCase();if(/^[A-F0-9]{12}$/.test(code))location.hash='invite/'+code;};body.append(form);
+        const form=document.createElement('form');form.className='join-code-form';form.innerHTML=`<label for="invite-code">Have an invitation?</label><input id="invite-code" required maxlength="${INVITE_LENGTH}" minlength="${INVITE_LENGTH}" placeholder="6-character code" autocomplete="off" autocapitalize="characters" spellcheck="false" pattern="${INVITE_PATTERN}"/><button type="submit">Join party ↗</button>`;
+        form.onsubmit=event=>{event.preventDefault();const code=normalizeInviteCode(form.querySelector('input')!.value);if(code)location.hash='invite/'+code;};body.append(form);
       }return;
     }
     if(selected&&!role){
