@@ -26,7 +26,9 @@
     "cre:register": "node --import tsx scripts/cre/operator.mts register",
     "cre:simulate": "node --import tsx scripts/cre/operator.mts simulate",
     "cre:rehearsal": "node --env-file-if-exists=.env.local --import tsx scripts/cre/rehearsal.mts",
-    "cre:local-mode": "node --import tsx scripts/cre/operator.mts local-mode"
+    "cre:local-mode": "node --import tsx scripts/cre/operator.mts local-mode",
+    "format": "prettier --write src server scripts tests cre cre-project contracts *.ts *.json index.html .prettierrc.json",
+    "format:check": "prettier --check src server scripts tests cre cre-project contracts *.ts *.json index.html .prettierrc.json"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",
@@ -43,6 +45,8 @@
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
     "bun": "1.4.4",
+    "prettier": "3.9.10",
+    "prettier-plugin-solidity": "2.4.1",
     "solc": "0.8.28",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",

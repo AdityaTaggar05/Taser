@@ -202,6 +202,11 @@ npm test
 npm run build
 ```
 
+Source formatting uses the project-local Prettier configuration. Run
+`npm run format` to format the codebase or `npm run format:check` to check it.
+TypeScript, scripts, styles, embedded HTML, configuration and Solidity are covered;
+generated assets, dependency locks, private files and installed skills are excluded.
+
 The tests additionally cover full-payload encryption, fresh IVs, wrong-key/tamper/routing rejection, trusted creator/readonly checks, lost send replies, failed readback after receipt confirmation, admin publishing denial, Arkiv catalog recovery, exact-revision solution unlocks and dynamic campaigns. HTTP/WebSocket fixtures use an explicit in-memory test archive; these tests do not certify live Rabdi writes. The tests include creator recording across all thirteen templates, draft undo/redo and solution invalidation, bounded imports, verified publication, revision conflicts, ownership, snapshot persistence, custom-room privacy and reconnects, plus all thirteen winning solutions, move rejection, ice, lasers and undo, plus authenticated private party creation/invitations, host-only start, Ready enforcement, isolated solo sessions, fixed replay endings/undo, opposite-role run discovery, exact-revision rejection, automatic human-run publication, pending-write recovery and co-op-only completion unlocks. Authentication tests cover development login and disabled-production behavior, tab isolation, origin checks, signed wallet verification, nonce replay, expiry, one-use game tickets, revocation and persistent verified progress. The socket integration test requires permission to bind a local loopback port.
 
 
