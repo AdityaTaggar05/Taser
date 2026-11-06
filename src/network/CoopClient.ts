@@ -218,10 +218,7 @@ export class CoopClient {
 
   party(
     command:
-      | { type: 'broadcast'; enabled: boolean }
-      | { type: 'ready'; ready: boolean }
-      | { type: 'start' }
-      | { type: 'lobby'; revision: number },
+      { type: 'ready'; ready: boolean } | { type: 'start' } | { type: 'lobby'; revision: number },
   ) {
     return this.transmit(command);
   }

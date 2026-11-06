@@ -8,10 +8,6 @@ export const RUN_TTL = ExpirationTime.fromDays(2);
 export const ARKIV_BLOCK_SECONDS = 2;
 
 export function creationExpiration(record: ArchiveWrite) {
-  if (record.category === 'attempt') {
-    if (!record.attempt?.expiresAt) throw new Error('Attempt expiration block is required.');
-    return ExpirationTime.atBlock(BigInt(record.attempt.expiresAt));
-  }
   if (record.category === 'community' || record.category === 'campaign') return LEVEL_BASE_TTL;
   return record.category === 'run' || record.category === 'move' ? RUN_TTL : ExpirationTime.max();
 }

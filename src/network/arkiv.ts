@@ -1,7 +1,7 @@
 /** Public activity contains no move inputs, account IDs, layouts or RPC credentials. */
 export interface ArkivActivity {
   id: string;
-  kind: 'draft' | 'community' | 'campaign' | 'run' | 'move' | 'attempt';
+  kind: 'draft' | 'community' | 'campaign' | 'run' | 'move';
   label: string;
   createdAt: number;
   state: 'pending' | 'confirmed' | 'failed';

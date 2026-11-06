@@ -71,12 +71,5 @@ export interface PartyState {
   code: string;
   host: boolean;
   started: boolean;
-  publicMatchId?: string;
-  members: Array<{
-    name: string;
-    player: Player;
-    ready: boolean;
-    connected: boolean;
-    broadcast?: boolean;
-  }>;
+  members: Array<{ name: string; player: Player; ready: boolean; connected: boolean }>;
 }

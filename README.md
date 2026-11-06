@@ -238,9 +238,6 @@ For the verified receiver-free CRE rehearsal, see
 CLI simulator. This checks HTTP retrieval, commitments and game replay without
 deploying a receiver, certifying a level or publishing to Arkiv.
 
-## Public arena and predictions
-
-The `betting` branch adds **Watch & predict**, an opt-in public co-op arena with delayed boards and test-point predictions. Both operators enable broadcasting in the party lobby. See [the arena guide](docs/BETTING.md) for rules, temporary Arkiv move records, winning replay retention and local testing. No monetary betting or token escrow is included.
 ### Gameplay transaction explorer
 
 While playing, a move-pair explorer sits beside the timeline (below it on narrow screens). Each committed turn forms a 2×1 P1/P2 grid with direction arrows or WAIT, archive status and a transaction link. Click a pair to review that turn. It queries the Arkiv database through an authenticated server endpoint immediately after moves and every three seconds; pending/failed writes are labelled, and query failures are shown as stale. Undo/reset remove superseded pairs from the active sequence. Queued moves and future replay inputs stay hidden. Player-run lists, challenge browsing and the creator retain the minimizable activity panel. Every completed P1/P2 turn queues one encrypted move-pair entity without waiting for chain confirmation. Existing signer journaling and fee caps still apply. See [activity behavior, Arkiv setup changes and validation](docs/block-explorer.md).

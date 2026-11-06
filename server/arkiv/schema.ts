@@ -7,6 +7,3 @@ export const LevelEntities = defineSchema('weldpoint_levels_v1', {
   content_type: str(),
   ciphertext: bytes(),
 });
-
-// Keep transient gameplay data outside the published-level catalog.
-export const AttemptEntities = defineSchema('weldpoint_attempts_v1', { ...LevelEntities.columns });

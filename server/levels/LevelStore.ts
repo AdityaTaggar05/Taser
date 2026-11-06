@@ -1,4 +1,3 @@
-import { BettingService } from '../betting/BettingService';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -82,7 +81,6 @@ export interface PublishedSnapshot {
 }
 /** SQLite is a private projection and write-recovery cache. Arkiv confirms every saved revision. */
 export class LevelStore {
-  readonly betting: BettingService;
   private activity: ActivityStore;
   private flushingMoves = false;
   private availabilityRequest: Promise<void> | undefined;
@@ -117,7 +115,6 @@ export class LevelStore {
       CREATE TABLE IF NOT EXISTS leaderboard_completions(account_id TEXT NOT NULL,level_id TEXT NOT NULL,PRIMARY KEY(account_id,level_id));
       CREATE TABLE IF NOT EXISTS level_scores(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,mode TEXT NOT NULL,name TEXT NOT NULL,turns INTEGER NOT NULL,achieved_at INTEGER NOT NULL,role INTEGER NOT NULL,PRIMARY KEY(account_id,entity_key,mode));
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
-    this.betting = new BettingService(this.db, this.archive);
     this.activity = new ActivityStore(this.db, this.archive);
     if (
       !this.db
@@ -220,10 +217,6 @@ export class LevelStore {
       this.db
         .prepare("UPDATE certification_submissions SET status='published',error=NULL WHERE id=?")
         .run(r.certification.proof.request.id);
-    if (r.category === 'attempt') {
-      this.betting.restore(r, ref);
-      return;
-    }
     if (r.category === 'run') {
       this.db
         .prepare(
@@ -282,10 +275,7 @@ export class LevelStore {
 
   async hydrate() {
     // Only replace the public projection after a complete successful trusted remote traversal.
-    const entries = [
-      ...(await this.archive.list()),
-      ...((await this.archive.listAttempts?.()) ?? []),
-    ];
+    const entries = await this.archive.list();
     for (const { record } of entries)
       if (record.certification) {
         const { proof, salt } = record.certification;
@@ -1238,12 +1228,10 @@ export class LevelStore {
   async drain() {
     while (this.flushingMoves) await this.queue;
     await this.queue;
-    await this.betting.drain();
   }
 
   close() {
     this.closed = true;
-    this.betting.close();
     this.db.close();
     this.archive.close();
     this.registry.close?.();

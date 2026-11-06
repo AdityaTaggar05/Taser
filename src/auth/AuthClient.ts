@@ -48,10 +48,7 @@ export class AuthClient {
     });
     const value = await response.json();
     if (!response.ok) {
-      if (
-        response.status === 401 &&
-        (action === 'socket-ticket' || action.startsWith('levels') || action.startsWith('betting'))
-      )
+      if (response.status === 401 && (action === 'socket-ticket' || action.startsWith('levels')))
         this.expired();
       throw new Error(value.error ?? 'Sign-in service is unavailable.');
     }
@@ -101,9 +98,6 @@ export class AuthClient {
     this.state = await this.request<AuthState>('wallet', { signature });
     this.error = null;
     this.changed();
-  }
-  bettingRequest<T>(path = '', body?: unknown) {
-    return this.request<T>('betting' + path, body);
   }
   levelRequest<T>(path = '', body?: unknown, signal?: AbortSignal) {
     return this.request<T>('levels' + path, body, signal);
