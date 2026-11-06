@@ -1,6 +1,6 @@
 # WeldPoint / Taser
 
-A fullscreen, two-player online temporal pincer puzzle built with Phaser 3, TypeScript and Vite. The URL requires sign-in, then opens a fullscreen title screen with animated chamber artwork, Play co-op, a field guide, settings and account completion progress. Sign in with two different accounts and press Play co-op on two tabs, browsers or devices: the first connection becomes P1 (forward time), the second P2 (reverse time). Each browser renders only its player's board, boxes and objectives. Guest play is disabled. Wallet sign-in and two development accounts are available; invitations and parties come later.
+A fullscreen, two-player online temporal pincer puzzle built with Phaser 3, TypeScript and Vite. The URL requires sign-in, then opens a fullscreen title screen with animated chamber artwork, Play co-op, a field guide, settings and account completion progress. Sign in with two different accounts and press Play co-op on two tabs, browsers or devices: choose P1 (forward time) or P2 (reverse time) before connecting. Each browser renders only its player's board, boxes and objectives. Guest play is disabled. Wallet sign-in and two development accounts are available; invitations and parties come later.
 
 ## Run and connect
 
@@ -16,7 +16,7 @@ npm run arkiv:migrate
 npm run dev
 ```
 
-Open the printed URL in **two separate tabs/browsers**, sign in with different accounts, then choose **Play co-op** in each. Browsing the home menu does not connect to the multiplayer room or occupy a slot. A `#play` link requires sign-in before opening the game and can restore a refreshable session. The default port is 5173. If that port is occupied, run `npm run dev -- --port 5174` and use that same port in both browsers. Do not use the browser's Duplicate Tab command: it can copy the session token and attempt to resume the same player rather than join as the second player.
+Open the printed URL in **two separate tabs/browsers**, sign in with different accounts, then choose **Play co-op** in each and select opposite roles. Browsing the home menu does not connect to the multiplayer room or occupy a slot. A `#play` link requires sign-in and role selection before opening the game and can restore a refreshable session. The default port is 5173. If that port is occupied, run `npm run dev -- --port 5174` and use that same port in both browsers. Do not use the browser's Duplicate Tab command: it can copy the session token and attempt to resume the same player rather than join as the second player.
 
 For another device on the same network, use the **server computer's LAN address** with the printed port, rather than `localhost`. Allow the port through the host firewall if necessary. The development server listens on all interfaces.
 
@@ -57,7 +57,7 @@ For players on different networks, run this Node service on a reachable host. A 
 ## Play
 
 - Either role can use **WASD or arrow keys** to move, **Space or Enter** to wait, or the on-screen controls.
-- The server assigns roles; a browser can submit moves only for its own assigned role.
+- Choose P1 or P2 before connecting. The server reserves that exact role and accepts moves only from its assigned account. An occupied or reconnecting role waits rather than assigning the other role.
 - Both queued inputs immediately commit one simultaneous turn. Change or cancel your queued move before the other player commits. You see whether your partner is ready, but not their chosen direction.
 - Wall bumps, out-of-bounds moves and blocked Phase 1 shoves are rejected without consuming a turn or clearing a valid queued move. Unavailable directions are disabled. Laser exposure and locked-history collisions remain committed gameplay failures.
 - **Turns 1–4:** coordinate box positions with your partner. A shove moves the box while you stay put. Spatial weld markers and partner box ghosts are hidden.
@@ -125,7 +125,7 @@ Sign in and choose **Level creator** on the home screen, or open `#create`. The 
 
 **Publish** first saves the current draft, then the server independently replays both submitted move lists. A valid publication requires a complete winning run, including legal inputs, midpoint weld, hazard checks and both open exits simultaneously after the weld and within the timeline. This verifies the submitted witness, not every possible solution. No client-provided success flag is trusted.
 
-**My levels / Community** lists up to 100 owned drafts or the latest 100 published chambers. Only owners can load/edit a draft. Publishing returns a shareable `#play/<level-id>` link: open it with two different signed-in accounts to play in the existing shared co-op room. Clients receive neither the submitted witness nor partner objectives, initial boxes or weld coordinates. After completing the published revision, Reference route unlocks for that account. Custom wins do not award campaign completion markers yet.
+**My levels / Community** lists up to 100 owned drafts or the latest 100 published chambers. Only owners can load/edit a draft. Publishing returns a shareable `#play/<level-id>` link: open it with two different signed-in accounts, then choose opposite roles to play in the existing shared co-op room. The home screen’s **Published levels** section lists Community publications and the Campaign catalog, with metadata only. Browse or refresh without occupying a seat; select a chamber to open its P1/P2 picker. Only confirmed publications are listed; drafts and failed/pending writes stay private. A chosen-role URL retains that choice across refresh. Share the original level link so your partner can choose their own role. Clients receive neither the submitted witness nor partner objectives, initial boxes or weld coordinates. After completing the published revision, Reference route unlocks for that account. Custom wins do not award campaign completion markers yet.
 
 Saving a revision leaves the previous verified publication playable. Republishing replaces it only after another successful verification. A running room keeps the snapshot it started with. Concurrent saves from stale tabs return a conflict instead of overwriting newer work; export local edits, reload from My levels and reapply them. Accounts can store up to 100 drafts. Deletion/unpublishing, private parties and per-level ratings are future work.
 
