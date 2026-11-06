@@ -1,4 +1,3 @@
-import rawLevels from '../data/levels.json';
 import { inBounds, hasCoord, type LevelConfig, type Coord, DIR_DELTA } from './types';
 import {validateDraft} from './levelValidation';
 
@@ -29,4 +28,3 @@ export function validateLevel(value: unknown): asserts value is LevelConfig {
   for (const solution of [l.solutionP1, l.solutionP2]) if (!Array.isArray(solution) || solution.length !== l.totalSteps || !solution.every(d => Object.hasOwn(DIR_DELTA,d))) throw new Error('Reference solutions must contain T valid directions.');
 }
 export function parseLevel(json: string): LevelConfig { const value: unknown = JSON.parse(json); validateLevel(value); return structuredClone(value); }
-export const levels: LevelConfig[] = rawLevels.map(value => { validateLevel(value); return value; });

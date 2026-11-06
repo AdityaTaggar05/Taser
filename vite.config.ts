@@ -17,8 +17,11 @@ function coop():Plugin {
     async configurePreviewServer(server){await setup(server,false);},
   };
 }
+function clientPrivacy():Plugin {return {name:'weldpoint-client-privacy',generateBundle(_,bundle){
+  for(const chunk of Object.values(bundle))if(chunk.type==='chunk'&&chunk.moduleIds.some(id=>id.includes('/server/')))throw new Error('Server-only level data or credentials entered the browser module graph.');
+}};}
 export default defineConfig(({mode})=>{
   const env=loadEnv(mode,process.cwd(),'');
   for(const key of SERVER_ENV_KEYS)if(process.env[key]===undefined&&env[key]!==undefined)process.env[key]=env[key];
-  return {plugins:[coop()],server:{host:'0.0.0.0',port:5173,strictPort:true},preview:{host:'0.0.0.0',port:4173,strictPort:true}};
+  return {plugins:[coop(),clientPrivacy()],server:{host:'0.0.0.0',port:5173,strictPort:true},preview:{host:'0.0.0.0',port:4173,strictPort:true}};
 });
