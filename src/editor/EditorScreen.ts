@@ -19,6 +19,7 @@ import { verificationLabel } from '../certification/model';
 import { EditorModel, blankLevel } from './EditorModel';
 import { verifySolution } from './solution';
 import { LevelClient } from './LevelClient';
+import { PublicationOverlay } from './PublicationOverlay';
 import type {
   EditorObjectTool,
   EditorTool,
@@ -99,6 +100,8 @@ export class EditorScreen {
   private box = 0;
   private view: EditorView = 'author';
   private busy = false;
+  private refreshing = false;
+  private publicationOverlay: PublicationOverlay;
   private statusTimer: ReturnType<typeof setInterval>;
 
   private get locked() {
@@ -313,6 +316,10 @@ export class EditorScreen {
       </dialog>
     `;
     document.body.append(this.root);
+    this.publicationOverlay = new PublicationOverlay(this.root, {
+      refresh: () => void this.refreshSubmission(true),
+      published: () => this.showPublication(),
+    });
     this.root.addEventListener('click', (e) => this.click(e));
 
     const grid = this.root.querySelector('.creator-grid')!;
@@ -588,6 +595,7 @@ export class EditorScreen {
 
   setUser(user: PlayerProfile | null) {
     if (user?.id === this.user?.id) return;
+    this.publicationOverlay.hide();
     this.cancelGesture();
     this.tool = null;
     this.box = 0;
@@ -629,6 +637,7 @@ export class EditorScreen {
       )
     )
       return;
+    this.publicationOverlay.hide();
     this.cancelGesture();
     this.generation++;
     this.model = new EditorModel(level);
@@ -1363,6 +1372,7 @@ export class EditorScreen {
       }
     }
     const generation = this.generation;
+    if (publish) this.publicationOverlay.start(this.model.level.name, target);
     this.busy = true;
     this.render();
     this.message(
@@ -1385,15 +1395,16 @@ export class EditorScreen {
       this.dirty = false;
       this.remember();
       if (publish) {
+        this.publicationOverlay.submitting();
         const published = await this.api.publish(saved.id, saved.revision, target);
         if (generation !== this.generation) return;
         this.stored = published;
+        this.publicationOverlay.update(published);
         if (published.certification?.status !== 'published') {
           this.message(published.certification?.message ?? 'Verification pending.');
           this.remember();
           return;
         }
-        this.showPublication();
       }
       if (publish) void this.loadCatalog();
       this.message(
@@ -1402,7 +1413,10 @@ export class EditorScreen {
           : 'Encrypted draft confirmed on Arkiv.',
       );
     } catch (error) {
-      if (generation === this.generation) this.message((error as Error).message);
+      if (generation === this.generation) {
+        this.message((error as Error).message);
+        if (publish) this.publicationOverlay.fail((error as Error).message);
+      }
     } finally {
       this.busy = false;
       this.render();
@@ -1437,9 +1451,16 @@ export class EditorScreen {
   }
 
   private async refreshSubmission(reconcile: boolean) {
-    if (!this.stored || this.busy) return;
+    if (!this.stored || this.busy || this.refreshing) return;
+    this.refreshing = true;
     const id = this.stored.id,
       generation = this.generation;
+    if (reconcile && this.stored.certification)
+      this.publicationOverlay.start(
+        this.stored.name,
+        this.stored.certification.target,
+        this.stored,
+      );
     try {
       const stored = await (reconcile ? this.api.refreshCertification(id) : this.api.get(id));
       if (generation !== this.generation) return;
@@ -1451,12 +1472,18 @@ export class EditorScreen {
         this.message('This saved submission is now read-only.');
       }
       this.stored = stored;
+      this.publicationOverlay.update(stored);
       this.remember();
       this.render();
       if (reconcile || changed)
         this.message(stored.certification?.message ?? 'Submission status refreshed.');
     } catch (error) {
-      if (reconcile && generation === this.generation) this.message((error as Error).message);
+      if (generation === this.generation) {
+        if (reconcile) this.message((error as Error).message);
+        this.publicationOverlay.fail((error as Error).message);
+      }
+    } finally {
+      this.refreshing = false;
     }
   }
 
@@ -1662,6 +1689,7 @@ export class EditorScreen {
   }
 
   destroy() {
+    this.publicationOverlay.destroy();
     this.cancelGesture();
     this.active = false;
     this.model.engine = null;

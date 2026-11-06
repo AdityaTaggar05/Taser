@@ -1,0 +1,549 @@
+#creator .publication-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #deeee6;
+  background: radial-gradient(ellipse at 50% 40%, #1c3837 0%, #101d21 65%);
+  overflow: auto;
+  overflow-x: hidden;
+}
+.publication-overlay::backdrop {
+  background: #101d21;
+}
+.publication-overlay[open] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+}
+.publication-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  min-width: 0;
+  width: min(1180px, 100%);
+  padding: 22px 32px;
+  box-sizing: border-box;
+}
+.publication-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  color: #9eb9b0;
+  font: 10px monospace;
+  letter-spacing: 2px;
+}
+.publication-workflow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.publication-graph-stage {
+  flex: 1;
+  width: 100%;
+  --graph-travel: min(70vw, 900px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  margin: 12px auto;
+}
+.publication-network {
+  --network-color: #85d9ce;
+  grid-area: 1 / 1;
+  width: min(520px, 100%);
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--network-color);
+}
+.publication-network-heading > span {
+  display: none;
+}
+.publication-network h3 {
+  font:
+    400 19px Arial,
+    sans-serif;
+  letter-spacing: -0.5px;
+  margin: 8px 0 0;
+  color: #cce5d9;
+}
+.publication-network svg {
+  display: block;
+  height: clamp(180px, 30vh, 320px);
+  width: 100%;
+  overflow: visible;
+  margin: 0;
+}
+.publication-overlay[open] .network-entering {
+  animation: network-scene-in 1.35s cubic-bezier(0.22, 0.65, 0.25, 1) both;
+}
+.publication-overlay[open] .network-leaving {
+  pointer-events: none;
+  animation: network-scene-out 1.25s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+@keyframes network-scene-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--graph-travel));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes network-scene-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(-1 * var(--graph-travel)));
+  }
+}
+.network-orbit {
+  fill: none;
+  stroke: #6a9c902b;
+  stroke-width: 1;
+  stroke-dasharray: 2 8;
+}
+.network-orbit-inner {
+  stroke-dasharray: 1 6;
+}
+.network-edges path {
+  fill: none;
+  stroke: #6eab9d40;
+  stroke-width: 1.5;
+}
+.network-signals path {
+  fill: none;
+  stroke: var(--network-color);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 4 96;
+  filter: drop-shadow(0 0 4px #85d9ce80);
+}
+.publication-overlay[open] .network-signals path {
+  animation: network-transmit 3s var(--signal-delay) linear infinite var(--signal-direction);
+}
+.network-node-body {
+  fill: #1a3433;
+  stroke: var(--network-color);
+  stroke-width: 1.5;
+}
+.network-node-core {
+  fill: var(--network-color);
+  filter: drop-shadow(0 0 6px #85d9ceaa);
+}
+.network-node-halo {
+  fill: none;
+  stroke: var(--network-color);
+  stroke-width: 1;
+  opacity: 0.25;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.publication-overlay[open] .network-node-halo {
+  animation: network-ripple 2.6s var(--node-delay) ease-out infinite;
+}
+.network-hub-outline {
+  fill: #82d8bc0b;
+  stroke: var(--network-color);
+  opacity: 0.3;
+}
+.network-hub {
+  fill: #203f3a;
+  stroke: var(--network-color);
+  stroke-width: 1.5;
+}
+.network-hub-label {
+  fill: #d5f5e6;
+  font: 14px monospace;
+  letter-spacing: 2px;
+}
+.publication-network-state {
+  font: 10px monospace;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.publication-network-caption {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #8fac9f;
+  margin: 10px 0 0;
+}
+.publication-network[data-phase='saving'] .network-signals path {
+  animation-duration: 6s;
+  opacity: 0.4;
+}
+.publication-network[data-phase='published'] {
+  --network-color: #a4ffc0;
+}
+.publication-network[data-phase='published'] .network-signals path,
+.publication-network[data-phase='paused'] .network-signals path {
+  animation: none;
+  opacity: 0;
+}
+.publication-network[data-phase='published'] .network-node-halo,
+.publication-network[data-phase='paused'] .network-node-halo {
+  animation: none;
+}
+.publication-network[data-phase='paused'] {
+  --network-color: #dfb47e;
+}
+@keyframes network-transmit {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes network-ripple {
+  from {
+    transform: scale(0.65);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+#creator .publication-header button {
+  font-size: 22px;
+  padding: 2px 10px;
+}
+.publication-heading {
+  margin: 10px 0 20px;
+  text-align: center;
+}
+.publication-destination {
+  color: #8ed6c5;
+  text-transform: uppercase;
+  font: 10px monospace;
+  letter-spacing: 3px;
+}
+.publication-heading h2 {
+  font:
+    500 clamp(22px, 3vw, 30px) Arial,
+    sans-serif;
+  letter-spacing: -1px;
+  margin: 6px 0;
+}
+.publication-name {
+  color: #b2c6bd;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.publication-pipeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  list-style: none;
+  padding: 4px 0 12px;
+  margin: 24px 0 0;
+}
+.publication-pipeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  gap: 6px 12px;
+  min-height: 88px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border: 1px solid #3d5755;
+  border-bottom: 3px solid #29413f;
+  border-radius: 6px;
+  background: #203432;
+  transition:
+    border-color 0.3s,
+    background 0.3s,
+    opacity 0.3s;
+}
+.publication-pipeline li > div {
+  min-width: 0;
+}
+.publication-overlay[open] .publication-pipeline li[data-entered='true'] {
+  animation: publication-stack 0.55s cubic-bezier(0.18, 0.78, 0.24, 1) both;
+}
+.publication-pipeline li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  width: 14px;
+  height: 1px;
+  background: #63837b;
+}
+.publication-number {
+  color: #87b2a7;
+  font: 17px monospace;
+}
+.publication-pipeline strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.publication-pipeline small {
+  display: block;
+  color: #a5bcb2;
+  font-size: 11px;
+  margin-top: 5px;
+}
+.publication-block-state {
+  grid-column: 2;
+  font: 9px monospace;
+  text-transform: uppercase;
+  color: #adc3b9;
+}
+.publication-pipeline [data-state='waiting'] {
+  opacity: 0.45;
+  background: #172a2a;
+  border-color: #2d4544;
+}
+.publication-pipeline [data-state='active'] {
+  border-color: #8adbc8;
+  background: #26423c;
+}
+.publication-pipeline [data-state='active'] .publication-number {
+  animation: publication-pulse 1.3s ease-in-out infinite;
+  color: #a1f1da;
+}
+.publication-pipeline [data-state='done'] .publication-block-state {
+  color: #95e9b1;
+}
+.publication-pipeline [data-state='error'] {
+  border-color: #e1b47e;
+}
+.publication-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  max-width: 680px;
+  min-height: 66px;
+  margin: 18px auto 14px;
+  padding: 14px 20px;
+  border-top: 1px solid #8abca326;
+  text-align: left;
+}
+.publication-result strong {
+  font: 10px monospace;
+  letter-spacing: 1.4px;
+  color: #a9c5b9;
+}
+.publication-result p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b7ccc1;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.publication-seal {
+  display: none;
+  flex: 0 0 48px;
+}
+.publication-seal svg {
+  display: block;
+  width: 48px;
+  overflow: visible;
+}
+.publication-seal circle {
+  fill: #183f2e;
+  stroke: #89f0a8;
+  stroke-width: 2;
+}
+.publication-seal path {
+  fill: none;
+  stroke: #a4ffc0;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+}
+.publication-overlay[data-verified='true'] .publication-seal {
+  display: block;
+  animation: publication-seal-in 0.5s cubic-bezier(0.2, 1.5, 0.5, 1) both;
+}
+.publication-overlay[data-verified='true'] .publication-seal path {
+  animation: publication-check 0.5s 0.25s ease-out forwards;
+}
+.publication-overlay[data-verified='true'] .publication-result strong {
+  color: #a4ffc0;
+}
+.publication-overlay[data-issue='true'] #publication-status {
+  color: #edc79b;
+}
+.publication-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+#creator .publication-footer [data-publication='published'] {
+  border-color: #86dfb1;
+  background: #274e3b;
+  color: #c4ffda;
+}
+@keyframes publication-stack {
+  from {
+    opacity: 0;
+    transform: translateX(45px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes publication-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes publication-seal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes publication-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (max-width: 760px) {
+  .publication-content {
+    padding: 16px 20px;
+  }
+  .publication-pipeline {
+    grid-template-columns: repeat(4, minmax(210px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #63837b #172a2a;
+    scroll-snap-type: x proximity;
+  }
+  .publication-pipeline li {
+    scroll-snap-align: start;
+  }
+  .publication-network-state {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+  .publication-result {
+    padding: 12px 0;
+  }
+  .publication-footer {
+    gap: 8px;
+  }
+}
+@media (max-height: 760px) {
+  .publication-content {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .publication-heading {
+    margin: 4px 0 12px;
+  }
+  .publication-pipeline li {
+    min-height: 78px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .publication-graph-stage {
+    margin: 4px auto;
+  }
+  .publication-result {
+    margin: 10px auto;
+    padding: 10px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .network-leaving {
+    display: none;
+  }
+  .publication-overlay[open] .network-entering,
+  .publication-overlay[open] .network-leaving,
+  .publication-overlay[open] .network-signals path,
+  .publication-overlay[open] .network-node-halo,
+  .publication-overlay[open] .publication-pipeline li[data-entered='true'],
+  .publication-pipeline [data-state='active'] .publication-number,
+  .publication-overlay[data-verified='true'] .publication-seal,
+  .publication-overlay[data-verified='true'] .publication-seal path {
+    animation: none;
+  }
+  .network-signals path {
+    opacity: 0.35;
+  }
+  .publication-overlay[data-verified='true'] .publication-seal path {
+    stroke-dashoffset: 0;
+  }
+  .publication-pipeline li {
+    transition: none;
+  }
+}
+
+/* Each server-observed stage gets its own diagram, palette and motion. */
+.publication-network[data-phase='saving'] {
+  --network-color: #93c8ff;
+}
+.publication-network[data-phase='freezing'] {
+  --network-color: #c0a6ff;
+}
+.publication-network[data-phase='publishing'] {
+  --network-color: #f1d48d;
+}
+.publication-network[data-phase='rejected'] {
+  --network-color: #ff9b9b;
+}
+.network-glyph {
+  fill: none;
+  stroke: var(--network-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.network-node-label {
+  fill: var(--network-color);
+  font: 10px monospace;
+  letter-spacing: 0.5px;
+}
+.publication-network .network-hub-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.publication-network[data-phase='freezing'] .network-edges path {
+  stroke-dasharray: 5 5;
+}
+.publication-network[data-phase='publishing'] .network-signals path {
+  animation-duration: 1.8s;
+}
+.publication-network[data-phase='published'] .network-edges path {
+  stroke: var(--network-color);
+  opacity: 0.55;
+}
+.publication-network[data-phase='paused'] .network-edges path,
+.publication-network[data-phase='rejected'] .network-edges path {
+  stroke: var(--network-color);
+  stroke-dasharray: 4 8;
+  opacity: 0.4;
+}
+.publication-network[data-phase='rejected'] .network-signals path,
+.publication-network[data-phase='rejected'] .network-node-halo {
+  animation: none;
+  opacity: 0;
+}
