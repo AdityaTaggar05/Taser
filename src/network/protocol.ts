@@ -5,14 +5,14 @@ export interface PlayerFrame {
   step: number; position: Coord; boxes: Coord[]; status: GameStatus; message: string;
 }
 export interface SessionState {
-  type: 'state'; player: Player; revision: number; levelIndex: number;
+  type: 'state'; mode?:PlayMode;party?:PartyState;echoName?:string;runPublication?:'pending'|'confirmed'; player: Player; revision: number; levelIndex: number;
   customLevelId?:string;customRevision?:number;level?:LevelConfig;
   campaign?:import('../editor/types').CampaignSummary[];publicationKey?:string;solutionAvailable?:boolean;
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;
 }
-export type ServerMessage = SessionState | { type: 'welcome'; token: string } | { type: 'error'; message: string } | { type: 'full'; message: string } | {type:'auth_required';message:string};
+export type ServerMessage = SessionState | { type: 'welcome'; token: string;sessionId?:string } | { type: 'error'; message: string } | { type: 'full'; message: string } | {type:'auth_required';message:string};
 export type ClientCommand = { type:'move'; direction:Direction; revision:number } | { type:'undo'|'reset'|'cancel'; revision:number } | { type:'level'; index:number; revision:number };
 export function parseCommand(value: unknown): ClientCommand | null {
   if (!value || typeof value!=='object') return null;
@@ -23,3 +23,6 @@ export function parseCommand(value: unknown): ClientCommand | null {
   if (m.type==='level' && Number.isInteger(m.index)) return m as unknown as ClientCommand;
   return null;
 }
+export type PlayMode='coop'|'solo';
+export type JoinIntent={kind:'create';mode:PlayMode;levelId:string;player:Player;runId?:string}|{kind:'invite';code:string}|{kind:'resume';id:string};
+export interface PartyState {id:string;code:string;host:boolean;started:boolean;members:Array<{name:string;player:Player;ready:boolean;connected:boolean}>}

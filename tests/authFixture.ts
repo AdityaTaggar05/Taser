@@ -21,5 +21,5 @@ export async function authFixture(options:{demoEnabled?:boolean;now?:()=>number;
     async function ticket(){const r=await request('socket-ticket',{});if(r.status!==200)throw new Error('Ticket request failed');return r.data.ticket as string;}
     return {context,cookies,request,login,ticket};
   }
-  return {auth,levels,server,origin,browser,close:async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));levels.close();auth.close();}};
+  return {auth,levels,server,origin,browser,close:async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));await levels.drain();levels.close();auth.close();}};
 }

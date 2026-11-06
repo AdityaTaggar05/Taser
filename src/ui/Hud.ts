@@ -5,7 +5,7 @@ import type { RemoteView } from '../network/RemoteView';
 import type {CampaignSummary,ReferenceSolution} from '../editor/types';
 export interface HudActions {
   level:(index:number)=>void;undo:()=>void;reset:()=>void;fullscreen:()=>void;
-  solution:()=>void;queue:(direction:Direction)=>void;inspect:(step:number|null)=>void;theme:()=>void;sound:()=>void;cancel:()=>void;home:()=>void;
+  solution:()=>void;queue:(direction:Direction)=>void;inspect:(step:number|null)=>void;theme:()=>void;sound:()=>void;cancel:()=>void;home:()=>void;party:()=>void;
 }
 const arrows:Record<Direction,string>={U:'↑',D:'↓',L:'←',R:'→',W:'·'};
 export class Hud {
@@ -24,7 +24,7 @@ export class Hud {
       <div class="transmission" role="status" aria-live="polite"><span class="status-dot"></span><span id="message"></span></div><div class="peer-status" id="peer-status">PARTNER OFFLINE</div></div></footer>
       <div id="hint" class="hint" hidden></div>
       <div id="outcome" class="outcome" hidden><span id="outcome-kicker"></span><h2 id="outcome-title"></h2><p id="outcome-message"></p><div id="outcome-actions"></div></div>
-      <div id="help" class="modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="help-title"><span class="eyebrow">OPERATOR FIELD GUIDE</span><h2 id="help-title">Two operators.<br/>Opposite ends of time.</h2><p>Open the chamber with two signed-in accounts and choose opposite roles: P1 or P2. Each sees only their own timeline.</p><ol><li><strong id="help-write">WRITE · Turns 1–4</strong>Coordinate box positions with your partner. A shove moves the box while you stay put.</li><li><strong id="help-weld">WELD · Turn 4</strong>Matching boxes must meet; some chambers also require unmarked fixed positions.</li><li><strong id="help-replay">REPLAY · Turns 5–8</strong>Boxes follow your partner’s history in reverse. Keep clear and reach both open exits together before time expires.</li></ol><p class="help-keys">WASD or arrows: move · Space / Enter: wait<br/>Both queued inputs commit a turn. Cancel or change yours before your partner commits.<br/>Backspace / Z: shared undo · R: shared reset · F: fullscreen<br/>Either player can change the chamber for both.</p><button data-action="close-help" class="primary">Return to chamber ↗</button></section></div>`;
+      <div id="help" class="modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="help-title"><span class="eyebrow">OPERATOR FIELD GUIDE</span><h2 id="help-title">Two operators.<br/>Opposite ends of time.</h2><p>Co-op uses a private invitation: both operators confirm Ready, then the host starts. Solo pairs you with a fixed creator or player replay. Its future moves stay hidden.</p><ol><li><strong id="help-write">WRITE · Turns 1–4</strong>Coordinate box positions with your partner. A shove moves the box while you stay put.</li><li><strong id="help-weld">WELD · Turn 4</strong>Matching boxes must meet; some chambers also require unmarked fixed positions.</li><li><strong id="help-replay">REPLAY · Turns 5–8</strong>Boxes follow your partner’s history in reverse. Keep clear and reach both open exits together before time expires.</li></ol><p class="help-keys">WASD or arrows: move · Space / Enter: wait<br/>Both queued inputs commit a turn. Cancel or change yours before your partner commits.<br/>Backspace / Z: shared undo · R: shared reset · F: fullscreen<br/>Return Home to choose another challenge. Solo wins publish your run; only co-op wins unlock progress and reference routes.</p><button data-action="close-help" class="primary">Return to chamber ↗</button></section></div>`;
     this.root.addEventListener('click',e=>{
       const b=(e.target as HTMLElement).closest<HTMLButtonElement>('button');if(!b||b.disabled)return;if((e as MouseEvent).detail>0)b.blur();
       if(b.dataset.level!==undefined){this.hintOpen=false;actions.level(Number(b.dataset.level));return;}
@@ -51,7 +51,9 @@ export class Hud {
     const connected=status==='connected', paired=connected&&!!session?.partnerConnected;
     if(session)this.player=session.player;
     const text=status==='full'?(notice??'Both player slots are occupied.'):!connected?(status==='connecting'?'Connecting to the shared chamber…':'Connection lost. Reconnecting…'):!paired?`You are P${this.player}. Waiting for your partner. Open this chamber from Published levels and choose P${this.player===1?2:1}.`:`You are P${this.player} · ${this.player===1?'FORWARD':'REVERSE'} · PARTNER CONNECTED`;
-    this.set('connection',text);this.root.querySelector('#connection')!.classList.toggle('paired',paired);
+    this.root.querySelector<HTMLElement>('.levels')!.hidden=!!session?.party;
+    this.root.querySelector('.edition')!.textContent=session?.mode==='solo'?'TEMPORAL PINCER / SOLO':'TEMPORAL PINCER / CO-OP';
+    this.set('connection',session?.mode==='solo'&&connected?`SOLO · P${this.player} · REPLAY: ${session.echoName??'Creator solution'}`:text);this.root.querySelector('#connection')!.classList.toggle('paired',paired);
     document.body.dataset.player=String(this.player);
     this.set('operator-label',session?`P${this.player} · YOU`:status==='full'?'NO SLOT':'CONNECTING');this.root.querySelector('#operator')!.className=`operator p${this.player}`;
     this.root.querySelectorAll<HTMLButtonElement>('[data-level]').forEach((b,i)=>{b.disabled=!paired;b.classList.toggle('active',i===(session?.levelIndex??0));b.classList.toggle('completed',completed.has(this.levels[i].slot));});
@@ -60,7 +62,7 @@ export class Hud {
     const pending=session?.pendingMove;
     this.set('queue',pending?`${arrows[pending]} QUEUED`:'CHOOSE MOVE');this.root.querySelector('#queue')!.classList.toggle('ready',!!pending);
     this.root.querySelector('#cancel')!.toggleAttribute('hidden',!pending);this.root.querySelector<HTMLButtonElement>('#cancel')!.disabled=!paired;
-    this.set('peer-status',!paired?'PARTNER OFFLINE':session?.partnerReady?'PARTNER READY':'PARTNER CHOOSING');
+    this.set('peer-status',session?.mode==='solo'?'REPLAY READY':!paired?'PARTNER OFFLINE':session?.partnerReady?'PARTNER READY':'PARTNER CHOOSING');
     this.root.querySelector('#peer-status')!.classList.toggle('ready',paired&&!!session?.partnerReady);
     this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled=!session?.solutionAvailable;
     this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.title=session?.solutionAvailable?'View the verified reference route':'Complete this revision to unlock its reference route';
@@ -74,12 +76,13 @@ export class Hud {
     this.set('phase-name',s.step<l.weldStep?'WRITING HISTORY':s.status==='WELD_SUCCESS'?'CAUSALITY WELDED':'LOCKED REPLAY');
     this.set('phase-detail',s.step<l.weldStep?`CONVERGE AT TURN ${l.weldStep}`:`EXIT TOGETHER BY TURN ${l.totalSteps}`);
     this.root.querySelector('#phase-led')!.className=s.status==='WELD_SUCCESS'?'welded':'';
-    this.set('message',notice??s.message);
+    const publication=s.status==='VICTORY'?(session.runPublication==='confirmed'?' Your winning run is published.':session.runPublication==='pending'?' Your run is saved; Arkiv publication pending.':''):'';
+    this.set('message',notice??s.message+publication);
     this.root.querySelector('#preview-banner')!.toggleAttribute('hidden',view.inspecting===null);
     this.root.querySelector('#timeline')!.innerHTML=Array.from({length:l.totalSteps+1},(_,k)=>`<button data-step="${k}" ${k>=session.history.length?'disabled':''} class="${k===s.step?'current ':''}${k===l.weldStep?'weld ':''}${k<s.step?'past':''}" aria-label="Review turn ${k}"><i></i><span>${k===l.weldStep?'WELD':k}</span></button>`).join('');
     const terminal=!isLive(s.status)&&view.inspecting===null,victory=s.status==='VICTORY';
     const outcome=this.root.querySelector('#outcome')!;outcome.toggleAttribute('hidden',!terminal);outcome.classList.toggle('victory',victory);
-    if(terminal){this.set('outcome-kicker',victory?'TRANSMISSION COMPLETE':'TIMELINE INTERRUPTED');this.set('outcome-title',victory?'Timeline secured.':s.status==='PARADOX_WELD'?'Causality fractured.':s.status==='LASER_DEATH'?'Signal lost.':s.status==='OUT_OF_TIME'?'Out of time.':'History obstructed.');this.set('outcome-message',s.message);this.root.querySelector('#outcome-actions')!.innerHTML=victory?`<button class="primary" data-action="${session.levelIndex>=0&&session.levelIndex<this.levels.length-1?'next':'reset'}" data-next="${session.levelIndex+1}" ${paired?'':'disabled'}>${session.levelIndex>=0&&session.levelIndex<this.levels.length-1?'Next chamber ↗':'Play again ↺'}</button>`:`<button data-action="undo" class="primary" ${paired?'':'disabled'}>↶ Undo turn</button><button data-action="reset" ${paired?'':'disabled'}>Restart chamber</button>`;}
+    if(terminal){this.set('outcome-kicker',victory?'TRANSMISSION COMPLETE':'TIMELINE INTERRUPTED');this.set('outcome-title',victory?'Timeline secured.':s.status==='PARADOX_WELD'?'Causality fractured.':s.status==='LASER_DEATH'?'Signal lost.':s.status==='OUT_OF_TIME'?'Out of time.':'History obstructed.');this.set('outcome-message',s.message+publication+(session.mode==='solo'?' Solo practice does not unlock campaign progress or reference solutions.':''));this.root.querySelector('#outcome-actions')!.innerHTML=`${!victory?`<button data-action="undo" ${paired?'':'disabled'}>↶ Undo turn</button>`:''}<button class="primary" data-action="reset" ${paired?'':'disabled'}>Try again</button><button data-action="party" ${session.mode==='coop'&&!connected?'disabled':''}>${session.mode==='coop'?'Go to party':'Back to solo'}</button>`;}
   }
   setSound(on:boolean){this.set('sound',on?'SFX ON':'SFX OFF');}
   private set(id:string,text:string){this.root.querySelector('#'+id)!.textContent=text;}

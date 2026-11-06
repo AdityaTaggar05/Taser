@@ -64,15 +64,16 @@ export class ArkivArchive implements LevelArchive {
     this.db.prepare("INSERT OR IGNORE INTO arkiv_identity VALUES('genesis',?)").run(genesis);return genesis;
   }
   private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
-  private optionsFor(plan:Plan){return {expiration:ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
+  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:record.lifetimeDays===2?ExpirationTime.fromDays(2):ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||
-      !['draft','community','campaign'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
+      !['draft','community','campaign','run'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
       (expected&&row.ciphertext.value.toLowerCase()!==expected.ciphertext.toLowerCase()))throw new ArchiveError(503,'Untrusted Arkiv level publication.');
   }
   private async entity(entityKey:string){const row=await this.reader.getEntity(entityKey as Hex,LevelEntities);if(row.$key.toLowerCase()!==entityKey.toLowerCase())throw new ArchiveError(503,'Arkiv returned a different entity identity.');return row;}
   private async decode(row:Awaited<ReturnType<typeof this.entity>>){this.trusted(row);return this.cipher.decrypt(hexToBytes(row.ciphertext.value),{id:row.record_id.value,revision:Number(row.revision.value),category:row.category.value});}
+  async head(){try{await this.identity();return await this.reader.getBlockNumber({cacheTime:0});}catch(error){throw this.safe(error,'Arkiv availability could not be checked.');}}
   async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
   async list():Promise<ArchivedLevel[]>{
     try{

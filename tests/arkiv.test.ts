@@ -151,3 +151,9 @@ it('retains legacy snapshots across a partial campaign migration and resumes wit
     const count=archive.entries.size;await store.migrate(levels);expect(archive.entries.size).toBe(count);
   }finally{store.close();rmSync(directory,{recursive:true,force:true});}
 });
+it('authenticates encrypted run provenance and lifetime without exposing move sequences',async()=>{
+  const cipher=new LevelCipher(generateKey(),'test');const r:ArchiveRecord={...record(),id:'f'.repeat(64),category:'run',lifetimeDays:2,run:{levelKey:'0x'+'a'.repeat(64),role:2,mode:'solo',source:'creator'}};
+  const encrypted=await cipher.encrypt(r);expect(new TextDecoder().decode(encrypted)).not.toContain('solutionP2');expect(await cipher.decrypt(encrypted,{id:r.id,revision:1,category:'run'})).toEqual(r);
+  await expect(cipher.decrypt(await cipher.encrypt({...r,run:{...r.run!,role:3 as 1}}),{id:r.id,revision:1,category:'run'})).rejects.toThrow('validation');
+  await expect(cipher.decrypt(await cipher.encrypt({...r,lifetimeDays:undefined}),{id:r.id,revision:1,category:'run'})).rejects.toThrow('validation');
+});
