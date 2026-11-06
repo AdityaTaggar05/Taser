@@ -8,6 +8,7 @@ import type {LevelConfig} from '../../src/core/types';
 import type {LevelSummary,StoredLevel,CampaignSummary,ReferenceSolution} from '../../src/editor/types';
 import {ArchiveError,UnconfiguredArchive,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from '../arkiv/archive';
 import {canonicalJSON} from '../arkiv/canonical';
+import {rankingPage} from './ranking';
 export class LevelError extends Error {constructor(readonly status:number,message:string){super(message);}}
 interface Row {id:string;owner_id:string;owner_name:string;draft:string;revision:number;published:string|null;published_revision:number|null;updated_at:number;archived_revision:number|null}
 export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:ArchiveRef;id?:string;slot?:number}
@@ -22,6 +23,8 @@ export class LevelStore {
       CREATE INDEX IF NOT EXISTS custom_levels_owner ON custom_levels(owner_id);
       CREATE TABLE IF NOT EXISTS level_publications(entity_key TEXT PRIMARY KEY,record_id TEXT NOT NULL,revision INTEGER NOT NULL,category TEXT NOT NULL,record TEXT NOT NULL,ref TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS game_runs(id TEXT PRIMARY KEY,record TEXT NOT NULL,ref TEXT,status TEXT NOT NULL DEFAULT 'pending',error TEXT);
+      CREATE TABLE IF NOT EXISTS leaderboard_completions(account_id TEXT NOT NULL,level_id TEXT NOT NULL,PRIMARY KEY(account_id,level_id));
+      CREATE TABLE IF NOT EXISTS level_scores(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,mode TEXT NOT NULL,name TEXT NOT NULL,turns INTEGER NOT NULL,achieved_at INTEGER NOT NULL,role INTEGER NOT NULL,PRIMARY KEY(account_id,entity_key,mode));
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
     if(!(this.db.prepare('PRAGMA table_info(custom_levels)').all()).some(r=>r.name==='archived_revision'))this.db.exec('ALTER TABLE custom_levels ADD COLUMN archived_revision INTEGER');
   }
@@ -48,6 +51,9 @@ export class LevelStore {
       // uses only level_publications, so unarchived or expired snapshots never leak into play.
       this.db.exec('DELETE FROM level_publications');
       for(const entry of entries.sort((a,b)=>a.record.revision-b.record.revision))this.project(entry);
+      // Recover old co-op progress while its publication identity is still known.
+      for(const row of this.db.prepare('SELECT account_id,entity_key FROM level_wins').all())this.recordWin([String(row.account_id)],String(row.entity_key));
+      for(const row of this.db.prepare("SELECT record FROM game_runs WHERE status='confirmed'").all()){const record=JSON.parse(String(row.record)) as ArchiveRecord;if(record.run)this.score(record);}
       this.db.exec('COMMIT');
     }catch(error){this.db.exec('ROLLBACK');throw error;}
   }
@@ -95,7 +101,27 @@ export class LevelStore {
   published(id:string):PublishedSnapshot|null {const entry=this.latest('community',id)[0];return entry?{level:structuredClone(entry.record.level),revision:entry.record.revision,ref:entry.ref,id}:null;}
   forPlay(id:string){return this.campaignSnapshots().find(s=>s.id===id)??this.published(id);}
   async validateSnapshot(snapshot:PublishedSnapshot){if(!snapshot.ref)throw new LevelError(503,'Published level has no archive reference.');const record=await this.archive.read(snapshot.ref);if(record.id!==snapshot.id||record.revision!==snapshot.revision||canonicalJSON(record.level)!==canonicalJSON(snapshot.level))throw new LevelError(503,'Archived level differs from the selected revision.');}
-  recordWin(ids:string[],entityKey:string){for(const id of ids)this.db.prepare('INSERT OR IGNORE INTO level_wins(account_id,entity_key) VALUES(?,?)').run(id,entityKey);}
+  recordWin(ids:string[],entityKey:string){
+    const row=this.db.prepare('SELECT record FROM level_publications WHERE entity_key=?').get(entityKey),record=row?JSON.parse(String(row.record)) as ArchiveRecord:null;
+    for(const id of ids){
+      this.db.prepare('INSERT OR IGNORE INTO level_wins(account_id,entity_key) VALUES(?,?)').run(id,entityKey);
+      if(record&&['campaign','community'].includes(record.category))this.db.prepare('INSERT OR IGNORE INTO leaderboard_completions(account_id,level_id) VALUES(?,?)').run(id,record.category==='campaign'?`campaign:${record.campaignSlot}`:`community:${record.id}`);
+    }
+  }
+  completions(){return this.db.prepare('SELECT account_id,level_id FROM leaderboard_completions').all().map(row=>({accountId:String(row.account_id),levelId:String(row.level_id)}));}
+  private score(record:ArchiveRecord){
+    if(!record.run)return;
+    const check=verifySolution(record.level);if(!check.valid)return;
+    this.db.prepare(`INSERT INTO level_scores(account_id,entity_key,mode,name,turns,achieved_at,role) VALUES(?,?,?,?,?,?,?)
+      ON CONFLICT(account_id,entity_key,mode) DO UPDATE SET name=excluded.name,turns=excluded.turns,achieved_at=excluded.achieved_at,role=excluded.role
+      WHERE excluded.turns<level_scores.turns OR (excluded.turns=level_scores.turns AND excluded.achieved_at<level_scores.achieved_at)`)
+      .run(record.ownerId,record.run.levelKey,record.run.mode,record.ownerName,check.step,record.updatedAt,record.run.role);
+  }
+  scores(entityKey:string,viewer:string,mode:'coop'|'solo',page=0){
+    const rows=this.db.prepare('SELECT * FROM level_scores WHERE entity_key=? AND mode=? ORDER BY turns,achieved_at,account_id').all(entityKey,mode)
+      .map(row=>({accountId:String(row.account_id),name:String(row.name),turns:Number(row.turns),achievedAt:Number(row.achieved_at),role:Number(row.role) as 1|2}));
+    return rankingPage(rows,viewer,page,(row,rank,isYou)=>({rank,isYou,name:row.name,turns:row.turns,achievedAt:row.achievedAt,role:row.role}));
+  }
   canReveal(accountId:string,entityKey:string){return !!this.db.prepare('SELECT 1 FROM level_wins WHERE account_id=? AND entity_key=?').get(accountId,entityKey);}
   async solution(accountId:string,entityKey:string):Promise<ReferenceSolution>{
     if(!this.canReveal(accountId,entityKey))throw new LevelError(403,'Complete this published revision in co-op to unlock its reference solution.');
@@ -128,6 +154,9 @@ export class LevelStore {
     if(!verifySolution(level).valid)throw new LevelError(422,'Only winning runs can be archived.');
     const id=createHash('sha256').update(JSON.stringify([snapshot.ref.entityKey,user.id,role,moves[role-1],Math.floor(Date.now()/172_800_000)])).digest('hex');
     const record:ArchiveRecord={id,revision:1,category:'run',ownerId:user.id,ownerName:user.displayName,updatedAt:Date.now(),lifetimeDays:2,level,run:{levelKey:snapshot.ref.entityKey,role,mode,source}};
+    // Verified standings do not depend on replay-archive fees or network availability.
+    this.score(record);
+    if(mode==='coop')this.recordWin([user.id],snapshot.ref.entityKey);
     this.db.prepare("INSERT OR IGNORE INTO game_runs(id,record,status) VALUES(?,?,'pending')").run(id,JSON.stringify(record));
     return this.publishRun(id);
   }
