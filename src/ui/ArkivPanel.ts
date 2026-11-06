@@ -148,7 +148,7 @@ export class ArkivPanel {
       this.error ||
       (!this.feed
         ? 'Loading activity…'
-        : `${activities.length} recent account writes · ${pending} pending · ${failed} failed${test ? ' · test results only' : ''}`);
+        : `${activities.filter((a) => a.state === 'confirmed').length} confirmed · ${pending} pending${failed ? ` · ${failed} failed` : ''}`);
     const list = document.createElement('ol');
     list.className = 'arkiv-activity';
     list.setAttribute('aria-label', 'Recent archive writes');
@@ -237,23 +237,10 @@ export class ArkivPanel {
           : a.txHash
             ? 'Pending verification'
             : 'Pending · queued';
-    const flow = document.createElement('p');
-    flow.className = 'arkiv-flow';
-    flow.textContent = test
-      ? 'Local test adapter → simulated result'
-      : a.state === 'confirmed'
-        ? 'Queued → submitted → verified on-chain'
-        : a.state === 'failed'
-          ? a.txHash
-            ? 'Queued → submitted → failed'
-            : 'Queued → failed before confirmation'
-          : a.txHash
-            ? 'Queued → submitted → awaiting verification'
-            : 'Queued → awaiting submission';
     const time = document.createElement('time');
     time.dateTime = new Date(a.createdAt).toISOString();
     time.textContent = new Date(a.createdAt).toLocaleTimeString();
-    row.append(label, state, flow, time);
+    row.append(label, state, time);
     if (a.message) {
       const message = document.createElement('p');
       message.textContent = a.message;
