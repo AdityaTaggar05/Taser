@@ -11,7 +11,7 @@ import {getGasPrice} from 'viem/actions';
 import {privateKeyToAccount} from 'viem/accounts';
 import {LevelEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
-import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from './archive';
+import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveWrite,type WriteStatus,type ArchiveRef,type ArchivedLevel} from './archive';
 import {canonicalJSON} from './canonical';
 
 const NATIVE='0x4400000000000000000000000000000000000044';
@@ -63,18 +63,18 @@ export class ArkivArchive implements LevelArchive {
     if(prior&&prior.value!==genesis)throw new ArchiveError(503,'Arkiv network reset detected. Reconcile the archive before reseeding.');
     this.db.prepare("INSERT OR IGNORE INTO arkiv_identity VALUES('genesis',?)").run(genesis);return genesis;
   }
-  private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
-  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveRecord;return {expiration:record.lifetimeDays===2?ExpirationTime.fromDays(2):ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
+  private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveWrite;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
+  private optionsFor(plan:Plan){const record=JSON.parse(plan.body) as ArchiveWrite;return {expiration:record.lifetimeDays===2?ExpirationTime.fromDays(2):ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||
-      !['draft','community','campaign','run'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
+      !['draft','community','campaign','run','move'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
       (expected&&row.ciphertext.value.toLowerCase()!==expected.ciphertext.toLowerCase()))throw new ArchiveError(503,'Untrusted Arkiv level publication.');
   }
   private async entity(entityKey:string){const row=await this.reader.getEntity(entityKey as Hex,LevelEntities);if(row.$key.toLowerCase()!==entityKey.toLowerCase())throw new ArchiveError(503,'Arkiv returned a different entity identity.');return row;}
   private async decode(row:Awaited<ReturnType<typeof this.entity>>){this.trusted(row);return this.cipher.decrypt(hexToBytes(row.ciphertext.value),{id:row.record_id.value,revision:Number(row.revision.value),category:row.category.value});}
   async head(){try{await this.identity();return await this.reader.getBlockNumber({cacheTime:0});}catch(error){throw this.safe(error,'Arkiv availability could not be checked.');}}
-  async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
+  async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();const record=await this.decode(await this.entity(ref.entityKey));if(record.category==='move')throw new ArchiveError(404,'Not a level publication.');return record;}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
   async list():Promise<ArchivedLevel[]>{
     try{
       await this.identity();const found:ArchivedLevel[]=[];let last:Hex|undefined;
@@ -86,7 +86,7 @@ export class ArkivArchive implements LevelArchive {
           .where(last?and(scope,gt('$key',key(last))):scope).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
         for(const row of result.entities){
-          const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
+          const record=await this.decode(row);if(record.category==='move')continue;found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
         }
         if(result.entities.length<100)return found;
         const next=result.entities.at(-1)!.$key;if(last&&next<=last)throw new Error();last=next;
@@ -94,10 +94,14 @@ export class ArkivArchive implements LevelArchive {
       throw new ArchiveError(503,'Arkiv archive exceeds the current scan budget. No partial catalog was loaded.');
     }catch(error){throw this.safe(error,'Arkiv catalog query failed.');}
   }
-  put(record:ArchiveRecord):Promise<ArchiveRef>{
+  writeStatus(record:ArchiveWrite):WriteStatus|undefined {
+    const p=this.plan(`${record.category}:${record.id}:${record.revision}`);if(!p)return;
+    return {state:p.phase==='verified'?'confirmed':p.phase==='reverted'?'failed':'pending',...(p.tx_hash?{txHash:p.tx_hash}:{}),...(p.phase==='verified'&&p.entity_key?{entityKey:p.entity_key}:{})};
+  }
+  put(record:ArchiveWrite):Promise<ArchiveRef>{
     const task=this.queue.then(()=>this.write(record));this.queue=task.catch(()=>{});return task;
   }
-  private async prepare(record:ArchiveRecord):Promise<Plan>{
+  private async prepare(record:ArchiveWrite):Promise<Plan>{
     const operation=`${record.category}:${record.id}:${record.revision}`,body=JSON.stringify(record),existing=this.plan(operation);
     if(existing){if(canonicalJSON(JSON.parse(existing.body))!==canonicalJSON(record))throw new ArchiveError(409,'This archive revision already has different content.');return existing;}
     const genesis=await this.identity();
@@ -133,8 +137,8 @@ export class ArkivArchive implements LevelArchive {
     }
     throw new ArchiveError(503,'Unsigned Arkiv preparation or gas estimate failed. No transaction was sent.');
   }
-  async quote(record:ArchiveRecord){const plan=await this.prepare(record),{estimate}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n,gasPrice=await getGasPrice(this.reader);return {gas:gas.toString(),maximumFeeWei:(gas*gasPrice).toString(),signer:this.signer};}
-  private async write(record:ArchiveRecord):Promise<ArchiveRef>{
+  async quote(record:ArchiveWrite){const plan=await this.prepare(record),{estimate}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n,gasPrice=await getGasPrice(this.reader);return {gas:gas.toString(),maximumFeeWei:(gas*gasPrice).toString(),signer:this.signer};}
+  private async write(record:ArchiveWrite):Promise<ArchiveRef>{
     try{
       await this.identity();let plan=await this.prepare(record);
       if(plan.phase!=='prepared')return await this.reconcile(plan);

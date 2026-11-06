@@ -7,12 +7,14 @@ import {verifySolution} from '../../src/editor/solution';
 import type {LevelConfig} from '../../src/core/types';
 import type {LevelSummary,StoredLevel,CampaignSummary,ReferenceSolution} from '../../src/editor/types';
 import {ArchiveError,UnconfiguredArchive,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from '../arkiv/archive';
+import {ActivityStore} from '../arkiv/ActivityStore';
 import {canonicalJSON} from '../arkiv/canonical';
 export class LevelError extends Error {constructor(readonly status:number,message:string){super(message);}}
 interface Row {id:string;owner_id:string;owner_name:string;draft:string;revision:number;published:string|null;published_revision:number|null;updated_at:number;archived_revision:number|null}
 export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:ArchiveRef;id?:string;slot?:number}
 /** SQLite is a private projection and write-recovery cache. Arkiv confirms every saved revision. */
 export class LevelStore {
+  private activity:ActivityStore;private flushingMoves=false;
   private closed=false;private observedHead=0n;private availabilityAt=0;
   private db:DatabaseSync;private queue:Promise<unknown>=Promise.resolve();
   get storage(){return this.archive.mode;}
@@ -23,6 +25,7 @@ export class LevelStore {
       CREATE TABLE IF NOT EXISTS level_publications(entity_key TEXT PRIMARY KEY,record_id TEXT NOT NULL,revision INTEGER NOT NULL,category TEXT NOT NULL,record TEXT NOT NULL,ref TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS game_runs(id TEXT PRIMARY KEY,record TEXT NOT NULL,ref TEXT,status TEXT NOT NULL DEFAULT 'pending',error TEXT);
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
+    this.activity=new ActivityStore(this.db,this.archive);
     if(!(this.db.prepare('PRAGMA table_info(custom_levels)').all()).some(r=>r.name==='archived_revision'))this.db.exec('ALTER TABLE custom_levels ADD COLUMN archived_revision INTEGER');
   }
   private serial<T>(work:()=>Promise<T>){const task=this.queue.then(work);this.queue=task.catch(()=>{});return task;}
@@ -77,7 +80,7 @@ export class LevelStore {
       else {const count=this.db.prepare('SELECT COUNT(*) AS n FROM custom_levels WHERE owner_id=?').get(ownerId)!;if(Number(count.n)>=100)throw new LevelError(409,'Your account has reached the 100-draft limit.');this.db.prepare('INSERT INTO custom_levels(id,owner_id,owner_name,draft,revision,updated_at) VALUES(?,?,?,?,1,?)').run(id,ownerId,ownerName,JSON.stringify(level),now);}
     }
     const row=this.row(id)!,record:ArchiveRecord={id,revision:row.revision,category:'draft',ownerId,ownerName,updatedAt:row.updated_at,level};
-    this.project({record,ref:await this.archive.put(record)});return this.get(ownerId,id);
+    this.project({record,ref:await this.activity.publish(this.activity.enqueue(record,[ownerId],`Draft revision ${record.revision}`))});return this.get(ownerId,id);
   });}
   publish(ownerId:string,id:string,revision:number,target:'community'|'campaign'='community'):Promise<StoredLevel>{return this.serial(async()=>{
     const draft=this.get(ownerId,id);if(draft.revision!==revision)throw new LevelError(409,'Save and reload the current draft before publishing.');
@@ -87,7 +90,7 @@ export class LevelStore {
     const prior=this.campaign().find(c=>c.id===id),slot=prior?.slot??Math.max(0,...this.campaign().map(c=>c.slot))+1;
     const record:ArchiveRecord={id,revision,category:target,ownerId,ownerName:draft.ownerName,updatedAt:row.updated_at,
       ...(target==='campaign'?{campaignSlot:slot}:{lifetimeDays:2 as const}),level:{...draft.level,...(target==='campaign'?{id:slot}:{})}};
-    const ref=await this.archive.put(record);this.project({record,ref});return {...this.get(ownerId,id),publication:{...ref,category:target}};
+    const ref=await this.activity.publish(this.activity.enqueue(record,[ownerId],`${target==='campaign'?'Campaign':'Community'} publication · revision ${revision}`));this.project({record,ref});return {...this.get(ownerId,id),publication:{...ref,category:target}};
   });}
   private latest(category:'community'|'campaign',id?:string){const rows=this.db.prepare('SELECT record,ref FROM level_publications WHERE category=?'+(id?' AND record_id=?':'')+' ORDER BY revision DESC').all(...(id?[category,id]:[category]));const seen=new Set<string>();return rows.flatMap(row=>{const record=JSON.parse(String(row.record)) as ArchiveRecord;if(seen.has(record.id))return [];seen.add(record.id);const ref=JSON.parse(String(row.ref)) as ArchiveRef;if(BigInt(ref.expiresAt)<=this.observedHead)return [];return [{record,ref}];});}
   campaign():CampaignSummary[]{return this.latest('campaign').map(({record:r,ref})=>({id:r.id,name:r.level.name,subtitle:r.level.subtitle,ownerName:r.ownerName,revision:r.revision,publishedRevision:r.revision,updatedAt:r.updatedAt,width:r.level.width,height:r.level.height,totalSteps:r.level.totalSteps,slot:r.campaignSlot!,entityKey:ref.entityKey})).sort((a,b)=>a.slot-b.slot);}
@@ -109,7 +112,7 @@ export class LevelStore {
     return this.db.prepare("SELECT id,record,ref FROM game_runs WHERE status='confirmed' ORDER BY rowid DESC").all().flatMap(row=>{
       const record=JSON.parse(String(row.record)) as ArchiveRecord,ref=JSON.parse(String(row.ref)) as ArchiveRef;
       if(record.run?.levelKey!==snapshot.ref!.entityKey||record.run.role!==role||BigInt(ref.expiresAt)<=this.observedHead)return [];
-      return [{id:String(row.id),name:record.ownerName,role,turns:record.level.solutionP1.length,mode:record.run.mode,createdAt:record.updatedAt,entityKey:ref.entityKey,expiresAt:ref.expiresAt}];
+      return [{id:String(row.id),name:record.ownerName,role,turns:record.level.solutionP1.length,mode:record.run.mode,createdAt:record.updatedAt,entityKey:ref.entityKey,expiresAt:ref.expiresAt,txHash:ref.txHash,storage:this.storage}];
     }).slice(0,100);
   }
   async echo(snapshot:PublishedSnapshot,role:1|2,runId?:string){
@@ -134,10 +137,25 @@ export class LevelStore {
   private publishRun(id:string){return this.serial(async()=>{
     const row=this.db.prepare('SELECT record,ref,status FROM game_runs WHERE id=?').get(id);if(!row)return;
     if(row.status==='confirmed')return 'confirmed' as const;
-    try{const record=JSON.parse(String(row.record)) as ArchiveRecord;const ref=await this.archive.put(record);if(!this.closed)this.project({record,ref});return 'confirmed' as const;}
+    try{const record=JSON.parse(String(row.record)) as ArchiveRecord;const ref=await this.activity.publish(this.activity.enqueue(record,[record.ownerId],`Winning run · P${record.run!.role}`));if(!this.closed)this.project({record,ref});return 'confirmed' as const;}
     catch(error){if(!this.closed)this.db.prepare("UPDATE game_runs SET error=? WHERE id=?").run(error instanceof ArchiveError?error.message:'Arkiv run publication is pending.',id);return 'pending' as const;}
   });}
+  activityFeed(accountId:string){return this.activity.feed(accountId);}
+  captureMove(snapshot:PublishedSnapshot,sessionId:string,sequence:number,turn:number,inputs:[import('../../src/core/types').Direction,import('../../src/core/types').Direction],audience:string[],mode:'solo'|'coop'){
+    if(!snapshot.ref)throw new LevelError(503,'Move has no published revision.');
+    const record:import('../arkiv/archive').MoveRecord={id:`${sessionId}:${sequence}`,revision:1,category:'move',ownerId:audience[0],ownerName:'',updatedAt:Date.now(),lifetimeDays:2,
+      move:{levelKey:snapshot.ref.entityKey,sessionId,turn,sequence,mode,inputs:[...inputs]}};
+    this.activity.enqueue(record,audience,`Turn ${turn} · move pair ${sequence}`);
+    void this.flushMoves().catch(()=>{});
+  }
+  async flushMoves(){
+    if(this.flushingMoves||this.closed)return;this.flushingMoves=true;
+    try{for(const id of this.activity.pendingMoves()){
+      if(this.closed)return;
+      try{await this.serial(()=>this.activity.publish(id));}catch{break;}
+    }}finally{this.flushingMoves=false;}
+  }
   async flushRuns(){for(const row of this.db.prepare("SELECT id FROM game_runs WHERE status='pending' ORDER BY rowid LIMIT 4").all()){if(this.closed)return;const status=await this.publishRun(String(row.id));if(status!=='confirmed')break;}}
-  async drain(){await this.queue;}
+  async drain(){while(this.flushingMoves)await this.queue;await this.queue;}
   close(){this.closed=true;this.db.close();this.archive.close();}
 }

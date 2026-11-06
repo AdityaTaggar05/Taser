@@ -1,26 +1,31 @@
 import {importKey,encryptBytes,decryptBytes,CONTENT_TYPE} from 'arkiv-encryption';
 import {cleanDraft} from '../../src/core/levelValidation';
 import {verifySolution} from '../../src/editor/solution';
-import {ArchiveError,type ArchiveRecord} from './archive';
+import {ArchiveError,type ArchiveWrite} from './archive';
 export {CONTENT_TYPE};
 /** The encrypted envelope binds its public routing fields; no solution digest is published. */
 export class LevelCipher {
   private key:Promise<CryptoKey>;
   constructor(rawKey:string,readonly namespace:string){this.key=importKey(rawKey);}
-  async encrypt(record:ArchiveRecord){return encryptBytes(await this.key,JSON.stringify({format:1,chainId:7794095,namespace:this.namespace,record}));}
-  async decrypt(ciphertext:Uint8Array,expected:{id:string;revision:number;category:string}):Promise<ArchiveRecord>{
+  async encrypt(record:ArchiveWrite){return encryptBytes(await this.key,JSON.stringify({format:1,chainId:7794095,namespace:this.namespace,record}));}
+  async decrypt(ciphertext:Uint8Array,expected:{id:string;revision:number;category:string}):Promise<ArchiveWrite>{
     try {
       const bytes=await decryptBytes(await this.key,ciphertext);
       const envelope=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
-      const r=envelope.record as ArchiveRecord;
+      const r=envelope.record as ArchiveWrite;
       if(envelope.format!==1||envelope.chainId!==7794095||envelope.namespace!==this.namespace||
         !r||r.id!==expected.id||r.revision!==expected.revision||r.category!==expected.category||
-        !['draft','community','campaign','run'].includes(r.category)||!Number.isSafeInteger(r.revision)||r.revision<1||
+        !['draft','community','campaign','run','move'].includes(r.category)||!Number.isSafeInteger(r.revision)||r.revision<1||
         typeof r.ownerId!=='string'||r.ownerId.length>128||typeof r.ownerName!=='string'||r.ownerName.length>128||
         !Number.isSafeInteger(r.updatedAt)||r.updatedAt<0||
         (r.category==='campaign'&&(!Number.isSafeInteger(r.campaignSlot)||r.campaignSlot!<1)))throw new Error();
       if(r.lifetimeDays!==undefined&&r.lifetimeDays!==2)throw new Error();
       if(r.category==='run'&&(!r.run||!/^0x[a-fA-F0-9]{64}$/.test(r.run.levelKey)||![1,2].includes(r.run.role)||!['coop','solo'].includes(r.run.mode)||typeof r.run.source!=='string'||r.run.source.length>128||r.lifetimeDays!==2))throw new Error();
+      if(r.category==='move'){
+        const m=r.move;
+        if(r.revision!==1||r.lifetimeDays!==2||!m||!/^0x[a-fA-F0-9]{64}$/.test(m.levelKey)||typeof m.sessionId!=='string'||m.sessionId.length>128||!Number.isSafeInteger(m.turn)||m.turn<1||!Number.isSafeInteger(m.sequence)||m.sequence<1||!['solo','coop'].includes(m.mode)||!Array.isArray(m.inputs)||m.inputs.length!==2||!m.inputs.every(d=>['U','D','L','R','W'].includes(d)))throw new Error();
+        return {id:r.id,revision:1,category:'move',ownerId:r.ownerId,ownerName:r.ownerName,updatedAt:r.updatedAt,lifetimeDays:2,move:{...m,inputs:[...m.inputs]}};
+      }
       const level=cleanDraft(r.level);
       if(r.category!=='draft'&&!verifySolution(level).valid)throw new Error();
       return {id:r.id,revision:r.revision,category:r.category,ownerId:r.ownerId,ownerName:r.ownerName,updatedAt:r.updatedAt,

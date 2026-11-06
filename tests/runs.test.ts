@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest';
 import {LevelStore} from '../server/levels/LevelStore';
-import {MemoryArchive,type ArchiveRecord} from '../server/arkiv/archive';
+import {MemoryArchive,type ArchiveWrite} from '../server/arkiv/archive';
 import {levels} from '../server/data/campaign';
 import {CoopRoom,type Peer} from '../server/CoopRoom';
 import type {ServerMessage,SessionState} from '../src/network/protocol';
@@ -13,7 +13,7 @@ it('ends a shorter fixed replay exactly, and undo/reset rewind its position',()=
   room.receive(peer,{type:'reset',revision:state().revision});expect(state().history.at(-1)?.step).toBe(0);expect(state().history.at(-1)?.status).toBe('PLAYING_PHASE_1');
 });
 it('uses 48-hour creation policy, recovers pending runs, deduplicates and removes expired metadata',async()=>{
-  let head=0n,fail=false;const archive=new MemoryArchive(),put=archive.put.bind(archive);const records:ArchiveRecord[]=[];
+  let head=0n,fail=false;const archive=new MemoryArchive(),put=archive.put.bind(archive);const records:ArchiveWrite[]=[];
   archive.head=async()=>head;archive.put=async record=>{records.push(structuredClone(record));if(fail&&record.category==='run')throw new Error('offline');const ref=await put(record);if(record.lifetimeDays===2)ref.expiresAt='100';return ref;};
   const store=new LevelStore(':memory:',archive);try{
     const draft=await store.save('atlas','Atlas',levels[0]);await store.publish('atlas',draft.id,1);expect(records.find(r=>r.category==='community')?.lifetimeDays).toBe(2);const snapshot=store.forPlay(draft.id)!;

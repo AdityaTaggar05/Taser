@@ -8,7 +8,7 @@ import { DIRECTIONS, parseCommand, type Player, type ServerMessage, type Session
 export type PublishedLevelLoader=(id:string)=>PublishedSnapshot|null;
 export interface Peer { send(message: ServerMessage): void; close(): void }
 interface Seat { accountId:string; token:string; peer:Peer|null; expiresAt:number }
-export interface RoomOptions {solo?:{player:Player;moves:Direction[]};fixedLevel?:boolean;win?:(snapshot:PublishedSnapshot,humans:Array<{id:string;role:Player}>,moves:[Direction[],Direction[]])=>void}
+export interface RoomOptions {turn?:(snapshot:PublishedSnapshot,sequence:number,turn:number,inputs:[Direction,Direction],ids:string[])=>void;solo?:{player:Player;moves:Direction[]};fixedLevel?:boolean;win?:(snapshot:PublishedSnapshot,humans:Array<{id:string;role:Player}>,moves:[Direction[],Direction[]])=>void}
 /** A single disposable playtest room. A future party layer can own one instance per party. */
 export class CoopRoom {
   private seats: [Seat|null,Seat|null]=[null,null];
@@ -18,6 +18,7 @@ export class CoopRoom {
   private customId:string|undefined;private customRevision:number|undefined;
   private inputs:[Direction[],Direction[]]=[[],[]];
   private pending:[Direction|null,Direction|null]=[null,null];
+  private moveSequence=0;
   private revision=0;private studyEnabled=false;private studyAttempt=0;private studyLocked:[boolean,boolean]=[false,false];
   constructor(private makeToken:()=>string, private now=()=>Date.now(), readonly reconnectMs=45_000, private completed:(ids:string[],levelId:number)=>void=()=>{},private loadPublished:PublishedLevelLoader=()=>null,
     private campaign:PublishedSnapshot[]=levels.map(level=>({level,revision:1})),
@@ -93,7 +94,7 @@ export class CoopRoom {
       if(this.pending[0]&&this.pending[1]){
         const a=this.pending[0],b=this.pending[1],step=this.engine.state.step;
         this.engine.executeStep(a,b);
-        if(this.engine.state.step!==step){this.inputs[0].push(a);this.inputs[1].push(b);}
+        if(this.engine.state.step!==step){this.inputs[0].push(a);this.inputs[1].push(b);this.options.turn?.(this.publication,++this.moveSequence,this.engine.state.step,[a,b],this.seats.flatMap(s=>s?[s.accountId]:[]));}
         if(this.engine.state.status==='VICTORY'){
           const humans=this.seats.flatMap((seat,i)=>seat?[{id:seat.accountId,role:(i+1) as Player}]:[]);
           const ids=humans.map(h=>h.id);

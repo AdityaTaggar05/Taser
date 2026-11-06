@@ -92,9 +92,9 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   vi.spyOn(reader,'getTransaction').mockImplementation(async()=>{const tx=parseTransaction(raw!);return {...tx,hash:keccak256(raw!),from:account.address,input:tx.data} as never;});
   vi.spyOn(reader,'getEntity').mockImplementation(async()=>{
     if(!readbackAvailable)throw new Error('Readback unavailable');
-    const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
+    const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext,body FROM arkiv_writes LIMIT 1').get()!;db.close();
     return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:7_884_100n,
-      namespace:str('test'),record_id:str(record().id),revision:u64(1),category:str('community'),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
+      namespace:str('test'),record_id:str(JSON.parse(String(plan.body)).id),revision:u64(1),category:str(JSON.parse(String(plan.body)).category),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
   });
   return {archive,path,reader,get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
 }
@@ -205,4 +205,16 @@ it('loads supported level and run categories from a mixed archive across pages a
     rows[3].creator=account.address;rows[3].attributes.find(a=>a.name==='ciphertext')!.value='0x00';
     await expect(archive.list()).rejects.toThrow('authentication');
   }finally{archive.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+it('encrypts move contents and exposes submitted versus verified status without duplicate sends',async()=>{
+  const f=writerFixture();const move:import('../server/arkiv/archive').MoveRecord={id:'match:1',revision:1,category:'move',ownerId:'a',ownerName:'',updatedAt:0,lifetimeDays:2,move:{levelKey:'0x'+'ef'.repeat(32),sessionId:'match',turn:1,sequence:1,mode:'solo',inputs:['U','D']}};
+  try{
+    await expect(f.archive.put(move)).rejects.toThrow();expect(f.sends).toBe(1);
+    expect(f.archive.writeStatus(move)).toMatchObject({state:'pending',txHash:expect.stringMatching(/^0x/)});expect(f.archive.writeStatus(move)?.entityKey).toBeUndefined();
+    const db=new DatabaseSync(f.path);const row=db.prepare('SELECT ciphertext,calldata FROM arkiv_writes').get()!;db.close();
+    expect(String(row.ciphertext)).not.toContain(Buffer.from('"inputs"').toString('hex'));expect(String(row.calldata)).not.toContain(Buffer.from('"inputs"').toString('hex'));
+    f.receipt(true);f.readback(false);await expect(f.archive.put(move)).rejects.toThrow();expect(f.archive.writeStatus(move)?.state).toBe('pending');
+    f.readback(true);const ref=await f.archive.put(move);expect(f.archive.writeStatus(move)).toMatchObject({state:'confirmed',entityKey:ref.entityKey});await f.archive.put(move);expect(f.sends).toBe(1);
+  }finally{f.close();}
 });

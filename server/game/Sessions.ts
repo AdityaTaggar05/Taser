@@ -30,6 +30,7 @@ export class Sessions {
         const members=new Map<string,Member>();
         const room=new CoopRoom(randomUUID,()=>Date.now(),45_000,ids=>{if(snapshot.slot)this.auth.recordCompletion(ids,snapshot.slot);},undefined,[snapshot],
           (ids,key)=>this.store.recordWin(ids,key),(id,key)=>this.store.canReveal(id,key),{
+            turn:(publication,sequence,turn,inputs,ids)=>{this.store.captureMove(publication,id,sequence,turn,inputs,ids,intent.mode);},
             fixedLevel:true,solo:echo?{player:intent.player,moves:echo.moves}:undefined,
             win:(publication,humans,moves)=>{
               for(const human of humans){const member=members.get(human.id);if(!member)continue;member.runPublication='pending';const version=(member.publicationVersion??0)+1;member.publicationVersion=version;
