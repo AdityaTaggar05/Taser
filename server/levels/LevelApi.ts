@@ -25,13 +25,14 @@ export class LevelApi {
         json(200,path==='community'?{levels:this.store.community()}:path?this.store.get(identity.user.id,path):{levels:this.store.list(identity.user.id)});return;
       }
       if(req.method!=='POST')throw new LevelError(405,'Method not allowed.');
-      const write=/^([a-f0-9-]{36})(?:\/(publish))?$/.exec(path);
+      const write=/^([a-f0-9-]{36})(?:\/(publish|certification))?$/.exec(path);
       if(path&&!write)throw new LevelError(404,'Unknown level endpoint.');
       if(!req.headers['content-type']?.startsWith('application/json'))throw new LevelError(415,'Send JSON data.');
       this.limit(identity.user.id);
       let raw='';for await(const part of req){raw+=part.toString();if(Buffer.byteLength(raw)>65_536)throw new LevelError(413,'Level file is too large (maximum 64 KB).');}
       let body:Record<string,unknown>;try{const value:unknown=JSON.parse(raw);if(!value||typeof value!=='object'||Array.isArray(value))throw new Error();body=value as Record<string,unknown>;}catch{throw new LevelError(400,'Invalid JSON level request.');}
-      if(write?.[2]){
+      if(write?.[2]==='certification'){json(200,await this.store.refreshCertification(identity.user.id,write[1]));return;}
+      if(write?.[2]==='publish'){
         if(!Number.isSafeInteger(body.revision))throw new LevelError(400,'Missing draft revision.');
         if(body.target!==undefined&&body.target!=='community'&&body.target!=='campaign')throw new LevelError(400,'Unknown publishing destination.');
         if(body.target==='campaign'&&!admin)throw new LevelError(403,'Only the campaign publisher account can publish to campaign.');

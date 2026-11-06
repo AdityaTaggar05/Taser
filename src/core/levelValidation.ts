@@ -1,3 +1,4 @@
+import {cloneData} from './clone';
 import {DIR_DELTA,inBounds,type Coord,type LevelConfig} from './types';
 export const LEVEL_LIMITS={size:20,turns:32,boxes:6} as const;
 /** Bounded draft shape. Temporary overlaps are allowed while authoring. */
@@ -26,6 +27,6 @@ export function validateDraft(value:unknown):asserts value is LevelConfig {
 export function cleanDraft(value:unknown):LevelConfig {
   validateDraft(value);
   const result={} as LevelConfig;
-  for(const key of ['id','name','subtitle','width','height','totalSteps','weldStep','walls','iceTiles','weldTargets','midpointSwitchRequired','switchesP1','switchesP2','laserEmitter','laserReceiverP1','hasMirrorBox','exitP1','exitP2','initialP1','initialP2','initialBoxesP1','initialBoxesP2','solutionP1','solutionP2','environment'] as const){if(value[key]!==undefined)Object.assign(result,{[key]:structuredClone(value[key])});}
+  for(const key of ['id','name','subtitle','width','height','totalSteps','weldStep','walls','iceTiles','weldTargets','midpointSwitchRequired','switchesP1','switchesP2','laserEmitter','laserReceiverP1','hasMirrorBox','exitP1','exitP2','initialP1','initialP2','initialBoxesP1','initialBoxesP2','solutionP1','solutionP2','environment'] as const){if(value[key]!==undefined)Object.assign(result,{[key]:cloneData(value[key])});}
   return result;
 }

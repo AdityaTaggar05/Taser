@@ -1,3 +1,4 @@
+import {cloneData} from './clone';
 import { copyBoxes, DIR_DELTA, hasCoord, inBounds, isLive, sameCoord, type Coord, type Direction, type LevelConfig, type MoveResult, type StepSnapshot } from './types';
 import { validateLevel } from './level';
 
@@ -48,7 +49,7 @@ export class GameEngine {
   readonly level: LevelConfig;
   stateStack: StepSnapshot[] = [];
   lastShoves: [number | null, number | null] = [null,null];
-  constructor(level: LevelConfig) { validateLevel(level); this.level = structuredClone(level); this.reset(); }
+  constructor(level: LevelConfig) { validateLevel(level); this.level = cloneData(level); this.reset(); }
   get state(): StepSnapshot { return this.stateStack[this.stateStack.length - 1]; }
   reset() {
     const l = this.level;
@@ -83,7 +84,7 @@ export class GameEngine {
     const prev = this.state, l = this.level;
     // Also enforce validation for direct simulation/replay callers: reject the whole pair atomically.
     if (this.selectionError(1, p1) || this.selectionError(2, p2)) return prev;
-    const s: StepSnapshot = structuredClone(prev); s.step++;
+    const s: StepSnapshot = cloneData(prev); s.step++;
     this.lastShoves = [null,null];
     if (s.step <= l.weldStep) {
       const a = resolvePhase1Move(prev.p1Pos, prev.boxesP1, p1, l), b = resolvePhase1Move(prev.p2Pos, prev.boxesP2, p2, l);

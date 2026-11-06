@@ -2,6 +2,7 @@ import {importKey,encryptBytes,decryptBytes,CONTENT_TYPE} from 'arkiv-encryption
 import {cleanDraft} from '../../src/core/levelValidation';
 import {verifySolution} from '../../src/editor/solution';
 import {ArchiveError,type ArchiveRecord} from './archive';
+import {checkInput,validProof} from '../../src/certification/model';
 export {CONTENT_TYPE};
 /** The encrypted envelope binds its public routing fields; no solution digest is published. */
 export class LevelCipher {
@@ -22,9 +23,10 @@ export class LevelCipher {
       if(r.lifetimeDays!==undefined&&r.lifetimeDays!==2)throw new Error();
       if(r.category==='run'&&(!r.run||!/^0x[a-fA-F0-9]{64}$/.test(r.run.levelKey)||![1,2].includes(r.run.role)||!['coop','solo'].includes(r.run.mode)||typeof r.run.source!=='string'||r.run.source.length>128||r.lifetimeDays!==2))throw new Error();
       const level=cleanDraft(r.level);
-      if(r.category!=='draft'&&!verifySolution(level).valid)throw new Error();
+      if(r.certification){const {proof,salt}=r.certification;if(!validProof(proof)||!proof.valid||proof.request.levelId!==r.id||proof.request.target!==r.category)throw new Error();checkInput({request:proof.request,level,salt});}
+      const solution=verifySolution(level);if(r.category!=='draft'&&!solution.valid)throw new Error();if(r.certification&&r.certification.proof.steps!==solution.step)throw new Error();
       return {id:r.id,revision:r.revision,category:r.category,ownerId:r.ownerId,ownerName:r.ownerName,updatedAt:r.updatedAt,
-        ...(r.category==='campaign'?{campaignSlot:r.campaignSlot}:{}),...(r.lifetimeDays?{lifetimeDays:r.lifetimeDays}:{}),...(r.category==='run'?{run:r.run}:{}),level};
+        ...(r.category==='campaign'?{campaignSlot:r.campaignSlot}:{}),...(r.lifetimeDays?{lifetimeDays:r.lifetimeDays}:{}),...(r.category==='run'?{run:r.run}:{}),...(r.certification?{certification:r.certification}:{}),level};
     }catch{throw new ArchiveError(503,'Encrypted level failed authentication or validation.');}
   }
 }

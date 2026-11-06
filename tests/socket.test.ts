@@ -81,13 +81,14 @@ it('rejects unauthenticated and reused socket tickets',async()=>{
     const ticket=await f.a.ticket();await f.connect(f.a,intent,ticket);const replay=await f.connect(f.b,intent,ticket);expect(replay.messages.some(m=>m.type==='auth_required')).toBe(true);
   }finally{await f.close();}
 },10_000);
-it('pins a community party to its publication and rejects wrong revision or wrong role replays',async()=>{
+it('pins a community party to its publication and rejects wrong level or wrong role replays',async()=>{
   const f=await fixture();try{
     const draft=(await f.a.request('levels',{level:levels[0]})).data;await f.a.request(`levels/${draft.id}/publish`,{revision:1});const snapshot=f.levels.forPlay(draft.id)!;
     await f.levels.captureRun(snapshot,{id:'other',displayName:'Other'},1,[levels[0].solutionP1,levels[0].solutionP2],'coop','live');const run=f.levels.runs(draft.id,1)[0];
     const wrongRole=await f.connect(f.a,create(draft.id,1,'solo',run.id));expect(wrongRole.messages.some(m=>m.type==='state')).toBe(false);
-    const next=(await f.a.request(`levels/${draft.id}`,{level:{...levels[0],name:'Revision 2'},revision:1})).data;await f.a.request(`levels/${draft.id}/publish`,{revision:next.revision});
-    expect(f.levels.runs(draft.id,1)).toEqual([]);const stale=await f.connect(f.a,create(draft.id,2,'solo',run.id));expect(stale.messages.some(m=>m.type==='state')).toBe(false);
+    expect((await f.a.request(`levels/${draft.id}`,{level:{...levels[0],name:'Changed'},revision:1})).status).toBe(409);
+    const next=(await f.a.request('levels',{level:{...levels[0],name:'Another level'}})).data;await f.a.request(`levels/${next.id}/publish`,{revision:1});
+    const stale=await f.connect(f.a,create(next.id,2,'solo',run.id));expect(stale.messages.some(m=>m.type==='state')).toBe(false);
   }finally{await f.close();}
 },10_000);
 

@@ -36,7 +36,7 @@ export function attachCoop(server:EventEmitter,auth:AuthService,_legacyLoader?:P
   });
   const maintenance=setInterval(()=>{
     auth.sweep();sessions.sweep();
-    if(!flushing){flushing=true;void store.flushRuns().catch(()=>{}).finally(()=>flushing=false);}
+    if(!flushing){flushing=true;void store.flushRuns().then(()=>store.flushCertifications()).catch(()=>{}).finally(()=>flushing=false);}
     for(const [ws,ok] of alive){const e=identities.get(ws);if(e&&!auth.isActive(e.identity.key)){reject(ws,e.peer);continue;}if(!ok){ws.terminate();continue;}alive.set(ws,false);ws.ping();}
   },10_000);maintenance.unref();
   return ()=>{closing=true;unsubscribe();clearInterval(maintenance);server.off('upgrade',upgrade);sessions.close();for(const ws of wss.clients)ws.terminate();wss.close();};

@@ -1,3 +1,4 @@
+import {ImmediateTestRegistry} from './certificationFixture';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {AuthService} from '../server/auth/AuthService';
@@ -5,9 +6,9 @@ import {LevelStore} from '../server/levels/LevelStore';
 import {applicationApi} from '../server/api';
 import {MemoryArchive} from '../server/arkiv/archive';
 import {levels as campaign} from '../server/data/campaign';
-export async function authFixture(options:{demoEnabled?:boolean;now?:()=>number;databasePath?:string}={}){
+export async function authFixture(options:{demoEnabled?:boolean;now?:()=>number;databasePath?:string;registry?:import('../server/certification/Registry').CertificationRegistry}={}){
   const auth=new AuthService({databasePath:':memory:',demoEnabled:true,...options});
-  const levels=new LevelStore(auth.databasePath,new MemoryArchive());await levels.seed(campaign);const api=applicationApi(auth,levels);
+  const levels=new LevelStore(auth.databasePath,new MemoryArchive(),options.registry??new ImmediateTestRegistry());await levels.seed(campaign);const api=applicationApi(auth,levels);
   const server=createServer((req,res)=>void api(req,res));server.listen(0,'127.0.0.1');await once(server,'listening');
   const origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
   function browser(){

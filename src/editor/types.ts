@@ -1,5 +1,5 @@
 import type {LevelConfig} from '../core/types';
-export interface LevelSummary {id:string;name:string;subtitle:string;ownerName:string;revision:number;publishedRevision:number|null;updatedAt:number;width:number;height:number;totalSteps:number;archivedRevision?:number|null}
+export interface LevelSummary {id:string;name:string;subtitle:string;ownerName:string;revision:number;publishedRevision:number|null;updatedAt:number;width:number;height:number;totalSteps:number;archivedRevision?:number|null;readonly?:boolean;certification?:import('../certification/model').CertificationInfo;verification?:'legacy'|import('../certification/model').CertificationMode}
 export interface StoredLevel extends LevelSummary {level:LevelConfig;publication?:{category:'campaign'|'community';entityKey:string;expiresAt:string;txHash:string}}
 export interface CampaignSummary extends LevelSummary {slot:number;entityKey:string}
 export interface LevelCatalog {campaign:CampaignSummary[];canPublishCampaign:boolean;storage:'arkiv'|'test'|'unconfigured'}

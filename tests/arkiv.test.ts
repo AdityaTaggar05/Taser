@@ -1,3 +1,4 @@
+import {ImmediateTestRegistry} from './certificationFixture';
 import {it,expect,vi} from 'vitest';
 import {generateKey} from 'arkiv-encryption';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -29,20 +30,18 @@ it('encrypts the entire level with fresh IVs, authenticates routing and rejects 
   const tampered=first.slice();tampered[20]^=1;await expect(cipher.decrypt(tampered,expected)).rejects.toThrow('authentication');
 });
 it('restores campaign/custom publications from the archive and gates solutions by exact revision',async()=>{
-  const archive=new MemoryArchive();let store=new LevelStore(':memory:',archive);
+  const archive=new MemoryArchive();let store=new LevelStore(':memory:',archive,new ImmediateTestRegistry());
   await store.seed(levels);const owner='atlas',draft=await store.save(owner,'Atlas',levels[0]);
   await store.publish(owner,draft.id,1);const first=store.published(draft.id)!;
   await expect(store.solution('nova',first.ref!.entityKey)).rejects.toThrow('Complete');
   store.recordWin(['nova'],first.ref!.entityKey);expect((await store.solution('nova',first.ref!.entityKey)).solutionP1).toEqual(levels[0].solutionP1);
-  const next=await store.save(owner,'Atlas',{...levels[0],name:'A revised chamber'},draft.id,1);await store.publish(owner,draft.id,next.revision);
-  const second=store.published(draft.id)!;expect(store.canReveal('nova',second.ref!.entityKey)).toBe(false);
-  expect((await store.solution('nova',first.ref!.entityKey)).name).toBe(levels[0].name);
-  const promoted=await store.publish(owner,draft.id,2,'campaign');expect(promoted.id).toBe(draft.id);expect(store.campaign()).toHaveLength(levels.length+1);expect(store.campaign()[levels.length].slot).toBe(levels.length+1);
+  await expect(store.save(owner,'Atlas',{...levels[0],name:'Changed'},draft.id,1)).rejects.toThrow('locked');
+  const campaignDraft=await store.save(owner,'Atlas',{...levels[0],name:'Another chamber'});const promoted=await store.publish(owner,campaignDraft.id,1,'campaign');
+  expect(promoted.id).toBe(campaignDraft.id);expect(store.campaign()).toHaveLength(levels.length+1);expect(store.campaign()[levels.length].slot).toBe(levels.length+1);
   const campaignKey=store.campaign()[levels.length].entityKey;expect(store.canReveal('nova',campaignKey)).toBe(false);
-  await expect(store.template('nova',draft.id,false)).rejects.toThrow('Complete');
-  expect((await store.template('atlas',draft.id,true)).id).toBe(levels.length+1);
-  store.close();store=new LevelStore(':memory:',archive);await store.hydrate();
-  expect(store.campaign()).toHaveLength(levels.length+1);expect(store.published(draft.id)?.level.name).toBe('A revised chamber');expect(store.get(owner,draft.id).revision).toBe(2);store.close();
+  await expect(store.template('atlas',campaignDraft.id,true)).rejects.toThrow('view-only');
+  store.close();store=new LevelStore(':memory:',archive,new ImmediateTestRegistry());await store.hydrate();
+  expect(store.campaign()).toHaveLength(levels.length+1);expect(store.published(draft.id)?.level.name).toBe(levels[0].name);expect(store.get(owner,draft.id).readonly).toBe(true);store.close();
 });
 it('enforces campaign publishing and template access on authenticated server endpoints',async()=>{
   const f=await authFixture();try{
@@ -138,7 +137,7 @@ it('refuses a new send when the signer balance cannot cover the maximum transact
   }finally{f.close();}
 });
 it('retains legacy snapshots across a partial campaign migration and resumes without duplicates',async()=>{
-  const directory=mkdtempSync(join(tmpdir(),'taser-migrate-')),path=join(directory,'accounts.sqlite'),archive=new MemoryArchive();let store=new LevelStore(path,archive);
+  const directory=mkdtempSync(join(tmpdir(),'taser-migrate-')),path=join(directory,'accounts.sqlite'),archive=new MemoryArchive();let store=new LevelStore(path,archive,new ImmediateTestRegistry());
   try{
     const db=new DatabaseSync(path),legacy=JSON.stringify(levels[0]);
     db.prepare('INSERT INTO custom_levels(id,owner_id,owner_name,draft,revision,published,published_revision,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(record().id,'atlas','Atlas',legacy,1,legacy,1,0);db.close();
@@ -146,7 +145,7 @@ it('retains legacy snapshots across a partial campaign migration and resumes wit
     const original=archive.put.bind(archive);let fail=true;
     vi.spyOn(archive,'put').mockImplementation(async r=>{if(fail&&r.category==='campaign'&&r.campaignSlot===3)throw new Error('Offline');return original(r);});
     await expect(store.migrate(levels)).rejects.toThrow('Offline');expect(archive.entries.size).toBe(2);
-    store.close();store=new LevelStore(path,archive);fail=false;await store.migrate(levels);
+    store.close();store=new LevelStore(path,archive,new ImmediateTestRegistry());fail=false;await store.migrate(levels);
     expect(store.campaign()).toHaveLength(levels.length);expect(store.community()).toHaveLength(1);expect(store.published(record().id)?.level.solutionP1).toEqual(levels[0].solutionP1);
     const count=archive.entries.size;await store.migrate(levels);expect(archive.entries.size).toBe(count);
   }finally{store.close();rmSync(directory,{recursive:true,force:true});}

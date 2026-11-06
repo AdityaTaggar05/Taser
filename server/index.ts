@@ -14,7 +14,7 @@ const types:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'tex
 const auth=new AuthService({demoEnabled:process.env.DEMO_AUTH==='true'});
 const levels=await levelRuntime(auth),api=applicationApi(auth,levels);
 const server=createServer((req,res)=>{
-  if(req.url?.startsWith('/api/auth/')){void api(req,res);return;}
+  if((req.url?.startsWith('/api/auth/')||req.url?.startsWith('/api/cre/'))){void api(req,res);return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
   let path:string;try{path=decodeURIComponent(new URL(req.url??'/', 'http://local').pathname);}catch{res.writeHead(400);res.end();return;}
   const file=resolve(root,'.'+(path==='/'?'/index.html':path));

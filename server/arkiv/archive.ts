@@ -4,6 +4,7 @@ export interface ArchiveRecord {
   id:string; revision:number; category:LevelCategory; ownerId:string; ownerName:string;
   updatedAt:number; campaignSlot?:number; level:LevelConfig; lifetimeDays?:2;
   run?:{levelKey:string;role:1|2;mode:'coop'|'solo';source:string};
+  certification?:{proof:import('../../src/certification/model').CertificationProof;salt:`0x${string}`};
 }
 export interface ArchiveRef {entityKey:string;txHash:string;expiresAt:string}
 export interface ArchivedLevel {record:ArchiveRecord;ref:ArchiveRef}
