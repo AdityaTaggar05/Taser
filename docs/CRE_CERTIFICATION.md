@@ -40,6 +40,69 @@ The CRE SDK and Bun are pinned development dependencies. `cre:build` uses the of
 
 No command above deploys a contract, registers a request, broadcasts a report, or writes an Arkiv entity. CRE CLI simulation additionally needs a separately installed CRE CLI and a logged-in Chainlink account.
 
+## Verified receiver-free rehearsal
+
+The project-local Chainlink skill is installed at `.agents/skills/chainlink-cre-skill`.
+The official `cre init` TypeScript scaffold is under `cre-project/level-verification`;
+its entry point calls the same shared verifier used by the certificate flow.
+The installed skill requires Bun 1.2.21+, and the project-local Bun 1.4.4 satisfies
+that minimum. From the generated workflow directory, `bun install` and
+`bunx cre-setup` install its dependencies and official WASM tooling.
+
+To verify the HTTP/replay path before any registry exists, start this command from
+the Taser root in one terminal:
+
+```sh
+npm run cre:rehearsal
+```
+
+It opens a loopback-only, token-authenticated gateway over an immutable snapshot
+of the existing private SQLite campaign projection. It reads no Arkiv entity and
+sends no transaction. Node consumes the existing `.env.local` opaquely; no key or
+token is displayed. This is a rehearsal of catalog data, not a pending publication
+or a fresh verification of the encrypted Arkiv bytes.
+
+From another terminal at the Taser root:
+
+```sh
+cd cre-project
+PATH="$PWD/../node_modules/.bin:$PATH" cre workflow simulate level-verification \
+  --target staging-settings --non-interactive --trigger-index 0 \
+  --env ../.env.local --http-payload ../.data/cre/rehearsal-trigger.json
+```
+
+The dedicated receiver-free target is also verified:
+
+```sh
+PATH="$PWD/../node_modules/.bin:$PATH" cre workflow simulate level-verification \
+  --target local-simulation --non-interactive --trigger-index 0 \
+  --env ../.env.local --http-payload ../.data/cre/rehearsal-trigger.json
+```
+
+Both commands completed through CRE CLI v1.39.0, with typechecking and default
+simulation limits enabled, and printed:
+
+```text
+[USER LOG] Taser local-simulation: WINNING solution; 8 turns. No certificate or publication created.
+```
+
+These targets perform real authenticated HTTP reads, check the salted commitments
+and replay the shared game engine. They return before EVM client construction,
+report creation or delivery. They cannot approve a submission. Never deploy or
+broadcast either rehearsal target. The CLI requires an RPC entry even for this
+HTTP-only path; the scaffold retains its official template's public Sepolia RPC
+for that startup check. No RPC key or account-specific address is guessed.
+
+The actual certificate path below still requires a pinned draft, a registered
+onchain request, and the appropriate configured registry. Production config fails
+closed until the actual API origin, registry and authorized HTTP trigger addresses
+are configured.
+
+After simulation, `cre account access --help` confirms the request syntax and
+`cre account access` checks or requests Early Access. Private registry management
+requires approval and an enabled registry but no linked wallet, RPC or gas;
+onchain receiver deployment and report delivery are separate operations.
+
 ## Configure locally when ready
 
 1. Install the official [CRE CLI](https://docs.chain.link/cre/getting-started/cli-installation/macos-linux), create your account, and run `cre login` yourself. `cre workflow supported-chains` shows the forwarders enabled for that account. Select the Ethereum Sepolia **MockForwarder** for simulation. Do not use a guessed address or an EOA.
@@ -52,7 +115,7 @@ No command above deploys a contract, registers a request, broadcasts a report, o
 
    ```sh
    cre workflow simulate . --target staging-settings --non-interactive \
-     --trigger-index 0 --http-payload @trigger.json --wasm workflow.wasm --broadcast
+     --trigger-index 0 --http-payload trigger.json --wasm workflow.wasm --broadcast
    ```
 
    Export `CRE_API_TOKEN`, `CRE_ETH_PRIVATE_KEY` and required RPC configuration in that local shell without sharing them. This explicit CRE CLI broadcast uses its own transaction submission; the operator deploy/register journal and caps do **not** govern it. The application checks the resulting certificate after two additional Sepolia blocks, then completes the bounded Arkiv publication. Use Refresh verification or wait for maintenance.

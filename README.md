@@ -208,3 +208,9 @@ The tests additionally cover full-payload encryption, fresh IVs, wrong-key/tampe
 ## CRE certification
 
 See [the implementation, trust boundaries and local setup guide](docs/CRE_CERTIFICATION.md). New publications remain pending when CRE is unconfigured. `npm run cre:build` compiles the shared verifier to WASM; CLI login, a Sepolia registry and a real certificate transaction are separate configuration steps. No deployment or network verification is implied by the build.
+
+For the verified receiver-free CRE rehearsal, see
+[the official TypeScript scaffold](cre-project/level-verification/README.md).
+`npm run cre:rehearsal` serves a protected read-only campaign snapshot for the real
+CLI simulator. This checks HTTP retrieval, commitments and game replay without
+deploying a receiver, certifying a level or publishing to Arkiv.
