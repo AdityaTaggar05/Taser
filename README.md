@@ -163,6 +163,12 @@ SQLite in `.data/` holds private accounts, sessions, exact-revision completion r
 - `server/CoopRoom.ts`: immutable custom-room snapshot and per-role public level projections.
 
 
+## Shared artwork and Swarm theme packs
+
+Approved original sprite sheets are under `public/themes/modern-gray/`. The shared manifest drives Phaser gameplay/title artwork and DOM editor/interface sprites. See [theme-pack guidelines](docs/THEME_PACKS.md) for the semantic contract and adding a pack.
+
+Run `npm run assets:check` to verify the 28 PNGs and manifest. Configure an upload-capable Bee endpoint and existing postage batch in private `.env.local`, then run `npm run assets:upload`. Only the public asset allowlist is uploaded; full public readback must succeed before deployment switches all sprite URLs to Swarm. `npm run assets:verify` resumes verification. Current deployment is local until a real reference is verified. [Arkiv + Swarm evidence/status](arkiv/swarm.md) tracks the remaining live upload and Arkiv reference link.
+
 ## Arkiv storage and campaign publishing
 
 The integration pins **@arkiv-network/sdk 1.0.1** and **arkiv-encryption 1.1.1**, on **Rabdi (7794095)**. `npm run arkiv:setup` creates independent signing and AES-256-GCM encryption keys in ignored `.env.local` with mode 0600. It preserves existing keys and prints only the public server signer. Obtain a free [access key](https://hub.arkiv.network/access-keys) and [faucet tGLM](https://hub.arkiv.network/faucet). The wallet used to obtain an access key and the generated server signer are different identities; fund the printed signer address. `npm run arkiv:check` reads its balance and sends no transaction.

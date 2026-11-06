@@ -21,7 +21,12 @@ import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
 import {EditorScreen} from './editor/EditorScreen';
 import {LevelClient} from './editor/LevelClient';
+import {registeredThemes} from './assets/catalog';
+import {applyThemeInterface} from './assets/interface';
+import './assets/theme.css';
 
+let resolveArtwork!:()=>void;
+const artworkAvailable=new Promise<void>(resolve=>{resolveArtwork=resolve;});
 let connectingParty=false;
 let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
@@ -34,6 +39,7 @@ function refresh(){
   hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,client?.status??'connecting',client?.notice??null);
   hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,client?.previewSeconds??0);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
+  applyThemeInterface(pack,auth.user,client?.status,!!client?.state?.partnerReady);
 }
 function queue(direction:Direction){
   const session=client?.state;if(!session||!client?.playable||hud.helpOpen||inspection!==null)return;
@@ -47,7 +53,7 @@ function command(type:'undo'|'reset'|'cancel'){
 }
 function level(index:number){if(client?.state)client.send({type:'level',index,revision:client.state.revision});}
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{/* Viewport still fills embedded previews. */}}
-function toggleTheme(){pack=pack.id==='foundry'?environments.orbital:environments.foundry;try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();refresh();}
+function toggleTheme(){pack=registeredThemes[(registeredThemes.indexOf(pack)+1)%registeredThemes.length];try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();editor.refreshTheme();refresh();}
 function toggleSound(){audio.enabled=!audio.enabled;try{localStorage.setItem('weldpoint:sound',audio.enabled?'on':'off');}catch{}hud.setSound(audio.enabled);refresh();}
 const hud=new Hud(levels,{solution:()=>{void revealSolution();},home:()=>{location.hash='';},party:()=>{const state=client?.state;if(state?.mode==='coop'){inspection=null;hud.clearSolution();client?.party({type:'lobby',revision:state.revision});}else location.hash='solo';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
   inspect:step=>{inspection=step===((client?.state?.history.length??0)-1)?null:step;scene?.redraw();},
@@ -83,7 +89,7 @@ function syncScreen(){
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!!auth.user);library.show(browsing,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing?'library':auth.user?'home':'signin';
   connectingParty=intent?.kind==='invite'||intent?.kind==='create'&&intent.mode==='coop';
-  if(playing&&intent){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
+  if(playing&&intent){client=new CoopClient(receive,async()=>{await artworkAvailable;return auth.ticket();},()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
   scene?.redraw();refresh();
 }
 function receive(previous:SessionState|null){
@@ -103,10 +109,12 @@ function receive(previous:SessionState|null){
 class ChamberScene extends Phaser.Scene {
   private board:BoardView|undefined;
   private title:TitleBackdrop|undefined;
+  private artworkReady=false;
   constructor(){super('chamber');}
-  preload(){for(const p of Object.values(environments))preloadEnvironment(this,p);}
-  create(){scene=this;this.title=new TitleBackdrop(this);for(const p of Object.values(environments))buildEnvironment(this,p);this.scale.on('resize',()=>this.redraw());this.redraw();}
+  preload(){for(const p of registeredThemes)preloadEnvironment(this,p);this.load.on('loaderror',()=>{if(!document.querySelector('.theme-asset-warning')){const el=document.createElement('div');el.className='theme-asset-warning';el.setAttribute('role','alert');el.textContent='Artwork could not be loaded. Check the asset gateway and reload to retry.';document.body.append(el);}});}
+  create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch{this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;resolveArtwork();this.scale.on('resize',()=>this.redraw());this.redraw();}
   redraw(previous?:StepSnapshot,animate=false){
+    if(!this.artworkReady)return;
     this.cameras.main.setBackgroundColor(pack.palette.background);
     document.body.dataset.environment=pack.id;
     if(!playing||client?.state?.party?.started===false){this.board?.destroy();this.board=undefined;if(editing)this.title?.clear();else this.title?.draw(this.scale.width,this.scale.height,pack);refresh();return;}
@@ -123,7 +131,7 @@ class ChamberScene extends Phaser.Scene {
     document.body.dataset.environment=pack.id;refresh();
   }
 }
-const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#10191c',antialias:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
+const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#151b1e',antialias:false,pixelArt:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
 let showingPreview=false;
 const previewClock=setInterval(()=>{const visible=!!client?.initialPreview;if(visible!==showingPreview){showingPreview=visible;scene?.redraw();}else if(visible)refresh();},100);
 syncScreen();void auth.refresh();

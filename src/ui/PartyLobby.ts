@@ -19,7 +19,7 @@ export class PartyLobby {
     this.root.querySelector<HTMLInputElement>('input')!.value=party?new URL('#invite/'+party.code,location.href).href:'';
     this.root.querySelector<HTMLElement>('.party-invite')!.hidden=!party;
     const members=this.root.querySelector('.party-members')!;members.replaceChildren();
-    for(const member of party?.members??[]){const card=document.createElement('article');card.className='archive-card';const name=document.createElement('h2');name.textContent=member.name;const detail=document.createElement('p');detail.textContent=`P${member.player} · ${member.connected?(member.ready?'READY':'NOT READY'):'RECONNECTING'}`;card.append(name,detail);members.append(card);}
+    for(const member of party?.members??[]){const card=document.createElement('article');card.className='archive-card';card.dataset.partyPlayer=String(member.player);const name=document.createElement('h2');name.textContent=member.name;const detail=document.createElement('p');detail.textContent=`P${member.player} · ${member.connected?(member.ready?'READY':'NOT READY'):'RECONNECTING'}`;card.append(name,detail);members.append(card);}
     this.ready=party?.members.find(m=>m.player===state?.player)?.ready??false;
     const ready=this.root.querySelector<HTMLButtonElement>('[data-party=ready]')!;ready.textContent=this.ready?'Not ready':'Ready';ready.disabled=status!=='connected'||!party;ready.setAttribute('aria-pressed',String(this.ready));
     const start=this.root.querySelector<HTMLButtonElement>('[data-party=start]')!;start.hidden=!party?.host;start.disabled=status!=='connected'||party?.members.length!==2||!party.members.every(m=>m.connected&&m.ready);

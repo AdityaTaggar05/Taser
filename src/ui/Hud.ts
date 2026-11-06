@@ -62,9 +62,9 @@ export class Hud {
     for(const id of ['undo','reset'])this.root.querySelector<HTMLButtonElement>('#'+id)!.disabled=!paired||(id==='undo'&&(!session||session.history.length<2));
     this.root.querySelectorAll<HTMLButtonElement>('[data-move]').forEach(b=>{const error=session?.moveErrors[b.dataset.move as Direction];b.disabled=!paired||!view||view.inspecting!==null||!!error;b.title=error??'';b.classList.toggle('selected',session?.pendingMove===b.dataset.move);});
     const pending=session?.pendingMove;
-    this.set('queue',pending?`${arrows[pending]} QUEUED`:'CHOOSE MOVE');this.root.querySelector('#queue')!.classList.toggle('ready',!!pending);
+    this.set('queue',preview?'STUDY THE LAYOUT':pending?`${arrows[pending]} QUEUED`:'CHOOSE MOVE');this.root.querySelector('#queue')!.classList.toggle('ready',!!pending);
     this.root.querySelector('#cancel')!.toggleAttribute('hidden',!pending);this.root.querySelector<HTMLButtonElement>('#cancel')!.disabled=!paired;
-    this.set('peer-status',session?.mode==='solo'?'REPLAY READY':!paired?'PARTNER OFFLINE':session?.partnerReady?'PARTNER READY':'PARTNER CHOOSING');
+    this.set('peer-status',session?.mode==='solo'?(preview?'REPLAY PAUSED':'REPLAY READY'):!connected||!session?.partnerConnected?'PARTNER OFFLINE':preview?'PARTNER STUDYING':session?.partnerReady?'PARTNER READY':'PARTNER CHOOSING');
     this.root.querySelector('#peer-status')!.classList.toggle('ready',paired&&!!session?.partnerReady);
     this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled=preview||!session?.solutionAvailable;
     this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.title=session?.solutionAvailable?'View the verified reference route':'Complete this revision to unlock its reference route';

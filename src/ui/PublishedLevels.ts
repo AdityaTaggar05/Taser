@@ -35,7 +35,7 @@ export class PublishedLevels {
     if(selected&&!role){
       title.textContent='Choose your role';intro.textContent=mode==='coop'?'Your invited partner will take the opposite role.':'Your replay partner will play the opposite role.';
       const choices=document.createElement('div');choices.className='role-options';body.append(choices);
-      for(const player of [1,2]){const a=link('',hash+'/p'+player,choices,'role-link');a.innerHTML=`<b>P${player} <span>${player===1?'→':'←'}</span></b><strong>${player===1?'Forward':'Reverse'} time</strong><small>${player===1?'Write the past. Find your way out through your partner’s history.':'Begin at the other end. Meet in the middle of time.'}</small>`;}
+      for(const player of [1,2]){const a=link('',hash+'/p'+player,choices,'role-link');a.dataset.player=String(player);a.innerHTML=`<b>P${player} <span>${player===1?'→':'←'}</span></b><strong>${player===1?'Forward':'Reverse'} time</strong><small>${player===1?'Write the past. Find your way out through your partner’s history.':'Begin at the other end. Meet in the middle of time.'}</small>`;}
       link('← Choose another chamber','#'+mode+'/'+category);return;
     }
     if(selected&&role&&mode==='solo'){
