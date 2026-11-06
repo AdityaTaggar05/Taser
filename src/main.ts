@@ -127,13 +127,15 @@ class ChamberScene extends Phaser.Scene {
       const width=this.scale.width,top=document.querySelector('.mission')!.getBoundingClientRect().bottom+48;
       const bottom=document.querySelector('.console')!.getBoundingClientRect().top-10,side=width<700?8:24;
       this.board.render(preview?new InitialPreviewView(preview.level):current,{x:side,y:top,width:width-side*2,height:Math.max(130,bottom-top)},pack,preview?undefined:previous,!preview&&animate);
+      this.updatePreviewOverlap();
     }
     document.body.dataset.environment=pack.id;refresh();
   }
+  updatePreviewOverlap(){this.board?.setPreviewSecond(10-(client?.previewSeconds??10));}
 }
 const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#151b1e',antialias:false,pixelArt:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
 let showingPreview=false;
-const previewClock=setInterval(()=>{const visible=!!client?.initialPreview;if(visible!==showingPreview){showingPreview=visible;scene?.redraw();}else if(visible)refresh();},100);
+const previewClock=setInterval(()=>{const visible=!!client?.initialPreview;if(visible!==showingPreview){showingPreview=visible;scene?.redraw();}else if(visible){scene?.updatePreviewOverlap();refresh();}},100);
 syncScreen();void auth.refresh();
 window.addEventListener('hashchange',syncScreen);
 window.addEventListener('keydown',e=>{

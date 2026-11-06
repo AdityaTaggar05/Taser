@@ -79,7 +79,7 @@ export class Hud {
     this.set('phase-detail',previewSeconds>0?'MOVES LOCKED UNTIL COUNTDOWN ENDS':s.step<l.weldStep?`CONVERGE AT TURN ${l.weldStep}`:`EXIT TOGETHER BY TURN ${l.totalSteps}`);
     this.root.querySelector('#phase-led')!.className=s.status==='WELD_SUCCESS'?'welded':'';
     const publication=s.status==='VICTORY'?(session.runPublication==='confirmed'?' Your winning run is published.':session.runPublication==='pending'?' Your run is saved; Arkiv publication pending.':''):'';
-    this.set('message',previewSeconds>0?'Remember both starting layouts. Your own perspective returns when the countdown ends.':notice??s.message+publication);
+    this.set('message',previewSeconds>0?'Study both starting layouts. Objects sharing a tile alternate every second.':notice??s.message+publication);
     this.root.querySelector('#preview-banner')!.toggleAttribute('hidden',view.inspecting===null);
     this.root.querySelector('#timeline')!.innerHTML=Array.from({length:l.totalSteps+1},(_,k)=>`<button data-step="${k}" ${preview||k>=session.history.length?'disabled':''} class="${k===s.step?'current ':''}${k===l.weldStep?'weld ':''}${k<s.step?'past':''}" aria-label="Review turn ${k}"><i></i><span>${k===l.weldStep?'WELD':k}</span></button>`).join('');
     const terminal=!isLive(s.status)&&view.inspecting===null,victory=s.status==='VICTORY';
