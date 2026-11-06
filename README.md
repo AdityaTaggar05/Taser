@@ -149,7 +149,7 @@ SQLite in `.data/` holds private accounts, sessions, exact-revision completion r
 
 Approved original sprite sheets are under `public/themes/modern-gray/`. The shared manifest drives Phaser gameplay/title artwork and DOM editor/interface sprites. See [theme-pack guidelines](docs/THEME_PACKS.md) for the semantic contract and adding a pack.
 
-Run `npm run assets:prepare` to copy the selected original artwork and reproducibly rebuild the modern-gray manifest. Artwork currently loads from the local theme directory.
+Run `npm run assets:check` to verify the 28 PNGs and manifest. Configure an upload-capable Bee endpoint and existing postage batch in private `.env.local`, then run `npm run assets:upload`. Only the public asset allowlist is uploaded; full public readback must succeed before deployment switches all sprite URLs to Swarm. `npm run assets:verify` resumes verification. Current deployment is local until a real reference is verified. [Arkiv + Swarm evidence/status](arkiv/swarm.md) tracks the remaining live upload and Arkiv reference link.
 
 ## Arkiv storage and campaign publishing
 
