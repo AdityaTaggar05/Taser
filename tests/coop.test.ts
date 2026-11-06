@@ -119,3 +119,23 @@ it('awards completion to both authenticated identities only after a winning simu
   for(let k=0;k<8;k++){send(room,a,{type:'move',direction:levels[0].solutionP1[k]});send(room,b,{type:'move',direction:levels[0].solutionP2[k]});}
   expect(awards).toEqual([{ids:[a.accountId,b.accountId],level:1}]);
 });
+it('plays a verified custom snapshot, hides all author-only data and does not award campaign progress',()=>{
+  const custom=structuredClone(levels[0]);custom.name='My published chamber';let awards=0;
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>awards++,id=>id==='custom-id'?{level:custom,revision:7}:null),a=new TestPeer(),b=new TestPeer();
+  expect(room.join(a,a.accountId,undefined,'custom-id')).toBe(1);expect(room.join(b,b.accountId,undefined,'custom-id')).toBe(2);
+  expect(a.state.customLevelId).toBe('custom-id');expect(a.state.customRevision).toBe(7);expect(a.state.levelIndex).toBe(-1);
+  expect(a.state.level?.initialBoxesP2).toEqual([]);expect(a.state.level?.switchesP2).toEqual([]);expect(a.state.level?.exitP2).toEqual([0,0]);expect(a.state.level?.weldTargets).toEqual([]);expect(a.state.level?.solutionP2).toEqual([]);
+  expect(b.state.level?.initialBoxesP1).toEqual([]);expect(b.state.level?.switchesP1).toEqual([]);expect(b.state.level?.weldTargets).toEqual([]);
+  // A later publication must not mutate this running puzzle.
+  custom.name='Changed after join';
+  for(let k=0;k<8;k++){send(room,a,{type:'move',direction:levels[0].solutionP1[k]});send(room,b,{type:'move',direction:levels[0].solutionP2[k]});}
+  expect(frame(a).status).toBe('VICTORY');expect(a.state.level?.name).toBe('My published chamber');expect(awards).toBe(0);
+  send(room,a,{type:'level',index:1});expect(a.state.customLevelId).toBeUndefined();expect(a.state.levelIndex).toBe(1);
+});
+it('rejects unpublished levels and prevents a custom link from silently replacing another active game',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>{},id=>id==='known'?{level:levels[0],revision:1}:null),bad=new TestPeer();expect(room.join(bad,bad.accountId,undefined,'missing')).toBeNull();
+  const a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId);expect(room.join(b,b.accountId,undefined,'known')).toBeNull();expect(a.state.partnerConnected).toBe(false);
+});
+it('resumes a seat after a shared chamber change even when the browser still has the original custom URL',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>{},()=>({level:levels[0],revision:1})),a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId,undefined,'custom');room.join(b,b.accountId,undefined,'custom');send(room,a,{type:'level',index:2});room.leave(a);const resumed=new TestPeer();expect(room.join(resumed,a.accountId,a.token.token,'custom')).toBe(1);expect(resumed.state.levelIndex).toBe(2);
+});

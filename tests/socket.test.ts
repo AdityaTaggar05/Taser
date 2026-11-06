@@ -44,3 +44,13 @@ it('rejects unauthenticated joins and reused tickets, and closes live play on lo
     await account.login('nova');const next=await socket(await account.ticket());await expect.poll(()=>next.messages.some(m=>m.type==='state')).toBe(true);expect((next.messages.find(m=>m.type==='state') as SessionState).player).toBe(1);
   }finally{for(const ws of clients)ws.terminate();close();await f.close();}
 },10_000);
+it('loads a server-published custom level over real authenticated sockets without exposing its witness',async()=>{
+  const f=await authFixture(),close=attachCoop(f.server,f.auth,id=>f.levels.published(id)),clients:WebSocket[]=[];
+  try{
+    const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
+    const {levels}=await import('../src/core/level');const created=await atlas.request('levels',{level:levels[0]});const id=created.data.id;expect((await atlas.request(`levels/${id}/publish`,{revision:1})).status).toBe(200);
+    async function connect(account:typeof atlas){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:id}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
+    const a=await connect(atlas),b=await connect(nova);await expect.poll(()=>a.state().partnerConnected).toBe(true);expect(a.state().customLevelId).toBe(id);expect(a.state().level?.solutionP1).toEqual([]);expect(a.state().level?.solutionP2).toEqual([]);expect(a.state().level?.initialBoxesP2).toEqual([]);expect(b.state().level?.switchesP1).toEqual([]);
+    a.ws.send(JSON.stringify({type:'move',direction:'U',revision:a.state().revision}));b.ws.send(JSON.stringify({type:'move',direction:'D',revision:b.state().revision}));await expect.poll(()=>a.state().history.at(-1)?.step).toBe(1);
+  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+},10_000);
