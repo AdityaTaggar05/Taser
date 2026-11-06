@@ -1,3 +1,4 @@
+import {explorerLink} from '../network/arkiv';
 import {KEY_MOVES} from '../input/TurnBuffer';
 import {cleanDraft} from '../core/levelValidation';
 import {computeLaserTiles,isExitOpen,type GameEngine} from '../core/engine';
@@ -541,7 +542,7 @@ export class EditorScreen {
     try{
       const saved=!this.dirty&&this.stored&&this.stored.archivedRevision===this.stored.revision?this.stored:await this.api.save(this.model.level,this.stored?.id,this.stored?.revision,this.draftId);if(generation!==this.generation)return;
       this.stored=saved;this.dirty=false;this.remember();
-      if(publish){const published=await this.api.publish(saved.id,saved.revision,target);if(generation!==this.generation)return;this.stored=published;this.el<HTMLInputElement>('#creator-share-link').value=new URL(`#play/${saved.id}`,location.href).href;this.el('.creator-copy-status').textContent='';const proof=this.el('.creator-archive-proof');proof.replaceChildren();if(published.publication){const ref=published.publication;const a=document.createElement('a');a.textContent='View encrypted entity on Arkiv ↗';a.href=`https://rabdi.explorer.arkiv.network/entity/${ref.entityKey}`;a.target='_blank';a.rel='noopener noreferrer';proof.append(a,document.createTextNode(` · ${ref.category} · expiry block ${ref.expiresAt}`));}this.el<HTMLDialogElement>('#creator-published').showModal();}
+      if(publish){const published=await this.api.publish(saved.id,saved.revision,target);if(generation!==this.generation)return;this.stored=published;this.el<HTMLInputElement>('#creator-share-link').value=new URL(`#play/${saved.id}`,location.href).href;this.el('.creator-copy-status').textContent='';const proof=this.el('.creator-archive-proof');proof.replaceChildren();if(published.publication&&this.catalog?.storage==='arkiv'){const ref=published.publication;const a=document.createElement('a');a.textContent='View encrypted entity on Arkiv ↗';a.href=explorerLink('entity',ref.entityKey)!;a.target='_blank';a.rel='noopener noreferrer';proof.append(a,document.createTextNode(` · ${ref.category} · expiry block ${ref.expiresAt}`));}this.el<HTMLDialogElement>('#creator-published').showModal();}
       if(publish)void this.loadCatalog();
       this.message(publish?`Published to ${target} on Arkiv. The server verified both operators reaching their exits.`:'Encrypted draft confirmed on Arkiv.');
     }catch(error){if(generation===this.generation)this.message((error as Error).message);}finally{this.busy=false;this.render();}

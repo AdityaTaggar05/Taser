@@ -1,4 +1,5 @@
 import './published.css';
+import {explorerLink} from '../network/arkiv';
 import type {LevelClient} from '../editor/LevelClient';
 import type {LevelSummary} from '../editor/types';
 import {INVITE_LENGTH,INVITE_PATTERN,normalizeInviteCode} from '../network/invite';
@@ -49,7 +50,7 @@ export class PublishedLevels {
         const list=document.createElement('div');body.append(list);const retry=document.createElement('button');retry.className='archive-refresh';retry.textContent='Refresh runs ↻';retry.onclick=()=>this.show(true,hash);body.prepend(retry);link('← Replay sources',hash.replace(/\/runs$/,''));
         status('Loading confirmed runs…');void this.api.runs(selected,role==='1'?2:1).then(runs=>{
           if(this.request!==request)return;status(runs.length?'Verified winning runs for this exact chamber revision. Available for about 48 hours.':'No matching player runs yet. Try the creator solution first.');
-          for(const run of runs)link(`${run.name} · P${run.role} · ${run.turns} turns · ${run.mode}`,hash.replace(/\/runs$/,'/run/'+run.id),list,'run-choice');
+          for(const run of runs){const row=document.createElement('article');row.className='run-entry';link(`${run.name} · P${run.role} · ${run.turns} turns · ${run.mode}`,hash.replace(/\/runs$/,'/run/'+run.id),row,'run-choice');this.proof(run,row);list.append(row);}
         }).catch(error=>status((error as Error).message));
       }return;
     }
@@ -63,10 +64,16 @@ export class PublishedLevels {
       link('← Challenge collections','#'+mode);
     }).catch(error=>status((error as Error).message+' Use Refresh to retry.'));
   }
+  private proof(ref:{entityKey?:string;txHash?:string;storage?:string},parent:Element){
+    if(ref.storage!=='arkiv')return;
+    const links=document.createElement('div');links.className='archive-proof-links';
+    for(const [kind,label,value] of [['entity','Archived entity',ref.entityKey],['tx','Publication transaction',ref.txHash]] as const){const href=explorerLink(kind,value);if(!href)continue;const a=document.createElement('a');a.textContent=label+' ↗';a.href=href;a.target='_blank';a.rel='noopener noreferrer';links.append(a);}
+    parent.append(links);
+  }
   private card(level:LevelSummary,parent:Element,href:string){
     const card=document.createElement('article');card.className='archive-card';
     for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / REV ${level.publishedRevision??level.revision}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
-    const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);parent.append(card);
+    const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);this.proof(level,card);parent.append(card);
   }
   destroy(){this.request++;this.root.remove();}
 }

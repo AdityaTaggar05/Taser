@@ -14,8 +14,8 @@ export class AuthClient {
     this.timer=setInterval(()=>{void this.refresh();},60_000);
   }
   get user(){return this.state.user;}
-  private async request<T>(action:string,body?:unknown):Promise<T>{
-    const response=await fetch(`/api/auth/${this.context}/${action}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(action.startsWith('levels')?90_000:15_000)});
+  private async request<T>(action:string,body?:unknown,signal?:AbortSignal):Promise<T>{
+    const response=await fetch(`/api/auth/${this.context}/${action}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(action.startsWith('levels')?90_000:15_000)]):AbortSignal.timeout(action.startsWith('levels')?90_000:15_000)});
     const value=await response.json();
     if(!response.ok){if(response.status===401&&(action==='socket-ticket'||action.startsWith('levels')))this.expired();throw new Error(value.error??'Sign-in service is unavailable.');}
     return value as T;
@@ -38,7 +38,7 @@ export class AuthClient {
     const signature=await provider.request({method:'personal_sign',params:[hex,address]});
     this.state=await this.request<AuthState>('wallet',{signature});this.error=null;this.changed();
   }
-  levelRequest<T>(path='',body?:unknown){return this.request<T>('levels'+path,body);}
+  levelRequest<T>(path='',body?:unknown,signal?:AbortSignal){return this.request<T>('levels'+path,body,signal);}
   async ticket(){return (await this.request<{ticket:string}>('socket-ticket',{})).ticket;}
   async logout(){this.revision++;await this.request('logout',{});this.expired();}
   expired(){this.revision++;this.state={...this.state,user:null};this.changed();}
