@@ -23,3 +23,9 @@ Build and Vitest checks accompany the change. Existing standalone browser script
 ## Short demo route
 
 Show the title, choose an operator and mode, select a chamber, then commit a move. Point to the box snapshot and P1/P2 pair. In a configured live environment, show the confirmed entity/transaction link in Arkiv. Briefly open the reverse-history guide. Use the profile to demonstrate a theme change if time permits.
+
+## Creator publication workflow
+
+The editor includes master's publication overlay, with a horizontal step row at the bottom, centered stage-specific diagrams, wide sliding/fading scene transitions, and a 2.5-second freeze presentation dwell. The overlay uses the same paper, graphite, serif headings, monospaced metadata, teal controls and vermilion errors as the rest of this branch. The dwell does not delay the server request or create verification evidence. A proof-bound check appears only after verified server approval; the published-level action still requires confirmed Arkiv publication. Reduced-motion and narrow-screen behavior remain supported.
+
+Publication UI checks used the isolated component fixture with the real application stylesheet stack: freeze dwell, verified check, published action, rejected/error states, and desktop/390px layout. The fixture uses synthetic evidence only and performs no CRE execution or Arkiv write.
