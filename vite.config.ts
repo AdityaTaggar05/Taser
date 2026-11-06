@@ -1,11 +1,14 @@
 import { defineConfig,loadEnv, type Plugin,type ViteDevServer,type PreviewServer } from 'vite';
 import { attachCoop } from './server/socket';
 import {AuthService} from './server/auth/AuthService';
+import {LevelStore} from './server/levels/LevelStore';
+import {applicationApi} from './server/api';
 function setup(server:Pick<ViteDevServer,'httpServer'|'middlewares'>|Pick<PreviewServer,'httpServer'|'middlewares'>,dev:boolean){
   if(!server.httpServer)return;
   const auth=new AuthService({demoEnabled:process.env.DEMO_AUTH==='true'||(dev&&process.env.DEMO_AUTH!=='false')});
-  server.middlewares.use((req,res,next)=>{if(req.url?.startsWith('/api/auth/'))void auth.handle(req,res);else next();});
-  const close=attachCoop(server.httpServer,auth);server.httpServer.once('close',()=>{close();auth.close();});
+  const levels=new LevelStore(auth.databasePath),api=applicationApi(auth,levels);
+  server.middlewares.use((req,res,next)=>{if(req.url?.startsWith('/api/auth/'))void api(req,res);else next();});
+  const close=attachCoop(server.httpServer,auth);server.httpServer.once('close',()=>{close();levels.close();auth.close();});
 }
 function coop():Plugin {
   return { name:'weldpoint-coop',

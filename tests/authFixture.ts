@@ -1,9 +1,12 @@
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {AuthService} from '../server/auth/AuthService';
+import {LevelStore} from '../server/levels/LevelStore';
+import {applicationApi} from '../server/api';
 export async function authFixture(options:{demoEnabled?:boolean;now?:()=>number;databasePath?:string}={}){
   const auth=new AuthService({databasePath:':memory:',demoEnabled:true,...options});
-  const server=createServer((req,res)=>void auth.handle(req,res));server.listen(0,'127.0.0.1');await once(server,'listening');
+  const levels=new LevelStore(auth.databasePath),api=applicationApi(auth,levels);
+  const server=createServer((req,res)=>void api(req,res));server.listen(0,'127.0.0.1');await once(server,'listening');
   const origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
   function browser(){
     const context=crypto.randomUUID().replaceAll('-',''),cookies=new Map<string,string>();
@@ -16,5 +19,5 @@ export async function authFixture(options:{demoEnabled?:boolean;now?:()=>number;
     async function ticket(){const r=await request('socket-ticket',{});if(r.status!==200)throw new Error('Ticket request failed');return r.data.ticket as string;}
     return {context,cookies,request,login,ticket};
   }
-  return {auth,server,origin,browser,close:async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));auth.close();}};
+  return {auth,levels,server,origin,browser,close:async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));levels.close();auth.close();}};
 }

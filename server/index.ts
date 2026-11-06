@@ -4,12 +4,15 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { attachCoop } from './socket';
 import {AuthService} from './auth/AuthService';
+import {LevelStore} from './levels/LevelStore';
+import {applicationApi} from './api';
 const root=fileURLToPath(new URL('../dist/',import.meta.url));
 if(!existsSync(resolve(root,'index.html')))throw new Error('Run npm run build before npm start.');
 const types:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon'};
 const auth=new AuthService({demoEnabled:process.env.DEMO_AUTH==='true'});
+const levels=new LevelStore(auth.databasePath),api=applicationApi(auth,levels);
 const server=createServer((req,res)=>{
-  if(req.url?.startsWith('/api/auth/')){void auth.handle(req,res);return;}
+  if(req.url?.startsWith('/api/auth/')){void api(req,res);return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
   let path:string;try{path=decodeURIComponent(new URL(req.url??'/', 'http://local').pathname);}catch{res.writeHead(400);res.end();return;}
   const file=resolve(root,'.'+(path==='/'?'/index.html':path));
@@ -19,4 +22,4 @@ const server=createServer((req,res)=>{
 });
 const close=attachCoop(server,auth);
 server.listen(Number(process.env.PORT??5173),'0.0.0.0',()=>console.log(`WeldPoint co-op listening on port ${process.env.PORT??5173}`));
-for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{close();server.close(()=>{auth.close();process.exit(0);});});
+for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{close();server.close(()=>{levels.close();auth.close();process.exit(0);});});
