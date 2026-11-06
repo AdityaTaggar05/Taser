@@ -140,3 +140,21 @@ it('rejects unpublished levels and prevents a custom link from silently replacin
 it('resumes a seat after a shared chamber change even when the browser still has the original custom URL',()=>{
   const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>{},()=>({level:levels[0],revision:1})),a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId,undefined,'custom');room.join(b,b.accountId,undefined,'custom');send(room,a,{type:'level',index:2});room.leave(a);const resumed=new TestPeer();expect(room.join(resumed,a.accountId,a.token.token,'custom')).toBe(1);expect(resumed.state.levelIndex).toBe(2);
 });
+it('honors P2-first selection, rejects collisions and preserves selected roles on reconnect',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID()),p2=new TestPeer(),collision=new TestPeer(),p1=new TestPeer();
+  expect(room.join(p2,p2.accountId,undefined,undefined,2)).toBe(2);
+  expect(p2.state.partnerConnected).toBe(false);expect(p2.state.level?.initialBoxesP1).toEqual([]);
+  expect(room.join(collision,collision.accountId,undefined,undefined,2)).toBeNull();
+  expect(collision.messages.at(-1)).toMatchObject({type:'full',message:expect.stringContaining('P2 is occupied')});
+  expect(room.join(p1,p1.accountId,undefined,undefined,1)).toBe(1);
+  send(room,p1,{type:'move',direction:'U'});send(room,p2,{type:'move',direction:'D'});
+  room.leave(p2);
+  const wrongRole=new TestPeer();expect(room.join(wrongRole,p2.accountId,p2.token.token,undefined,1)).toBeNull();
+  const restored=new TestPeer();expect(room.join(restored,p2.accountId,p2.token.token,undefined,2)).toBe(2);
+  expect(frame(restored).step).toBe(1);expect(restored.state.level?.initialBoxesP1).toEqual([]);
+});
+it('does not replace an active level when a role request or token is rejected',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID()),a=new TestPeer();room.join(a,a.accountId,undefined,undefined,2);
+  const bad=new TestPeer();expect(room.join(bad,bad.accountId,a.token.token,'missing',1)).toBeNull();
+  expect(a.state.levelIndex).toBe(0);expect(a.state.partnerConnected).toBe(false);
+});
