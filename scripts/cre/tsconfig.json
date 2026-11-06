@@ -1,1 +1,5 @@
-{"extends":"../../tsconfig.json","compilerOptions":{"allowJs":true,"checkJs":false},"include":["./*.mts","./*.mjs"]}
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "allowJs": true, "checkJs": false },
+  "include": ["./*.mts", "./*.mjs"]
+}

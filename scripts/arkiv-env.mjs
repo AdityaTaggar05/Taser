@@ -1,6 +1,6 @@
-import {existsSync, readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
-import {parseEnv} from 'node:util';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { parseEnv } from 'node:util';
 
 export function localEnv(directory = process.cwd()) {
   const values = {};
@@ -12,5 +12,5 @@ export function localEnv(directory = process.cwd()) {
 }
 
 export function configuredEnv(directory = process.cwd()) {
-  return {...localEnv(directory), ...process.env};
+  return { ...localEnv(directory), ...process.env };
 }

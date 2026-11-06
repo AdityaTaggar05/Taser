@@ -1,7 +1,7 @@
 staging-settings:
   user-workflow:
     workflow-name: taser-level-verification-staging-settings
-    deployment-registry: "private"
+    deployment-registry: 'private'
   workflow-artifacts:
     workflow-path: ./main.ts
     config-path: ./config.staging.json
@@ -10,7 +10,7 @@ staging-settings:
 local-simulation:
   user-workflow:
     workflow-name: taser-level-verification-local-simulation
-    deployment-registry: "private"
+    deployment-registry: 'private'
   workflow-artifacts:
     workflow-path: ./main.ts
     config-path: ./config.local-simulation.json
@@ -19,7 +19,7 @@ local-simulation:
 production-settings:
   user-workflow:
     workflow-name: taser-level-verification-production-settings
-    deployment-registry: "private"
+    deployment-registry: 'private'
   workflow-artifacts:
     workflow-path: ./main.ts
     config-path: ./config.production.json

@@ -1,1 +1,5 @@
-{"extends":"../tsconfig.json","compilerOptions":{"types":[],"skipLibCheck":true},"include":["workflow/**/*.ts"]}
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": [], "skipLibCheck": true },
+  "include": ["workflow/**/*.ts"]
+}

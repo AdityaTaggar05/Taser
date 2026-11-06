@@ -1,1 +1,6 @@
-{"apiBase":"http://localhost:5173","registry":"0x0000000000000000000000000000000000000000","mode":"simulation","authorizedKeys":[]}
+{
+  "apiBase": "http://localhost:5173",
+  "registry": "0x0000000000000000000000000000000000000000",
+  "mode": "simulation",
+  "authorizedKeys": []
+}
