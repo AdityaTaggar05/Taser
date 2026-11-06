@@ -1,4 +1,4 @@
-import type { Coord, Direction, GameStatus } from '../core/types';
+import type { Coord, Direction, GameStatus, LevelConfig } from '../core/types';
 export type Player = 1 | 2;
 export const DIRECTIONS: Direction[] = ['U','D','L','R','W'];
 export interface PlayerFrame {
@@ -6,11 +6,13 @@ export interface PlayerFrame {
 }
 export interface SessionState {
   type: 'state'; player: Player; revision: number; levelIndex: number;
+  customLevelId?:string;customRevision?:number;level?:LevelConfig;
+  campaign?:import('../editor/types').CampaignSummary[];publicationKey?:string;solutionAvailable?:boolean;
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;
 }
-export type ServerMessage = SessionState | { type: 'welcome'; token: string } | { type: 'error'; message: string } | { type: 'full'; message: string };
+export type ServerMessage = SessionState | { type: 'welcome'; token: string } | { type: 'error'; message: string } | { type: 'full'; message: string } | {type:'auth_required';message:string};
 export type ClientCommand = { type:'move'; direction:Direction; revision:number } | { type:'undo'|'reset'|'cancel'; revision:number } | { type:'level'; index:number; revision:number };
 export function parseCommand(value: unknown): ClientCommand | null {
   if (!value || typeof value!=='object') return null;

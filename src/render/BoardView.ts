@@ -62,7 +62,7 @@ export class BoardView {
       g.lineStyle(7,0xff695d,0.13); this.laserSegments(laser);
       g.lineStyle(2,0xff8d77,0.95); this.laserSegments(laser);
       g.fillStyle(0x71534b).fillRect(ex-t*.32,ey-t*.32,t*.64,t*.64);
-      this.text(ex,ey,'▼',t*.30,'#ffb59b');
+      this.text(ex,ey,({D:'▼',U:'▲',L:'◀',R:'▶',W:'·'})[l.laserEmitter.dir],t*.30,'#ffb59b');
     }
     if(l.laserReceiverP1 && this.index!==1) { const [x,y]=this.at(l.laserReceiverP1); g.lineStyle(2,p.p1).strokeCircle(x,y,t*.25); this.text(x,y,'R1',t*.17,'#91d8cc'); }
     const drawTrajectory=(player:1|2,color:number)=>{

@@ -1,22 +1,33 @@
 import Phaser from 'phaser';
 import './style.css';
-import { levels } from './core/level';
+import type {CampaignSummary} from './editor/types';
+let levels:CampaignSummary[]=[];
 import { isLive, type Direction, type StepSnapshot } from './core/types';
 import { BoardView } from './render/BoardView';
 import { environments, buildEnvironment, preloadEnvironment, type EnvironmentPack } from './render/environment';
 import { KEY_MOVES } from './input/TurnBuffer';
 import { Hud } from './ui/Hud';
 import { GameAudio } from './ui/audio';
+import { HomeScreen } from './ui/HomeScreen';
+import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
 import { RemoteView } from './network/RemoteView';
 import type { SessionState } from './network/protocol';
+import {AuthClient} from './auth/AuthClient';
+import {SignInScreen} from './ui/SignInScreen';
+import {EditorScreen} from './editor/EditorScreen';
+import {LevelClient} from './editor/LevelClient';
 
+let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
 const audio=new GameAudio(),completed=new Set<number>();
-try{const saved:unknown=JSON.parse(localStorage.getItem('weldpoint:completed')??'[]');if(Array.isArray(saved))saved.forEach(id=>{if(Number.isInteger(id)&&levels.some(l=>l.id===id))completed.add(id);});}catch{/* Optional progress storage. */}
-function view(){return client?.state?new RemoteView(levels[client.state.levelIndex],client.state,inspection):null;}
-function refresh(){hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);}
+try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme))pack=environments[savedTheme];}catch{/* Preferences are optional. */}
+function view(){return client?.state?.level?new RemoteView(client.state.level,client.state,inspection):null;}
+function refresh(){
+  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);
+  home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
+}
 function queue(direction:Direction){
   const session=client?.state;if(!session||!client?.playable||hud.helpOpen||inspection!==null)return;
   const error=session.moveErrors[direction];if(error){client.showNotice(error);return;}
@@ -29,30 +40,66 @@ function command(type:'undo'|'reset'|'cancel'){
 }
 function level(index:number){if(client?.state)client.send({type:'level',index,revision:client.state.revision});}
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{/* Viewport still fills embedded previews. */}}
-const hud=new Hud(levels,{level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
+function toggleTheme(){pack=pack.id==='foundry'?environments.orbital:environments.foundry;try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();refresh();}
+function toggleSound(){audio.enabled=!audio.enabled;try{localStorage.setItem('weldpoint:sound',audio.enabled?'on':'off');}catch{}hud.setSound(audio.enabled);refresh();}
+const hud=new Hud(levels,{solution:()=>{void revealSolution();},home:()=>{location.hash='';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
   inspect:step=>{inspection=step===((client?.state?.history.length??0)-1)?null:step;scene?.redraw();},
-  theme:()=>{pack=pack.id==='foundry'?environments.orbital:environments.foundry;scene?.redraw();},
-  sound:()=>{audio.enabled=!audio.enabled;hud.setSound(audio.enabled);},
+  theme:toggleTheme,sound:toggleSound,
 });
+hud.setSound(audio.enabled);
+const auth=new AuthClient(()=>{
+  completed.clear();auth.user?.completed.forEach(id=>completed.add(id));
+  signin.update();editor.setUser(auth.user);syncScreen();refresh();void loadCatalog();
+});
+const signin=new SignInScreen(auth);
+const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
+const levelApi=new LevelClient(auth);
+const editor=new EditorScreen(levelApi,{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
+let catalogUser:string|null=null,catalogRequest=0;
+async function loadCatalog(){
+  const user=auth.user?.id??null;if(user===catalogUser)return;catalogUser=user;const request=++catalogRequest;hud.clearSolution();levels=[];hud.setLevels(levels);if(!user)return;
+  try{const catalog=await levelApi.catalog();if(request!==catalogRequest||auth.user?.id!==user)return;levels=catalog.campaign;hud.setLevels(levels);refresh();}catch{if(request===catalogRequest)catalogUser=null;}
+}
+async function revealSolution(){
+  const session=client?.state,key=session?.publicationKey,user=auth.user?.id;if(!key||!session.solutionAvailable)return;
+  try{const solution=await levelApi.solution(key);if(client?.state?.publicationKey===key&&auth.user?.id===user)hud.showSolution(solution);}catch(error){client?.showNotice((error as Error).message);}
+}
+function syncScreen(){
+  const custom=/^#play\/([a-f0-9-]{36})$/.exec(location.hash)?.[1];
+  const next=!!auth.user&&(location.hash==='#play'||!!custom);
+  const nextEditing=!!auth.user&&location.hash==='#create';
+  if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
+  client?.leave();client=undefined;screenUser=auth.user?.id??null;
+  screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
+  hud.root.hidden=!playing;home.show(!playing&&!editing&&!!auth.user);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':auth.user?'home':'signin';
+  if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),custom);}
+  scene?.redraw();refresh();
+}
 function receive(previous:SessionState|null){
   const current=client?.state;if(!current){refresh();return;}
   const changed=!previous||previous.revision!==current.revision||previous.player!==current.player;
   if(changed)inspection=null;
   const last=current.history.at(-1)!;
-  const animate=!!previous&&current.levelIndex===previous.levelIndex&&current.player===previous.player&&last.step===previous.history.at(-1)!.step+1;
+  const animate=!!previous&&current.levelIndex===previous.levelIndex&&current.customLevelId===previous.customLevelId&&current.player===previous.player&&last.step===previous.history.at(-1)!.step+1;
   if(animate)audio.play(last.status==='VICTORY'?'win':!isLive(last.status)?'fail':last.status==='WELD_SUCCESS'?'weld':current.shove!==null?'shove':'step');
-  if(last.status==='VICTORY'){completed.add(levels[current.levelIndex].id);try{localStorage.setItem('weldpoint:completed',JSON.stringify([...completed]));}catch{/* Optional storage. */}}
-  if(previous&&previous.levelIndex!==current.levelIndex)pack=environments[levels[current.levelIndex].environment??'foundry']??environments.foundry;
-  const old=animate?new RemoteView(levels[previous!.levelIndex],previous!).state:undefined;
+  if(!current.customLevelId&&last.status==='VICTORY'&&previous?.history.at(-1)?.status!=='VICTORY')void auth.refresh();
+  if(current.campaign){levels=current.campaign;hud.setLevels(levels);}
+  if(previous?.publicationKey!==current.publicationKey)hud.clearSolution();
+  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=current.level?.environment;if(environment&&environments[environment])pack=environments[environment];}
+  const old=animate?new RemoteView(previous!.level!,previous!).state:undefined;
   scene?.redraw(old,animate);refresh();
 }
 class ChamberScene extends Phaser.Scene {
   private board:BoardView|undefined;
+  private title:TitleBackdrop|undefined;
   constructor(){super('chamber');}
   preload(){for(const p of Object.values(environments))preloadEnvironment(this,p);}
-  create(){scene=this;for(const p of Object.values(environments))buildEnvironment(this,p);this.scale.on('resize',()=>this.redraw());this.redraw();}
+  create(){scene=this;this.title=new TitleBackdrop(this);for(const p of Object.values(environments))buildEnvironment(this,p);this.scale.on('resize',()=>this.redraw());this.redraw();}
   redraw(previous?:StepSnapshot,animate=false){
     this.cameras.main.setBackgroundColor(pack.palette.background);
+    document.body.dataset.environment=pack.id;
+    if(!playing){this.board?.destroy();this.board=undefined;if(editing)this.title?.clear();else this.title?.draw(this.scale.width,this.scale.height,pack);refresh();return;}
+    this.title?.clear();
     const current=view();
     if(current){
       const index=(current.session.player-1) as 0|1;
@@ -65,9 +112,17 @@ class ChamberScene extends Phaser.Scene {
   }
 }
 const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#10191c',antialias:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
-client=new CoopClient(receive);
+syncScreen();void auth.refresh();
+window.addEventListener('hashchange',syncScreen);
 window.addEventListener('keydown',e=>{
+  if(editing){editor.key(e);return;}
   const target=e.target as HTMLElement;if(target.matches('input,textarea,select'))return;
+  if(!playing){
+    if(!auth.user||home.dialogOpen)return;
+    if(e.code==='KeyF'){e.preventDefault();void fullscreen();}
+    if(e.code==='Enter'&&target.tagName!=='BUTTON'&&target.tagName!=='A'){e.preventDefault();location.hash='play';}
+    return;
+  }
   if(e.code==='Escape'){hud.toggleHelp(false);inspection=null;scene?.redraw();return;}
   if(e.code==='KeyH'){e.preventDefault();if(!e.repeat)hud.toggleHelp();return;}
   if(hud.helpOpen)return;
@@ -76,11 +131,11 @@ window.addEventListener('keydown',e=>{
   if(e.repeat)return;
   if(e.code==='Backspace'||e.code==='KeyZ'){e.preventDefault();command('undo');}
   if(e.code==='KeyR')command('reset');if(e.code==='KeyF'){e.preventDefault();void fullscreen();}
-  if(/^Digit[1-9]$/.test(e.code))level(Number(e.code.slice(-1))-1);
-  if(e.code==='Digit0')level(9);
+  if(/^Digit[1-9]$/.test(e.code)&&Number(e.code.slice(-1))<=levels.length)level(Number(e.code.slice(-1))-1);
+  if(e.code==='Digit0'&&levels.length>=10)level(9);
 });
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();

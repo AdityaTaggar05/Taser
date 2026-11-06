@@ -1,26 +1,26 @@
 import { describe,it,expect } from 'vitest';
 import { CoopRoom,type Peer } from '../server/CoopRoom';
-import { levels } from '../src/core/level';
+import {levels} from '../server/data/campaign';
 import { RemoteView } from '../src/network/RemoteView';
 import { parseCommand,type ClientCommand,type ServerMessage,type SessionState } from '../src/network/protocol';
 class TestPeer implements Peer {
-  messages:ServerMessage[]=[];closed=false;
+  readonly accountId=crypto.randomUUID();messages:ServerMessage[]=[];closed=false;
   send(m:ServerMessage){this.messages.push(structuredClone(m));}
   close(){this.closed=true;}
   get state(){return this.messages.filter((m):m is SessionState=>m.type==='state').at(-1)!;}
   get token(){return this.messages.find(m=>m.type==='welcome')! as {type:'welcome';token:string};}
 }
-function setup(){let next=0,now=1000;const room=new CoopRoom(()=>`token-${++next}`,()=>now,100);const a=new TestPeer(),b=new TestPeer();room.join(a);room.join(b);return {room,a,b,time:(n:number)=>{now=n;}};}
+function setup(){let next=0,now=1000;const room=new CoopRoom(()=>`token-${++next}`,()=>now,100);const a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId);room.join(b,b.accountId);return {room,a,b,time:(n:number)=>{now=n;}};}
 function send(room:CoopRoom,p:TestPeer,command:Omit<ClientCommand,'revision'> & {direction?:string;index?:number}){room.receive(p,{...command,revision:p.state.revision});}
 const frame=(p:TestPeer)=>p.state.history.at(-1)!;
 it('assigns two roles automatically, refuses a third, and keeps an active seat from being stolen',()=>{
   const {room,a,b}=setup(),third=new TestPeer(),duplicate=new TestPeer();
   expect(a.state.player).toBe(1);expect(b.state.player).toBe(2);expect(a.state.partnerConnected).toBe(true);
-  expect(room.join(third)).toBeNull();expect(third.closed).toBe(true);expect(third.messages.at(-1)?.type).toBe('full');
-  expect(room.join(duplicate,a.token.token)).toBeNull();expect(duplicate.closed).toBe(true);
+  expect(room.join(third,third.accountId)).toBeNull();expect(third.closed).toBe(true);expect(third.messages.at(-1)?.type).toBe('full');
+  expect(room.join(duplicate,a.accountId,a.token.token)).toBeNull();expect(duplicate.closed).toBe(true);
 });
 it('waits for a partner and does not queue inputs alone',()=>{
-  const room=new CoopRoom(()=> 'only-player'),a=new TestPeer();room.join(a);
+  const room=new CoopRoom(()=> 'only-player'),a=new TestPeer();room.join(a,a.accountId);
   send(room,a,{type:'move',direction:'U'});expect(frame(a).step).toBe(0);expect(a.state.pendingMove).toBeNull();expect(a.messages.at(-1)?.type).toBe('error');
 });
 it('keeps partner input queued when the other player bumps a wall',()=>{
@@ -51,12 +51,12 @@ it('pauses on disconnect, clears queued moves, and restores the same seat and ti
   const {room,a,b}=setup();send(room,a,{type:'move',direction:'U'});send(room,b,{type:'move',direction:'D'});send(room,a,{type:'move',direction:'R'});
   room.leave(b);expect(a.state.partnerConnected).toBe(false);expect(a.state.pendingMove).toBeNull();
   send(room,a,{type:'move',direction:'R'});expect(frame(a).step).toBe(1);
-  const resume=new TestPeer();expect(room.join(resume,b.token.token)).toBe(2);expect(frame(resume).step).toBe(1);expect(a.state.partnerConnected).toBe(true);
+  const resume=new TestPeer();expect(room.join(resume,b.accountId,b.token.token)).toBe(2);expect(frame(resume).step).toBe(1);expect(a.state.partnerConnected).toBe(true);
 });
 it('resets an abandoned timeline before a replacement player joins',()=>{
   const {room,a,b,time}=setup();send(room,a,{type:'move',direction:'U'});send(room,b,{type:'move',direction:'D'});
   room.leave(b);time(1101);room.expire();expect(frame(a).step).toBe(0);
-  const replacement=new TestPeer();expect(room.join(replacement)).toBe(2);expect(frame(replacement).step).toBe(0);expect(a.state.partnerConnected).toBe(true);
+  const replacement=new TestPeer();expect(room.join(replacement,replacement.accountId)).toBe(2);expect(frame(replacement).step).toBe(0);expect(a.state.partnerConnected).toBe(true);
 });
 it('uses the socket-assigned role, never a player number supplied in a command',()=>{
   const {room,a,b}=setup();room.receive(a,{type:'move',direction:'U',revision:a.state.revision,player:2});
@@ -95,4 +95,48 @@ it('renders replay previews from own server projections without requiring partne
   expect(forward.nextBoxes(1)).toEqual([[5,2]]);expect(reverse.nextBoxes(2)).toEqual([[3,2]]);
   expect(forward.nextBoxes(2)).toBeNull();expect(reverse.nextBoxes(1)).toBeNull();
   expect(new RemoteView(levels[0],a.state,2).nextBoxes(1)).toBeNull();
+});
+
+it('releases a slot immediately on a deliberate home exit and clears the shared timeline',()=>{
+  const {room,a,b}=setup();send(room,a,{type:'move',direction:'U'});send(room,b,{type:'move',direction:'D'});send(room,b,{type:'move',direction:'L'});
+  room.release(a);expect(b.state.partnerConnected).toBe(false);expect(b.state.pendingMove).toBeNull();expect(frame(b).step).toBe(0);
+  const replacement=new TestPeer();expect(room.join(replacement,replacement.accountId)).toBe(1);expect(b.state.partnerConnected).toBe(true);expect(frame(replacement).step).toBe(0);
+  // A late close from the old socket cannot disconnect the replacement.
+  room.leave(a);expect(replacement.state.partnerConnected).toBe(true);
+});
+it('lets a solo player leave for home without reserving their seat',()=>{
+  let id=0;const room=new CoopRoom(()=>`guest-${++id}`),first=new TestPeer();room.join(first,first.accountId);room.release(first);
+  expect(room.join(new TestPeer(),crypto.randomUUID())).toBe(1);expect(room.join(new TestPeer(),crypto.randomUUID())).toBe(2);
+});
+it('binds reservations to accounts and never assigns both roles to the same account',()=>{
+  const {room,a,b}=setup();room.release(b);
+  const duplicate=new TestPeer();expect(room.join(duplicate,a.accountId)).toBeNull();expect(duplicate.closed).toBe(true);
+  room.leave(a);const intruder=new TestPeer();expect(room.join(intruder,intruder.accountId,a.token.token)).toBeNull();
+  const resumed=new TestPeer();expect(room.join(resumed,a.accountId)).toBe(1);
+});
+it('awards completion to both authenticated identities only after a winning simulation',()=>{
+  const awards:Array<{ids:string[];level:number}>=[],room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,(ids,level)=>awards.push({ids,level})),a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId);room.join(b,b.accountId);
+  expect(awards).toEqual([]);
+  for(let k=0;k<8;k++){send(room,a,{type:'move',direction:levels[0].solutionP1[k]});send(room,b,{type:'move',direction:levels[0].solutionP2[k]});}
+  expect(awards).toEqual([{ids:[a.accountId,b.accountId],level:1}]);
+});
+it('plays a verified custom snapshot, hides all author-only data and does not award campaign progress',()=>{
+  const custom=structuredClone(levels[0]);custom.name='My published chamber';let awards=0;
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>awards++,id=>id==='custom-id'?{level:custom,revision:7}:null),a=new TestPeer(),b=new TestPeer();
+  expect(room.join(a,a.accountId,undefined,'custom-id')).toBe(1);expect(room.join(b,b.accountId,undefined,'custom-id')).toBe(2);
+  expect(a.state.customLevelId).toBe('custom-id');expect(a.state.customRevision).toBe(7);expect(a.state.levelIndex).toBe(-1);
+  expect(a.state.level?.initialBoxesP2).toEqual([]);expect(a.state.level?.switchesP2).toEqual([]);expect(a.state.level?.exitP2).toEqual([0,0]);expect(a.state.level?.weldTargets).toEqual([]);expect(a.state.level?.solutionP2).toEqual([]);
+  expect(b.state.level?.initialBoxesP1).toEqual([]);expect(b.state.level?.switchesP1).toEqual([]);expect(b.state.level?.weldTargets).toEqual([]);
+  // A later publication must not mutate this running puzzle.
+  custom.name='Changed after join';
+  for(let k=0;k<8;k++){send(room,a,{type:'move',direction:levels[0].solutionP1[k]});send(room,b,{type:'move',direction:levels[0].solutionP2[k]});}
+  expect(frame(a).status).toBe('VICTORY');expect(a.state.level?.name).toBe('My published chamber');expect(awards).toBe(0);
+  send(room,a,{type:'level',index:1});expect(a.state.customLevelId).toBeUndefined();expect(a.state.levelIndex).toBe(1);
+});
+it('rejects unpublished levels and prevents a custom link from silently replacing another active game',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>{},id=>id==='known'?{level:levels[0],revision:1}:null),bad=new TestPeer();expect(room.join(bad,bad.accountId,undefined,'missing')).toBeNull();
+  const a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId);expect(room.join(b,b.accountId,undefined,'known')).toBeNull();expect(a.state.partnerConnected).toBe(false);
+});
+it('resumes a seat after a shared chamber change even when the browser still has the original custom URL',()=>{
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,100,()=>{},()=>({level:levels[0],revision:1})),a=new TestPeer(),b=new TestPeer();room.join(a,a.accountId,undefined,'custom');room.join(b,b.accountId,undefined,'custom');send(room,a,{type:'level',index:2});room.leave(a);const resumed=new TestPeer();expect(room.join(resumed,a.accountId,a.token.token,'custom')).toBe(1);expect(resumed.state.levelIndex).toBe(2);
 });
