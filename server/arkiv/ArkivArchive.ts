@@ -39,7 +39,7 @@ import {
 } from 'viem';
 import { getGasPrice } from 'viem/actions';
 import { privateKeyToAccount } from 'viem/accounts';
-import { LevelEntities } from './schema';
+import { LevelEntities, AttemptEntities } from './schema';
 import { LevelCipher, CONTENT_TYPE } from './LevelCipher';
 import {
   ArchiveError,
@@ -59,10 +59,12 @@ type Publication = ArchiveRecord | ThemePublication;
 import { creationExpiration, HEART_EXTENSION } from './expiration';
 
 interface ExtensionIntent {
+  schema?: 'attempt';
   entityKey: Hex;
   expiresAt: string;
 }
-const isExtension = (plan: Plan) => plan.operation.startsWith('heart:');
+const isExtension = (plan: Plan) =>
+  plan.operation.startsWith('heart:') || plan.operation.startsWith('retain:');
 const NATIVE = '0x4400000000000000000000000000000000000044';
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 interface Plan {
@@ -71,7 +73,7 @@ interface Plan {
   body: string;
   salt: string;
   ciphertext: string;
-  phase: 'prepared' | 'submitting' | 'receipt_confirmed' | 'verified' | 'reverted';
+  phase: 'prepared' | 'submitting' | 'receipt_confirmed' | 'verified' | 'reverted' | 'expired';
   signed: string | null;
   tx_hash: string | null;
   entity_key: string | null;
@@ -237,7 +239,14 @@ export class ArkivArchive implements LevelArchive {
   ) {
     return plan.operation.startsWith('theme:')
       ? wallet.createEntity(ThemeEntities, this.themeValues(plan), this.optionsFor(plan), params)
-      : wallet.createEntity(LevelEntities, this.values(plan), this.optionsFor(plan), params);
+      : wallet.createEntity(
+          (JSON.parse(plan.body) as ArchiveRecord).category === 'attempt'
+            ? AttemptEntities
+            : LevelEntities,
+          this.values(plan),
+          this.optionsFor(plan),
+          params,
+        );
   }
   async readTheme(entityKey: string) {
     await this.identity();
@@ -267,16 +276,18 @@ export class ArkivArchive implements LevelArchive {
       row.$creationFlags.permissionlessExtension ||
       row.namespace.value !== this.options.namespace ||
       row.content_type.value !== CONTENT_TYPE ||
-      !['draft', 'community', 'campaign', 'run'].includes(row.category.value) ||
+      !['draft', 'community', 'campaign', 'run', 'attempt'].includes(row.category.value) ||
       row.revision.value < 1n ||
       row.revision.value > BigInt(Number.MAX_SAFE_INTEGER) ||
       (expected && row.ciphertext.value.toLowerCase() !== expected.ciphertext.toLowerCase())
     )
       throw new ArchiveError(503, 'Untrusted Arkiv level publication.');
   }
-
-  private async entity(entityKey: string) {
-    const row = await this.reader.getEntity(entityKey as Hex, LevelEntities);
+  private async entity(entityKey: string, attempt = false) {
+    const row = await this.reader.getEntity(
+      entityKey as Hex,
+      attempt ? AttemptEntities : LevelEntities,
+    );
     if (row.$key.toLowerCase() !== entityKey.toLowerCase())
       throw new ArchiveError(503, 'Arkiv returned a different entity identity.');
     return row;
@@ -303,7 +314,7 @@ export class ArkivArchive implements LevelArchive {
   async read(ref: ArchiveRef): Promise<ArchiveRecord> {
     try {
       await this.identity();
-      return await this.decode(await this.entity(ref.entityKey));
+      return await this.decode(await this.entity(ref.entityKey, ref.schema === 'attempt'));
     } catch (error) {
       throw this.safe(error, 'Arkiv level could not be read. It may be expired or unavailable.');
     }
@@ -311,7 +322,7 @@ export class ArkivArchive implements LevelArchive {
   async inspect(ref: ArchiveRef): Promise<ArchivedLevel> {
     try {
       await this.identity();
-      const row = await this.entity(ref.entityKey),
+      const row = await this.entity(ref.entityKey, ref.schema === 'attempt'),
         record = await this.decode(row);
       if (row.$expiresAt <= (await this.reader.getBlockNumber({ cacheTime: 0 })))
         throw new ArchiveError(410, 'This publication has expired.');
@@ -381,6 +392,55 @@ export class ArkivArchive implements LevelArchive {
     this.queue = task.catch(() => {});
     return task;
   }
+  retain(ref: ArchiveRef, expiresAt: string): Promise<ArchiveRef> {
+    const task = this.queue.then(async () => {
+      try {
+        const operation = `retain:${ref.entityKey.toLowerCase()}:${expiresAt}`;
+        let plan = this.plan(operation);
+        if (!plan) {
+          await this.reconcilePending();
+          const live = await this.inspect(ref);
+          if (live.record.category !== 'attempt' || live.record.attempt?.outcome !== 'won')
+            throw new ArchiveError(400, 'Only verified winning attempts can be retained.');
+          if (BigInt(expiresAt) <= BigInt(live.ref.expiresAt)) return live.ref;
+          const parent = await this.inspect({
+            entityKey: live.record.attempt.levelKey,
+            expiresAt: '0',
+            txHash: '',
+          });
+          if (
+            !['campaign', 'community'].includes(parent.record.category) ||
+            BigInt(expiresAt) > BigInt(parent.ref.expiresAt)
+          )
+            throw new ArchiveError(400, 'Replay retention cannot exceed its published level.');
+          const body = JSON.stringify({
+              schema: 'attempt',
+              entityKey: ref.entityKey as Hex,
+              expiresAt,
+            } satisfies ExtensionIntent),
+            genesis = await this.identity();
+          this.db
+            .prepare(
+              "INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,'0','','prepared',?)",
+            )
+            .run(operation, hash(body), body, genesis);
+          plan = this.plan(operation)!;
+        }
+        if (plan.phase === 'verified')
+          return {
+            schema: 'attempt' as const,
+            entityKey: plan.entity_key!,
+            txHash: plan.tx_hash!,
+            expiresAt: plan.expires_at!,
+          };
+        return plan.phase === 'prepared' ? await this.submit(plan) : await this.reconcile(plan);
+      } catch (error) {
+        throw this.safe(error, 'Winning attempt retention is pending.');
+      }
+    });
+    this.queue = task.catch(() => {});
+    return task;
+  }
   private invoke(wallet: WalletArkivClient, plan: Plan, params?: TxParams) {
     if (isExtension(plan)) {
       const intent = JSON.parse(plan.body) as ExtensionIntent;
@@ -394,26 +454,34 @@ export class ArkivArchive implements LevelArchive {
     }
     return this.createPublication(wallet, plan, params);
   }
-  async list(): Promise<ArchivedLevel[]> {
+  list() {
+    return this.scan(false);
+  }
+  listAttempts() {
+    return this.scan(true);
+  }
+  private async scan(attempts: boolean): Promise<ArchivedLevel[]> {
     try {
       await this.identity();
       const found: ArchivedLevel[] = [];
       let last: Hex | undefined;
       const scope = and(
         eq('namespace', this.options.namespace),
-        or(
-          eq('category', 'draft'),
-          eq('category', 'community'),
-          eq('category', 'campaign'),
-          eq('category', 'run'),
-        ),
+        attempts
+          ? eq('category', 'attempt')
+          : or(
+              eq('category', 'draft'),
+              eq('category', 'community'),
+              eq('category', 'campaign'),
+              eq('category', 'run'),
+            ),
       );
       // Limit discovery to the level and replay categories this release understands.
       // Bounded current-state traversal, not a historical snapshot. Fail on incomplete scans.
       for (let page = 0; page < 100; page++) {
         const query = this.reader
           .select('*')
-          .from(LevelEntities, { onMismatch: 'throw' })
+          .from(attempts ? AttemptEntities : LevelEntities, { onMismatch: 'throw' })
           .createdBy(this.account.address)
           .where(last ? and(scope, gt('$key', key(last))) : scope)
           .orderBy(asc('$key'))
@@ -423,7 +491,12 @@ export class ArkivArchive implements LevelArchive {
           const record = await this.decode(row);
           found.push({
             record,
-            ref: { entityKey: row.$key, expiresAt: row.$expiresAt.toString(), txHash: '' },
+            ref: {
+              ...(attempts ? { schema: 'attempt' as const } : {}),
+              entityKey: row.$key,
+              expiresAt: row.$expiresAt.toString(),
+              txHash: '',
+            },
           });
         }
         if (result.entities.length < 100) return found;
@@ -565,12 +638,18 @@ export class ArkivArchive implements LevelArchive {
         .fetch();
       return prior.entities.map((row) => ({
         record: decodeThemePublication(row, this.signer, this.options.namespace, row.$key),
-        ref: { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() },
+        ref: {
+          entityKey: row.$key,
+          txHash: '',
+          expiresAt: row.$expiresAt.toString(),
+        },
       }));
     }
     const prior = await this.reader
       .select('*')
-      .from(LevelEntities, { onMismatch: 'throw' })
+      .from(record.category === 'attempt' ? AttemptEntities : LevelEntities, {
+        onMismatch: 'throw',
+      })
       .createdBy(this.account.address)
       .where(
         and(
@@ -585,7 +664,12 @@ export class ArkivArchive implements LevelArchive {
     return Promise.all(
       prior.entities.map(async (row) => ({
         record: await this.decode(row),
-        ref: { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() },
+        ref: {
+          ...(record.category === 'attempt' ? { schema: 'attempt' as const } : {}),
+          entityKey: row.$key,
+          txHash: '',
+          expiresAt: row.$expiresAt.toString(),
+        },
       })),
     );
   }
@@ -593,7 +677,18 @@ export class ArkivArchive implements LevelArchive {
     try {
       await this.identity();
       let plan = await this.prepare(record);
+      if (plan.phase === 'expired')
+        throw new ArchiveError(410, 'Attempt record expired. No replacement transaction was sent.');
       if (plan.phase !== 'prepared') return await this.reconcile(plan);
+      if (
+        record.category === 'attempt' &&
+        BigInt(record.attempt!.expiresAt!) <= (await this.reader.getBlockNumber({ cacheTime: 0 }))
+      ) {
+        this.db
+          .prepare("UPDATE arkiv_writes SET phase='expired' WHERE operation=?")
+          .run(plan.operation);
+        throw new ArchiveError(410, 'Attempt record expired before submission.');
+      }
       await this.reconcilePending();
       const prior = await this.findPrior(record);
       if (prior.length > 1)
@@ -799,7 +894,11 @@ export class ArkivArchive implements LevelArchive {
       )
         throw new Error();
     }
-    const ref = {
+    const body = JSON.parse(plan.body) as ArchiveRecord & ExtensionIntent;
+    const ref: ArchiveRef = {
+      ...((isExtension(plan) ? body.schema === 'attempt' : body.category === 'attempt')
+        ? { schema: 'attempt' as const }
+        : {}),
       entityKey: events[0].entityKey,
       txHash,
       expiresAt: events[0].expiresAt.toString(),
@@ -809,9 +908,18 @@ export class ArkivArchive implements LevelArchive {
         "UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?",
       )
       .run(ref.entityKey, ref.expiresAt, plan.operation);
+    if (
+      ref.schema === 'attempt' &&
+      BigInt(ref.expiresAt) <= (await this.reader.getBlockNumber({ cacheTime: 0 }))
+    ) {
+      this.db
+        .prepare("UPDATE arkiv_writes SET phase='expired' WHERE operation=?")
+        .run(plan.operation);
+      throw new ArchiveError(410, 'Attempt expired before encrypted readback.');
+    }
     let observedExpiry: bigint;
     if (plan.operation.startsWith('theme:')) {
-      const entity = await this.reader.getEntity(ref.entityKey, ThemeEntities),
+      const entity = await this.reader.getEntity(ref.entityKey as Hex, ThemeEntities),
         record = decodeThemePublication(entity, this.signer, this.options.namespace, ref.entityKey);
       observedExpiry = entity.$expiresAt;
       if (
@@ -821,7 +929,7 @@ export class ArkivArchive implements LevelArchive {
       )
         throw new Error();
     } else {
-      const entity = await this.entity(ref.entityKey);
+      const entity = await this.entity(ref.entityKey, ref.schema === 'attempt');
       observedExpiry = entity.$expiresAt;
       this.trusted(entity, isExtension(plan) ? undefined : plan);
       if (entity.$expiresAt < BigInt(ref.expiresAt)) throw new Error();
@@ -838,8 +946,13 @@ export class ArkivArchive implements LevelArchive {
   async reconcilePending() {
     for (const p of this.db
       .prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')")
-      .all() as unknown as Plan[])
-      await this.reconcile(p);
+      .all() as unknown as Plan[]) {
+      try {
+        await this.reconcile(p);
+      } catch (error) {
+        if (!(error instanceof ArchiveError && error.status === 410)) throw error;
+      }
+    }
   }
 
   private safe(error: unknown, fallback: string) {

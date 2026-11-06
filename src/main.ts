@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { WatchScreen } from './betting/WatchScreen';
 import './style.css';
 import type { CampaignSummary, EditorView } from './editor/types';
 let levels: CampaignSummary[] = [];
@@ -214,6 +215,9 @@ const home = new HomeScreen({
   leaderboard: () => {
     location.hash = 'leaderboard';
   },
+  watch: () => {
+    location.hash = 'watch';
+  },
   sound: toggleSound,
   theme: toggleTheme,
   fullscreen,
@@ -222,6 +226,7 @@ const home = new HomeScreen({
     location.hash = '';
   },
 });
+const watch = new WatchScreen(auth);
 const levelApi = new LevelClient(auth);
 const library = new PublishedLevels(levelApi, {
   home: () => {
@@ -241,6 +246,7 @@ const lobby = new PartyLobby({
   },
   ready: (ready) => client?.party({ type: 'ready', ready }),
   start: () => client?.party({ type: 'start' }),
+  broadcast: (enabled) => client?.party({ type: 'broadcast', enabled }),
 });
 const editor = new EditorScreen(levelApi, {
   home: () => {
@@ -294,6 +300,7 @@ function syncScreen() {
   const intent = joinIntent(location.hash);
   const browsing =
     !!auth.user && !intent && /^#(?:solo|coop|play|community)(?:\/|$)/.test(location.hash);
+  const watching = !!auth.user && /^#watch(?:\/[a-f0-9-]{36})?$/.test(location.hash);
   const ranking = !!auth.user && /^#leaderboard(?:\/[a-f0-9-]{36})?$/.test(location.hash);
   const next = !!auth.user && !!intent;
   const nextEditing = !!auth.user && location.hash === '#create';
@@ -317,16 +324,17 @@ function syncScreen() {
   hud.clearSolution();
   if (!editing) playtestEngine = null;
   hud.root.hidden = !playing;
-  home.show(!playing && !editing && !browsing && !ranking && !!auth.user);
+  home.show(!playing && !editing && !browsing && !ranking && !watching && !!auth.user);
   library.show(browsing, location.hash);
   leaderboards.show(ranking, location.hash);
+  watch.show(watching, location.hash);
   editor.show(editing);
   signin.update();
   document.body.dataset.screen = playing
     ? 'play'
     : editing
       ? 'creator'
-      : browsing || ranking
+      : browsing || ranking || watching
         ? 'library'
         : auth.user
           ? 'home'
@@ -648,6 +656,7 @@ if (import.meta.hot)
     editor.destroy();
     library.destroy();
     leaderboards.destroy();
+    watch.destroy();
     lobby.destroy();
     home.root.remove();
     signin.root.remove();

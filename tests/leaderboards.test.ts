@@ -121,7 +121,7 @@ it('pages an ordered ranking without losing the personal rank or leaking identit
 it('improves a best score, ignores slower wins, and ranks earlier equal scores first', async () => {
   const archive = new MemoryArchive(),
     store = new LevelStore(':memory:', archive);
-  const fast = {
+  const fast: import('../src/core/types').LevelConfig = {
     ...levels[0],
     width: 4,
     height: 4,

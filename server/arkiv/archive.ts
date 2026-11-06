@@ -1,6 +1,6 @@
 import type { LevelConfig } from '../../src/core/types';
 import { creationExpiration, HEART_EXTENSION } from './expiration';
-export type LevelCategory = 'draft' | 'community' | 'campaign' | 'run';
+export type LevelCategory = 'draft' | 'community' | 'campaign' | 'run' | 'attempt';
 export interface ArchiveRecord {
   id: string;
   revision: number;
@@ -11,6 +11,15 @@ export interface ArchiveRecord {
   campaignSlot?: number;
   level: LevelConfig;
   lifetimeDays?: 2;
+  attempt?: {
+    matchId: string;
+    levelKey: string;
+    sequence: number;
+    previousHash: string;
+    transcriptHash: string;
+    outcome: 'active' | 'lost' | 'won';
+    expiresAt?: string;
+  };
   run?: { levelKey: string; role: 1 | 2; mode: 'coop' | 'solo'; source: string };
   certification?: {
     proof: import('../../src/certification/model').CertificationProof;
@@ -18,6 +27,7 @@ export interface ArchiveRecord {
   };
 }
 export interface ArchiveRef {
+  schema?: 'attempt';
   entityKey: string;
   txHash: string;
   expiresAt: string;
@@ -29,10 +39,12 @@ export interface ArchivedLevel {
 export interface LevelArchive {
   readonly mode: 'arkiv' | 'test' | 'unconfigured';
   list(): Promise<ArchivedLevel[]>;
+  listAttempts?(): Promise<ArchivedLevel[]>;
   put(record: ArchiveRecord): Promise<ArchiveRef>;
   read(ref: ArchiveRef): Promise<ArchiveRecord>;
   inspect(ref: ArchiveRef): Promise<ArchivedLevel>;
   extend(ref: ArchiveRef, accountId: string): Promise<ArchiveRef>;
+  retain?(ref: ArchiveRef, expiresAt: string): Promise<ArchiveRef>;
   head?(): Promise<bigint>;
   close(): void;
 }
@@ -53,7 +65,17 @@ export class MemoryArchive implements LevelArchive {
   async list() {
     const head = (await this.head?.()) ?? 0n;
     return structuredClone(
-      [...this.entries.values()].filter((entry) => BigInt(entry.ref.expiresAt) > head),
+      [...this.entries.values()].filter(
+        (entry) => entry.record.category !== 'attempt' && BigInt(entry.ref.expiresAt) > head,
+      ),
+    );
+  }
+  async listAttempts() {
+    const head = (await this.head?.()) ?? 0n;
+    return structuredClone(
+      [...this.entries.values()].filter(
+        (entry) => entry.record.category === 'attempt' && BigInt(entry.ref.expiresAt) > head,
+      ),
     );
   }
 
@@ -65,13 +87,16 @@ export class MemoryArchive implements LevelArchive {
         throw new ArchiveError(409, 'Archive revision conflict.');
       return existing.ref;
     }
-    const ref = {
+    const expiration = creationExpiration(record);
+    if (typeof expiration.expiresAt !== 'bigint')
+      throw new Error('Memory archive requires a block deadline.');
+    const relative = ((await this.head?.()) ?? 0n) + expiration.minLifetime;
+    const ref: ArchiveRef = {
+      ...(record.category === 'attempt' ? { schema: 'attempt' as const } : {}),
       entityKey:
         '0x' + crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''),
       txHash: 'test-only',
-      expiresAt: (
-        ((await this.head?.()) ?? 0n) + creationExpiration(record).minLifetime
-      ).toString(),
+      expiresAt: (expiration.expiresAt > relative ? expiration.expiresAt : relative).toString(),
     };
     this.entries.set(key, structuredClone({ record, ref }));
     return ref;
@@ -97,7 +122,17 @@ export class MemoryArchive implements LevelArchive {
     this.hearts.set(operation, structuredClone(live.ref));
     return live.ref;
   }
-
+  async retain(ref: ArchiveRef, expiresAt: string) {
+    const live = await this.inspect(ref);
+    if (live.record.category !== 'attempt' || live.record.attempt?.outcome !== 'won')
+      throw new ArchiveError(400, 'Only verified winning attempts can be retained.');
+    if (BigInt(expiresAt) > BigInt(live.ref.expiresAt)) {
+      const entry = [...this.entries.values()].find((e) => e.ref.entityKey === ref.entityKey)!;
+      entry.ref.expiresAt = expiresAt;
+      return structuredClone(entry.ref);
+    }
+    return live.ref;
+  }
   close() {}
 }
 export class UnconfiguredArchive implements LevelArchive {

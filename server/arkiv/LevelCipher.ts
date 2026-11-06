@@ -1,4 +1,8 @@
 import { importKey, encryptBytes, decryptBytes, CONTENT_TYPE } from 'arkiv-encryption';
+import { GameEngine } from '../../src/core/engine';
+import { DIRECTIONS } from '../../src/network/protocol';
+import { createHash } from 'node:crypto';
+import { canonicalJSON } from './canonical';
 import { cleanDraft } from '../../src/core/levelValidation';
 import { verifySolution } from '../../src/editor/solution';
 import { ArchiveError, type ArchiveRecord } from './archive';
@@ -38,7 +42,7 @@ export class LevelCipher {
         r.id !== expected.id ||
         r.revision !== expected.revision ||
         r.category !== expected.category ||
-        !['draft', 'community', 'campaign', 'run'].includes(r.category) ||
+        !['draft', 'community', 'campaign', 'run', 'attempt'].includes(r.category) ||
         !Number.isSafeInteger(r.revision) ||
         r.revision < 1 ||
         typeof r.ownerId !== 'string' ||
@@ -75,9 +79,57 @@ export class LevelCipher {
           throw new Error();
         checkInput({ request: proof.request, level, salt });
       }
-      const solution = verifySolution(level);
-      if (r.category !== 'draft' && !solution.valid) throw new Error();
-      if (r.certification && r.certification.proof.steps !== solution.step) throw new Error();
+      if (r.category === 'attempt') {
+        const a = r.attempt;
+        if (
+          !a ||
+          typeof a.matchId !== 'string' ||
+          !/^[a-f0-9-]{36}$/.test(a.matchId) ||
+          r.id !== `${a.matchId}:${a.sequence}` ||
+          !/^0x[a-fA-F0-9]{64}$/.test(a.levelKey) ||
+          !Number.isSafeInteger(a.sequence) ||
+          a.sequence < 1 ||
+          !['active', 'lost', 'won'].includes(a.outcome) ||
+          !/^([a-f0-9]{64})?$/.test(a.previousHash) ||
+          !/^[a-f0-9]{64}$/.test(a.transcriptHash) ||
+          !a.expiresAt ||
+          !/^[1-9][0-9]{0,19}$/.test(a.expiresAt)
+        )
+          throw new Error();
+        const moves = [level.solutionP1, level.solutionP2];
+        if (
+          moves[0].length !== moves[1].length ||
+          moves[0].length > level.totalSteps ||
+          moves.some((list) => list.some((d) => !DIRECTIONS.includes(d)))
+        )
+          throw new Error();
+        const hash = createHash('sha256')
+          .update(
+            canonicalJSON({
+              previous: a.previousHash,
+              moves,
+              outcome: a.outcome,
+              sequence: a.sequence,
+            }),
+          )
+          .digest('hex');
+        if (hash !== a.transcriptHash) throw new Error();
+        const engine = new GameEngine({
+          ...level,
+          solutionP1: Array(level.totalSteps).fill('W'),
+          solutionP2: Array(level.totalSteps).fill('W'),
+        });
+        for (let k = 0; k < moves[0].length; k++) {
+          if (engine.selectionError(1, moves[0][k]) || engine.selectionError(2, moves[1][k]))
+            throw new Error();
+          engine.executeStep(moves[0][k], moves[1][k]);
+        }
+        if (a.outcome === 'won' && !verifySolution(level).valid) throw new Error();
+      } else {
+        const solution = verifySolution(level);
+        if (r.category !== 'draft' && !solution.valid) throw new Error();
+        if (r.certification && r.certification.proof.steps !== solution.step) throw new Error();
+      }
       return {
         id: r.id,
         revision: r.revision,
@@ -89,6 +141,7 @@ export class LevelCipher {
         ...(r.lifetimeDays ? { lifetimeDays: r.lifetimeDays } : {}),
         ...(r.category === 'run' ? { run: r.run } : {}),
         ...(r.certification ? { certification: r.certification } : {}),
+        ...(r.category === 'attempt' ? { attempt: r.attempt } : {}),
         level,
       };
     } catch {

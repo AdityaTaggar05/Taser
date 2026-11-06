@@ -3,8 +3,12 @@ import type { ConnectionStatus } from '../network/CoopClient';
 export class PartyLobby {
   readonly root = document.createElement('main');
   private ready = false;
-
-  constructor(actions: { leave: () => void; ready: (ready: boolean) => void; start: () => void }) {
+  constructor(actions: {
+    leave: () => void;
+    ready: (ready: boolean) => void;
+    start: () => void;
+    broadcast: (enabled: boolean) => void;
+  }) {
     this.root.id = 'party-lobby';
     this.root.hidden = true;
     this.root.innerHTML = /* HTML */ `
@@ -30,6 +34,15 @@ export class PartyLobby {
             The other operator takes the opposite role. Both must be Ready; the host starts.
           </small>
         </section>
+        <label class="party-broadcast">
+          <input type="checkbox" data-party="broadcast" />
+          Broadcast this attempt publicly
+        </label>
+        <p>
+          Both operators must opt in. Spectators see both boards after 10 seconds and can predict
+          with test points. Public attempts disable undo; reset counts as a loss.
+        </p>
+        <p class="party-public-status"></p>
         <div class="party-actions">
           <button data-party="ready">Ready</button>
           <button data-party="start">Start challenge ↗</button>
@@ -38,9 +51,15 @@ export class PartyLobby {
       </section>
     `;
     document.body.append(this.root);
+    this.root
+      .querySelector<HTMLInputElement>('[data-party=broadcast]')!
+      .addEventListener('change', (event) =>
+        actions.broadcast((event.target as HTMLInputElement).checked),
+      );
     this.root.addEventListener('click', (event) => {
       const action = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-party]')
         ?.dataset.party;
+      if (action === 'broadcast') return;
       if (action === 'leave') actions.leave();
       else if (action === 'ready') actions.ready(!this.ready);
       else if (action === 'start') actions.start();
@@ -97,6 +116,14 @@ export class PartyLobby {
       card.append(name, detail);
       members.append(card);
     }
+    const broadcast = this.root.querySelector<HTMLInputElement>('[data-party=broadcast]')!;
+    broadcast.checked = !!party?.members.find((m) => m.player === state?.player)?.broadcast;
+    broadcast.disabled = status !== 'connected' || !party;
+    this.root.querySelector('.party-public-status')!.textContent = party?.publicMatchId
+      ? 'Public prediction pool is open. Starting the challenge closes predictions.'
+      : party?.members.some((m) => m.broadcast)
+        ? 'Waiting for both operators to allow broadcasting.'
+        : 'This party is private.';
     this.ready = party?.members.find((m) => m.player === state?.player)?.ready ?? false;
     const ready = this.root.querySelector<HTMLButtonElement>('[data-party=ready]')!;
     ready.textContent = this.ready ? 'Not ready' : 'Ready';

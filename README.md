@@ -237,3 +237,6 @@ For the verified receiver-free CRE rehearsal, see
 `npm run cre:rehearsal` serves a protected read-only campaign snapshot for the real
 CLI simulator. This checks HTTP retrieval, commitments and game replay without
 deploying a receiver, certifying a level or publishing to Arkiv.
+## Public arena and predictions
+
+The `betting` branch adds **Watch & predict**, an opt-in public co-op arena with delayed boards and test-point predictions. Both operators enable broadcasting in the party lobby. See [the arena guide](docs/BETTING.md) for rules, temporary Arkiv move records, winning replay retention and local testing. No monetary betting or token escrow is included.

@@ -146,6 +146,7 @@ export function attachCoop(
         .flushHearts()
         .then(() => store.flushRuns())
         .then(() => store.flushCertifications())
+        .then(() => store.betting.flush())
         .catch(() => {})
         .finally(() => (flushing = false));
     }

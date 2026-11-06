@@ -1,3 +1,4 @@
+import { isLive } from '../../src/core/types';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { CoopRoom, type Peer } from '../CoopRoom';
 import type { AuthService } from '../auth/AuthService';
@@ -11,6 +12,7 @@ interface Member {
   peer: Peer | null;
   bridge: Peer;
   ready: boolean;
+  broadcast?: boolean;
   publicationVersion?: number;
   disconnectedAt?: number;
   runPublication?: 'pending' | 'confirmed';
@@ -24,6 +26,8 @@ interface Session {
   snapshot: PublishedSnapshot;
   members: Map<string, Member>;
   started: boolean;
+  market?: string;
+  lastLease?: number;
   echoName?: string;
   touched: number;
 }
@@ -179,6 +183,7 @@ export class Sessions {
               runPublication: current.runPublication,
               customLevelId: selected.snapshot.slot ? undefined : selected.snapshot.id,
               party: {
+                publicMatchId: selected.market,
                 id: selected.id,
                 code: selected.code,
                 host: current.user.id === selected.host,
@@ -188,6 +193,7 @@ export class Sessions {
                   player: m.role,
                   ready: m.ready,
                   connected: !!m.peer,
+                  broadcast: !!m.broadcast,
                 })),
               },
             });
@@ -226,7 +232,35 @@ export class Sessions {
     if (!entry) return;
     const { session: s, member: m } = entry;
     s.touched = Date.now();
-    const command = value as { type?: unknown; ready?: unknown; revision?: unknown };
+    const command = value as {
+      type?: unknown;
+      ready?: unknown;
+      revision?: unknown;
+      enabled?: unknown;
+    };
+    if (command?.type === 'broadcast') {
+      if (s.mode !== 'coop' || s.started || typeof command.enabled !== 'boolean') {
+        peer.send({ type: 'error', message: 'Change public broadcasting in the co-op lobby.' });
+        return;
+      }
+      if (m.broadcast === command.enabled) return;
+      this.cancelMarket(s);
+      m.broadcast = command.enabled;
+      m.ready = false;
+      if (s.members.size === 2 && [...s.members.values()].every((member) => member.broadcast)) {
+        s.market = this.store.betting.create(
+          s.snapshot,
+          [...s.members.values()].map((member) => ({
+            id: member.user.id,
+            name: member.user.displayName,
+          })),
+          s.room.observe(),
+        );
+        s.lastLease = Date.now();
+      }
+      s.room.notify();
+      return;
+    }
     if (command?.type === 'lobby') {
       if (s.mode !== 'coop' || !s.started || !s.room.returnToLobby(command.revision)) {
         peer.send({
@@ -236,8 +270,12 @@ export class Sessions {
         });
         return;
       }
+      s.market = undefined;
       s.started = false;
-      for (const member of s.members.values()) member.ready = false;
+      for (const member of s.members.values()) {
+        member.ready = false;
+        member.broadcast = false;
+      }
       s.room.notify();
       return;
     }
@@ -257,6 +295,18 @@ export class Sessions {
         peer.send({ type: 'error', message: 'Both operators must be connected and Ready.' });
         return;
       }
+      if (s.market) {
+        try {
+          this.store.betting.lock(s.market);
+        } catch {
+          peer.send({
+            type: 'error',
+            message:
+              'The prediction window expired. Disable and re-enable public broadcasting before starting.',
+          });
+          return;
+        }
+      }
       s.started = true;
       s.room.startStudy();
       s.room.notify();
@@ -269,7 +319,48 @@ export class Sessions {
       });
       return;
     }
+    if (s.market) {
+      const status = this.store.betting.status(s.market);
+      if (status !== 'locked') {
+        peer.send({
+          type: 'error',
+          message: 'This public attempt is settled. Return to the party to try again.',
+        });
+        return;
+      }
+      if (command.type === 'undo') {
+        peer.send({
+          type: 'error',
+          message:
+            'Public prediction matches do not allow undo. Reset ends this attempt as a loss.',
+        });
+        return;
+      }
+      if (command.type === 'reset') {
+        if (command.revision !== s.room.observe().revision) {
+          peer.send({ type: 'error', message: 'The timeline changed. Try again.' });
+          return;
+        }
+        s.room.forfeit();
+        this.store.betting.record(s.market, s.room.observe(), 'lost');
+        this.store.betting.settle(s.market, 'fail');
+        return;
+      }
+    }
+    const before = s.room.observe();
     s.room.receive(m.bridge, value);
+    const after = s.room.observe();
+    if (
+      s.market &&
+      (after.state.step !== before.state.step || after.state.status !== before.state.status)
+    ) {
+      const outcome =
+        after.state.status === 'VICTORY' ? 'won' : isLive(after.state.status) ? 'active' : 'lost';
+      this.store.betting.record(s.market, after, outcome);
+      s.lastLease = Date.now();
+      if (outcome !== 'active')
+        this.store.betting.settle(s.market, outcome === 'won' ? 'escape' : 'fail');
+    }
   }
 
   disconnect(peer: Peer, intentional = false) {
@@ -282,6 +373,7 @@ export class Sessions {
     m.disconnectedAt = Date.now();
     s.touched = Date.now();
     if (intentional) {
+      this.cancelMarket(s);
       if (s.host === m.user.id || s.mode === 'solo') {
         this.end(s, 'The host left. This session has ended.');
         return;
@@ -297,8 +389,17 @@ export class Sessions {
       s.room.notify();
     }
   }
-
+  private cancelMarket(s: Session) {
+    if (!s.market) return;
+    const status = this.store.betting.status(s.market);
+    if (status === 'open' || status === 'locked') {
+      this.store.betting.record(s.market, s.room.observe(), 'lost');
+      this.store.betting.settle(s.market, 'void');
+    }
+    s.market = undefined;
+  }
   private end(s: Session, message: string) {
+    this.cancelMarket(s);
     this.sessions.delete(s.id);
     for (const m of s.members.values())
       if (m.peer) {
@@ -311,7 +412,19 @@ export class Sessions {
   }
 
   sweep() {
+    this.store.betting.sweep();
     for (const s of [...this.sessions.values()]) {
+      if (s.market) {
+        const status = this.store.betting.status(s.market);
+        if (status === 'void') {
+          this.end(s, 'The public attempt timed out. Predictions were refunded.');
+          continue;
+        }
+        if (status === 'locked' && Date.now() - (s.lastLease ?? 0) > 45_000) {
+          this.store.betting.record(s.market, s.room.observe(), 'active');
+          s.lastLease = Date.now();
+        }
+      }
       const expired = [...s.members.values()].filter(
         (m) => !m.peer && m.disconnectedAt !== undefined && Date.now() - m.disconnectedAt > 45_000,
       );
@@ -319,6 +432,7 @@ export class Sessions {
         this.end(s, 'The host disconnected and the party expired.');
         continue;
       }
+      if (expired.length) this.cancelMarket(s);
       s.room.expire();
       for (const member of expired) {
         s.members.delete(member.user.id);
