@@ -24,7 +24,8 @@
     "cre:check": "node --import tsx scripts/cre/operator.mts check",
     "cre:deploy": "node --import tsx scripts/cre/operator.mts deploy",
     "cre:register": "node --import tsx scripts/cre/operator.mts register",
-    "cre:simulate": "node --import tsx scripts/cre/operator.mts simulate"
+    "cre:simulate": "node --import tsx scripts/cre/operator.mts simulate",
+    "cre:rehearsal": "node --env-file-if-exists=.env.local --import tsx scripts/cre/rehearsal.mts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",

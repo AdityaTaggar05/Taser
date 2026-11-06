@@ -1,6 +1,7 @@
 import {GameEngine} from '../core/engine';
 import {validateLevel} from '../core/level';
 import type {LevelConfig} from '../core/types';
+import {cloneData} from '../core/clone';
 export interface SolutionCheck {valid:boolean;step:number;message:string}
 /** This verifies one witness, rather than enumerating every possible solution. */
 export function verifySolution(level:LevelConfig):SolutionCheck {
@@ -15,4 +16,4 @@ export function verifySolution(level:LevelConfig):SolutionCheck {
     return {valid:false,step:engine.state.step,message:'The recorded solution must reach both open exits.'};
   }catch(error){return {valid:false,step:0,message:error instanceof Error?error.message:'Invalid level.'};}
 }
-export function simulationLevel(draft:LevelConfig){const level=structuredClone(draft);level.solutionP1=Array(level.totalSteps).fill('W');level.solutionP2=Array(level.totalSteps).fill('W');validateLevel(level);return level;}
+export function simulationLevel(draft:LevelConfig){const level=cloneData(draft);level.solutionP1=Array(level.totalSteps).fill('W');level.solutionP2=Array(level.totalSteps).fill('W');validateLevel(level);return level;}

@@ -4,7 +4,7 @@ import {LevelError,type LevelStore} from '../levels/LevelStore';
 /** A separate operator credential, never a browser session or Arkiv access key. */
 export class CertificationApi {
   private count=0;private until=0;
-  constructor(private store:LevelStore){}
+  constructor(private store:Pick<LevelStore,'pendingCertifications'|'verificationRequest'|'verificationInput'>){}
   async handle(req:IncomingMessage,res:ServerResponse){
     const send=(status:number,value:unknown)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(value));};
     const token=process.env.CRE_API_TOKEN??'',provided=req.headers.authorization??'',expected='Bearer '+token;

@@ -76,10 +76,10 @@ async function run(){
     const submission=await request();
     durable(resolve(root,'config.json'),{apiBase:env.CRE_API_BASE??'http://localhost:5173',registry:required('CRE_REGISTRY_ADDRESS'),mode:'simulation',authorizedKeys:[]});
     writeFileSync(resolve(root,'project.yaml'),'staging-settings:\n  rpcs:\n    - chain-name: ethereum-testnet-sepolia\n      url: '+JSON.stringify(required('CRE_SEPOLIA_RPC_URL'))+'\n',{mode:0o600});
-    writeFileSync(resolve(root,'workflow.yaml'),'staging-settings:\n  user-workflow:\n    workflow-name: taser-level-certification\n  workflow-artifacts:\n    workflow-path: ../../cre/workflow/main.ts\n    config-path: ./config.json\n    secrets-path: ../../cre/workflow/secrets.yaml\n',{mode:0o600});
+    writeFileSync(resolve(root,'workflow.yaml'),'staging-settings:\n  user-workflow:\n    workflow-name: taser-level-certification\n    deployment-registry: private\n  workflow-artifacts:\n    workflow-path: ../../cre/workflow/main.ts\n    config-path: ./config.json\n    secrets-path: ../../cre/workflow/secrets.yaml\n',{mode:0o600});
     durable(resolve(root,'trigger.json'),{submissionId:submission.id});
     const childEnv={...env};for(const key of Object.keys(childEnv))if(key.startsWith('ARKIV_'))delete childEnv[key];
-    const child=spawnSync(env.CRE_BIN??'cre',['workflow','simulate','.','--target','staging-settings','--non-interactive','--trigger-index','0','--http-payload','@trigger.json','--wasm','workflow.wasm'],{cwd:root,env:childEnv,stdio:'inherit'});
+    const child=spawnSync(env.CRE_BIN??'cre',['workflow','simulate','.','--target','staging-settings','--non-interactive','--trigger-index','0','--http-payload','trigger.json','--wasm','workflow.wasm'],{cwd:root,env:childEnv,stdio:'inherit'});
     if(child.status!==0)throw new Error('CRE simulation did not complete. Check CLI login, registered request, configuration and RPC.');return;
   }
   throw new Error('Unknown CRE command.');

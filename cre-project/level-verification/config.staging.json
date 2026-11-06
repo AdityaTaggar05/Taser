@@ -1,0 +1,5 @@
+{
+  "mode": "local-simulation",
+  "apiBase": "http://127.0.0.1:5185",
+  "authorizedKeys": []
+}

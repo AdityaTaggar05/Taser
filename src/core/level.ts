@@ -1,5 +1,6 @@
 import { inBounds, hasCoord, type LevelConfig, type Coord, DIR_DELTA } from './types';
 import {validateDraft} from './levelValidation';
+import {cloneData} from './clone';
 
 /** Public boundary shared by the runtime and a future editor's JSON import/export. */
 export function validateLevel(value: unknown): asserts value is LevelConfig {
@@ -33,4 +34,4 @@ export function validateLevel(value: unknown): asserts value is LevelConfig {
   if(l.solutionP1.length!==l.solutionP2.length||l.solutionP1.length<=l.weldStep||l.solutionP1.length>l.totalSteps)throw new Error('Reference solutions must contain matching move lists ending after the weld and within the timeline.');
   for (const solution of [l.solutionP1,l.solutionP2]) if(!solution.every(d=>Object.hasOwn(DIR_DELTA,d)))throw new Error('Reference solutions contain an invalid direction.');
 }
-export function parseLevel(json: string): LevelConfig { const value: unknown = JSON.parse(json); validateLevel(value); return structuredClone(value); }
+export function parseLevel(json: string): LevelConfig { const value: unknown = JSON.parse(json); validateLevel(value); return cloneData(value); }
