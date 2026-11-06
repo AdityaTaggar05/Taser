@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import './style.css';
-import type {CampaignSummary} from './editor/types';
+import type {CampaignSummary,EditorView} from './editor/types';
 let levels:CampaignSummary[]=[];
 import { isLive, type Direction, type StepSnapshot } from './core/types';
 import { BoardView } from './render/BoardView';
@@ -21,6 +21,7 @@ import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
 import {EditorScreen} from './editor/EditorScreen';
 import {LevelClient} from './editor/LevelClient';
+import type {GameEngine} from './core/engine';
 import {registeredThemes} from './assets/catalog';
 import {applyThemeInterface} from './assets/interface';
 import './assets/theme.css';
@@ -31,6 +32,8 @@ let connectingParty=false;
 let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
+let playtestEngine:GameEngine|null=null;
+let playtestView:EditorView='author';
 const audio=new GameAudio(),completed=new Set<number>();
 try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme))pack=environments[savedTheme];}catch{/* Preferences are optional. */}
 function view(){return client?.state?.level?new RemoteView(client.state.level,client.state,inspection):null;}
@@ -69,7 +72,17 @@ const home=new HomeScreen({play:()=>{location.hash='coop';},solo:()=>{location.h
 const levelApi=new LevelClient(auth);
 const library=new PublishedLevels(levelApi,{home:()=>{location.hash='';},fullscreen});
 const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'})});
-const editor=new EditorScreen(levelApi,{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
+const editor=new EditorScreen(levelApi,{
+  home:()=>{location.hash='';},
+  play:id=>{location.hash='play/'+id;},
+  fullscreen,
+  onPlaytest:(engine,viewMode,previous,animate,sound)=>{
+    playtestEngine=engine;
+    playtestView=viewMode;
+    if(sound)audio.play(sound);
+    scene?.redraw(previous,animate);
+  }
+});
 let catalogUser:string|null=null,catalogRequest=0;
 async function loadCatalog(){
   const user=auth.user?.id??null;if(user===catalogUser)return;catalogUser=user;const request=++catalogRequest;hud.clearSolution();levels=[];hud.setLevels(levels);if(!user)return;
@@ -87,6 +100,7 @@ function syncScreen(){
   if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
+  if(!editing)playtestEngine=null;
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!!auth.user);library.show(browsing,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing?'library':auth.user?'home':'signin';
   connectingParty=intent?.kind==='invite'||intent?.kind==='create'&&intent.mode==='coop';
   if(playing&&intent){client=new CoopClient(receive,async()=>{await artworkAvailable;return auth.ticket();},()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
@@ -113,11 +127,48 @@ class ChamberScene extends Phaser.Scene {
   constructor(){super('chamber');}
   preload(){for(const p of registeredThemes)preloadEnvironment(this,p);this.load.on('loaderror',()=>{if(!document.querySelector('.theme-asset-warning')){const el=document.createElement('div');el.className='theme-asset-warning';el.setAttribute('role','alert');el.textContent='Artwork could not be loaded. Check the asset gateway and reload to retry.';document.body.append(el);}});}
   create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch{this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;resolveArtwork();this.scale.on('resize',()=>this.redraw());this.redraw();}
+  redrawPlaytest(previous?:StepSnapshot,animate=false){
+    if(!playtestEngine)return;
+    const id=playtestEngine.level.environment??'foundry';
+    const environment=Object.hasOwn(environments,id)?environments[id]:environments.foundry;
+    this.title?.clear();
+    this.cameras.main.setBackgroundColor(environment.palette.background);
+    const stage=editor.root.querySelector('.creator-stage');
+    if(!stage)return;
+    const rect=stage.getBoundingClientRect();
+    const index=playtestView==='p1'?0:playtestView==='p2'?1:2;
+    if(!this.board||this.board.index!==index){
+      this.board?.destroy();
+      this.board=new BoardView(this,index);
+    }
+    this.board.render(playtestEngine,{
+      x:rect.left,
+      y:rect.top,
+      width:rect.width,
+      height:rect.height
+    },environment,previous,animate);
+  }
   redraw(previous?:StepSnapshot,animate=false){
     if(!this.artworkReady)return;
     this.cameras.main.setBackgroundColor(pack.palette.background);
     document.body.dataset.environment=pack.id;
-    if(!playing||client?.state?.party?.started===false){this.board?.destroy();this.board=undefined;if(editing)this.title?.clear();else this.title?.draw(this.scale.width,this.scale.height,pack);refresh();return;}
+    if(editing){
+      if(playtestEngine){
+        this.redrawPlaytest(previous,animate);
+      }else{
+        this.board?.destroy();
+        this.board=undefined;
+        this.title?.clear();
+      }
+      return;
+    }
+    if(!playing||client?.state?.party?.started===false){
+      this.board?.destroy();
+      this.board=undefined;
+      this.title?.draw(this.scale.width,this.scale.height,pack);
+      refresh();
+      return;
+    }
     this.title?.clear();
     const current=view();
     if(current){

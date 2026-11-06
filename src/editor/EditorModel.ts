@@ -2,7 +2,21 @@ import {GameEngine} from '../core/engine';
 import {cleanDraft} from '../core/levelValidation';
 import {hasCoord,sameCoord,type Coord,type Direction,type LevelConfig} from '../core/types';
 import {simulationLevel,verifySolution} from './solution';
-import type {EditorTool} from './types';
+import type {EditorObjectTool,EditorTool} from './types';
+const coordKeys={p1:'initialP1',p2:'initialP2',exit1:'exitP1',exit2:'exitP2',receiver:'laserReceiverP1',midpoint:'midpointSwitchRequired'} as const;
+function placeObject(level:LevelConfig,tool:EditorObjectTool,pos:Coord,box:number,from?:Coord){
+  if(tool in coordKeys){Object.assign(level,{[coordKeys[tool as keyof typeof coordKeys]]:[...pos]});return;}
+  if(tool==='laser'){level.laserEmitter={pos:[...pos],dir:level.laserEmitter?.dir??'D'};return;}
+  if(tool==='switch1'||tool==='switch2'){
+    const key=tool==='switch1'?'switchesP1':'switchesP2';
+    if(from)level[key]=level[key].filter(p=>!sameCoord(p,from));
+    if(!hasCoord(level[key],pos))level[key].push([...pos]);
+    return;
+  }
+  const key=tool==='box1'?'initialBoxesP1':tool==='box2'?'initialBoxesP2':'weldTargets';
+  if(key==='weldTargets'&&!level.weldTargets?.length)level.weldTargets=level.initialBoxesP1.map(p=>[...p]);
+  if(level[key]?.[box])level[key]![box]=[...pos];
+}
 export function blankLevel():LevelConfig{return {id:1,name:'Untitled chamber',subtitle:'A new temporal puzzle',width:7,height:5,totalSteps:8,weldStep:4,walls:[],iceTiles:[],initialP1:[1,2],initialP2:[7,4],initialBoxesP1:[[2,3]],initialBoxesP2:[[6,3]],weldTargets:[[4,3]],switchesP1:[[6,3]],switchesP2:[[2,3]],exitP1:[5,4],exitP2:[3,2],solutionP1:[],solutionP2:[],environment:'foundry'};}
 export class EditorModel {
   level:LevelConfig;
@@ -22,15 +36,48 @@ export class EditorModel {
   paint(tool:EditorTool,pos:Coord,box:number){return this.edit(l=>{
     const remove=(key:'walls'|'iceTiles'|'switchesP1'|'switchesP2')=>{l[key]=(l[key]??[]).filter(p=>!sameCoord(p,pos));};
     const add=(key:'walls'|'iceTiles'|'switchesP1'|'switchesP2')=>{if(!hasCoord(l[key],pos))(l[key]??=[]).push([...pos]);};
-    if(tool==='wall'){remove('iceTiles');add('walls');return;}
+    if(tool==='remove'){
+      // Remove one overlay at a time, keeping paired box identities aligned.
+      if(l.initialBoxesP1.length>1){
+        const index=l.initialBoxesP1.findIndex(p=>sameCoord(p,pos));
+        const pair=index===-1?l.initialBoxesP2.findIndex(p=>sameCoord(p,pos)):index;
+        if(pair!==-1){
+          l.initialBoxesP1.splice(pair,1);l.initialBoxesP2.splice(pair,1);
+          l.weldTargets?.splice(pair,1);
+          return;
+        }
+      }
+      for(const key of ['switchesP1','switchesP2'] as const)if(hasCoord(l[key],pos)){remove(key);return;}
+      if(l.midpointSwitchRequired&&sameCoord(l.midpointSwitchRequired,pos)){delete l.midpointSwitchRequired;return;}
+      if(l.laserEmitter&&sameCoord(l.laserEmitter.pos,pos)){delete l.laserEmitter;return;}
+      if(l.laserReceiverP1&&sameCoord(l.laserReceiverP1,pos)){delete l.laserReceiverP1;return;}
+      for(const key of ['iceTiles','walls'] as const)if(hasCoord(l[key],pos)){remove(key);return;}
+      return;
+    }
+    if(tool==='wall'){
+      const objects=[l.initialP1,l.initialP2,l.exitP1,l.exitP2,
+        ...l.initialBoxesP1,...l.initialBoxesP2,...(l.weldTargets??[]),
+        ...l.switchesP1,...l.switchesP2,l.midpointSwitchRequired,l.laserEmitter?.pos,l.laserReceiverP1];
+      if(objects.some(p=>p&&sameCoord(p,pos)))return;
+      remove('iceTiles');add('walls');return;
+    }
     remove('walls');
     if(tool==='floor'||tool==='erase'){remove('iceTiles');if(tool==='floor')return;remove('switchesP1');remove('switchesP2');if(l.midpointSwitchRequired&&sameCoord(l.midpointSwitchRequired,pos))delete l.midpointSwitchRequired;if(l.laserEmitter&&sameCoord(l.laserEmitter.pos,pos))delete l.laserEmitter;if(l.laserReceiverP1&&sameCoord(l.laserReceiverP1,pos))delete l.laserReceiverP1;return;}
-    if(tool==='ice'){add('iceTiles');return;}
-    const coordKeys={p1:'initialP1',p2:'initialP2',exit1:'exitP1',exit2:'exitP2',receiver:'laserReceiverP1',midpoint:'midpointSwitchRequired'} as const;
-    if(tool in coordKeys){Object.assign(l,{[coordKeys[tool as keyof typeof coordKeys]]:[...pos]});return;}
-    if(tool==='laser'){l.laserEmitter={pos:[...pos],dir:l.laserEmitter?.dir??'D'};return;}
-    if(tool==='switch1'||tool==='switch2'){add(tool==='switch1'?'switchesP1':'switchesP2');return;}
-    const key=tool==='box1'?'initialBoxesP1':tool==='box2'?'initialBoxesP2':'weldTargets';if(key==='weldTargets'&&!l.weldTargets?.length)l.weldTargets=l.initialBoxesP1.map(p=>[...p]);l[key]![box]=[...pos];
+    if(tool==='ice'){if(hasCoord(l.iceTiles,pos))remove('iceTiles');else add('iceTiles');return;}
+    if(tool==='midpoint'&&l.midpointSwitchRequired&&sameCoord(l.midpointSwitchRequired,pos)){delete l.midpointSwitchRequired;return;}
+    if(tool==='receiver'&&l.laserReceiverP1&&sameCoord(l.laserReceiverP1,pos)){delete l.laserReceiverP1;return;}
+    if(tool==='laser'&&l.laserEmitter&&sameCoord(l.laserEmitter.pos,pos)){delete l.laserEmitter;return;}
+    if(tool==='switch1'||tool==='switch2'){
+      const key=tool==='switch1'?'switchesP1':'switchesP2';
+      if(hasCoord(l[key],pos)){remove(key);return;}
+    }
+    placeObject(l,tool,pos,box);
+  });}
+  moveObject(kind:EditorObjectTool,from:Coord,to:Coord,boxIndex=0){return this.edit(l=>{
+    const target:Coord=[Math.max(1,Math.min(to[0],l.width)),Math.max(1,Math.min(to[1],l.height))];
+    if(sameCoord(from,target))return;
+    l.walls=l.walls.filter(p=>!sameCoord(p,target));
+    placeObject(l,kind,target,boxIndex,from);
   });}
   resize(width:number,height:number){return this.edit(l=>{
     l.width=width;l.height=height;const clamp=(p:Coord):Coord=>[Math.min(p[0],width),Math.min(p[1],height)];

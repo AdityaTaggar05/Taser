@@ -4,7 +4,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import {custom,encodeEventTopics,encodeAbiParameters,keccak256,parseTransaction,type Hex,type TransactionSerialized} from 'viem';
+import {custom,bytesToHex,encodeEventTopics,encodeAbiParameters,keccak256,parseTransaction,type Hex,type TransactionSerialized} from 'viem';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {str,u64,bytes} from '@arkiv-network/sdk/schema';
 import {ENTITY_EVENTS_ABI} from '@arkiv-network/sdk';
@@ -156,4 +156,53 @@ it('authenticates encrypted run provenance and lifetime without exposing move se
   const encrypted=await cipher.encrypt(r);expect(new TextDecoder().decode(encrypted)).not.toContain('solutionP2');expect(await cipher.decrypt(encrypted,{id:r.id,revision:1,category:'run'})).toEqual(r);
   await expect(cipher.decrypt(await cipher.encrypt({...r,run:{...r.run!,role:3 as 1}}),{id:r.id,revision:1,category:'run'})).rejects.toThrow('validation');
   await expect(cipher.decrypt(await cipher.encrypt({...r,lifetimeDays:undefined}),{id:r.id,revision:1,category:'run'})).rejects.toThrow('validation');
+});
+
+it('loads supported level and run categories from a mixed archive across pages and still rejects untrusted levels',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'taser-catalog-')),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
+  const encryptionKey=generateKey(),cipher=new LevelCipher(encryptionKey,'test');
+  const queries:string[]=[];
+  const rows=await Promise.all(Array.from({length:106},async(_,i)=>{
+    const category=i<3?'other':i===3?'campaign':i===4?'community':i===5?'run':'draft';
+    const r={...record(),category:category==='other'?'draft':category,...(category==='run'?{id:'f'.repeat(64),lifetimeDays:2,run:{levelKey:'0x'+'a'.repeat(64),role:2,mode:'solo',source:'creator'}}:{}),...(category==='campaign'?{campaignSlot:1}:{})} as ArchiveRecord;
+    return {key:('0x'+(i+1).toString(16).padStart(64,'0')) as Hex,creator:account.address,owner:account.address,
+      creationFlags:1,expiresAt:'0xffffff',attributes:[
+        {name:'arkiv.schema',type:'str',value:'weldpoint_levels_v1'},
+        {name:'namespace',type:'str',value:'test'},
+        {name:'record_id',type:'str',value:r.id},
+        {name:'revision',type:'u64',value:'0x1'},
+        {name:'category',type:'str',value:category},
+        {name:'content_type',type:'str',value:CONTENT_TYPE},
+        {name:'ciphertext',type:'bytes',value:category==='other'?'0x00':bytesToHex(await cipher.encrypt(r))},
+      ]};
+  }));
+  const transport=custom({async request({method,params}){
+    if(method==='eth_chainId')return '0x76edaf';
+    if(method==='eth_getBlockByNumber')return {hash:'0x'+'00'.repeat(32)};
+    if(method==='arkiv_query'){
+      const [query,options]=params as unknown as [string,{limit:string}];queries.push(query);
+      const categories=[...query.matchAll(/category = str\('([^']+)'\)/g)].map(m=>m[1]);
+      const cursor=query.match(/\$key > key\((0x[0-9a-f]+)\)/)?.[1];
+      const data=rows.filter(row=>(!categories.length||categories.includes(String(row.attributes.find(a=>a.name==='category')!.value)))&&(!cursor||row.key>cursor));
+      return {data:data.slice(0,Number(options.limit)),blockNumber:'0x64'};
+    }
+    throw new Error('Unexpected catalog RPC '+method);
+  }},{retryCount:0});
+  const archive=new ArkivArchive({accessKey:'test-key',privateKey,encryptionKey,namespace:'test',databasePath:join(directory,'journal.sqlite'),maxTxFee:'0',dailyBudget:'0'},transport);
+  try{
+    const entries=await archive.list();expect(entries).toHaveLength(103);
+    expect(new Set(entries.map(e=>e.record.category))).toEqual(new Set(['draft','community','campaign','run']));
+    expect(queries).toHaveLength(2);
+    for(const query of queries){
+      expect(query).toContain("namespace = str('test')");
+      expect(query.toLowerCase()).toContain(account.address.toLowerCase());
+      expect(query).toContain("(category = str('draft') OR category = str('community') OR category = str('campaign') OR category = str('run'))");
+    }
+    expect(queries[1]).toContain(rows[102].key);
+    rows[3].creationFlags=0;await expect(archive.list()).rejects.toThrow('Untrusted');
+    rows[3].creationFlags=1;rows[3].creator=privateKeyToAccount(generatePrivateKey()).address;
+    await expect(archive.list()).rejects.toThrow('Untrusted');
+    rows[3].creator=account.address;rows[3].attributes.find(a=>a.name==='ciphertext')!.value='0x00';
+    await expect(archive.list()).rejects.toThrow('authentication');
+  }finally{archive.close();rmSync(directory,{recursive:true,force:true});}
 });
