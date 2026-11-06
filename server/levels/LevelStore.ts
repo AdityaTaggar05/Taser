@@ -16,7 +16,7 @@ interface Row {id:string;owner_id:string;owner_name:string;draft:string;revision
 export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:ArchiveRef;id?:string;slot?:number}
 /** SQLite is a private projection and write-recovery cache. Arkiv confirms every saved revision. */
 export class LevelStore {
-  private closed=false;private observedHead=0n;private availabilityAt=0;
+  private closed=false;private observedHead=0n;private availabilityAt=0;private heartCursor=0;
   private db:DatabaseSync;private queue:Promise<unknown>=Promise.resolve();
   get storage(){return this.archive.mode;}
   constructor(path:string,readonly archive:LevelArchive=new UnconfiguredArchive()){
@@ -160,9 +160,13 @@ export class LevelStore {
     this.db.prepare('UPDATE level_publications SET ref=? WHERE entity_key=?').run(JSON.stringify(live.ref),entityKey);
   }
   flushHearts(){return this.serial(async()=>{
-    for(const row of this.db.prepare("SELECT account_id,entity_key FROM level_hearts WHERE status='pending' ORDER BY rowid LIMIT 4").all()){
+    const rows=this.db.prepare("SELECT rowid,account_id,entity_key FROM level_hearts WHERE status='pending' AND rowid>? ORDER BY rowid LIMIT 4").all(this.heartCursor);
+    if(!rows.length){this.heartCursor=0;return;}
+    for(const row of rows){
       if(this.closed)return;
-      try{await this.publishHeart(String(row.account_id),String(row.entity_key));}catch{break;}
+      this.heartCursor=Number(row.rowid);
+      // One unavailable/expired publication must not starve other pending hearts.
+      try{await this.publishHeart(String(row.account_id),String(row.entity_key));}catch{/* Reconcile this same operation on a later bounded sweep. */}
     }
   });}
   canReveal(accountId:string,entityKey:string){return !!this.db.prepare('SELECT 1 FROM level_wins WHERE account_id=? AND entity_key=?').get(accountId,entityKey);}

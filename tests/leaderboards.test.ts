@@ -104,3 +104,18 @@ it('rejects expired boards and hearts while keeping global completion history',a
     await store.hydrate();expect(store.completions()).toEqual([{accountId:'a',levelId:'campaign:1'}]);
   }finally{await store.drain();store.close();}
 });
+
+it('recovers pending hearts in bounded sweeps without starvation from one unavailable publication',async()=>{
+  const archive=new MemoryArchive(),store=new LevelStore(':memory:',archive),extend=archive.extend.bind(archive);let recovering=false;
+  try{
+    await store.seed(levels);const campaign=store.campaign();
+    archive.extend=async(ref,account)=>{if(!recovering||ref.entityKey===campaign[0].entityKey)throw new Error('unavailable');return extend(ref,account);};
+    for(const level of campaign.slice(0,6))await expect(store.heart(level.id,'a',level.entityKey)).rejects.toThrow('unavailable');
+    recovering=true;await store.flushHearts();
+    expect((await store.leaderboard(campaign[3].id,'a')).hearts.hearted).toBe(true);
+    expect((await store.leaderboard(campaign[4].id,'a')).hearts.hearted).toBe(false);
+    await store.flushHearts();
+    expect((await store.leaderboard(campaign[5].id,'a')).hearts.hearted).toBe(true);
+    expect((await store.leaderboard(campaign[0].id,'a')).hearts.pending).toBe(true);
+  }finally{await store.drain();store.close();}
+});
