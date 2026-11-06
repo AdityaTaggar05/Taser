@@ -49,3 +49,10 @@ it('recovers durable failed move writes after restart, deduplicates frozen inten
     expect(saved).not.toHaveProperty('level');expect((await archive.list()).some(e=>(e.record as ArchiveWrite).category==='move')).toBe(false);
   }finally{await store.drain();store.close();rmSync(directory,{recursive:true,force:true});}
 });
+it('does not record an unusable solo replay, but records accepted turns that end in a game failure',()=>{
+  const turns:number[]=[];const peer=new TestPeer();
+  const room=new CoopRoom(()=>crypto.randomUUID(),Date.now,45_000,undefined,undefined,undefined,undefined,undefined,{solo:{player:1,moves:[]},turn:(_,sequence)=>turns.push(sequence)});
+  room.join(peer,'a',undefined,undefined,1);room.receive(peer,{type:'move',direction:'U',revision:peer.state.revision});expect(peer.state.history.at(-1)?.status).toBe('OUT_OF_TIME');expect(turns).toEqual([]);
+  const short=new CoopRoom(()=>crypto.randomUUID(),Date.now,45_000,undefined,undefined,undefined,undefined,undefined,{solo:{player:1,moves:['D']},turn:(_,sequence)=>turns.push(sequence)});
+  const human=new TestPeer();short.join(human,'a',undefined,undefined,1);short.receive(human,{type:'move',direction:'U',revision:human.state.revision});expect(human.state.history.at(-1)?.status).toBe('OUT_OF_TIME');expect(turns).toEqual([1]);
+});

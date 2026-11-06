@@ -218,3 +218,21 @@ it('encrypts move contents and exposes submitted versus verified status without 
     f.readback(true);const ref=await f.archive.put(move);expect(f.archive.writeStatus(move)).toMatchObject({state:'confirmed',entityKey:ref.entityKey});await f.archive.put(move);expect(f.sends).toBe(1);
   }finally{f.close();}
 });
+it('propagates uncertain and reverted transaction hashes to the activity feed and never resends',async()=>{
+  const {ActivityStore}=await import('../server/arkiv/ActivityStore');const f=writerFixture(),db=new DatabaseSync(':memory:'),activity=new ActivityStore(db,f.archive),r=record(),id=activity.enqueue(r,['a'],'Publication');
+  try{
+    await expect(activity.publish(id)).rejects.toThrow();expect(activity.feed('a').activities[0]).toMatchObject({state:'pending',txHash:expect.stringMatching(/^0x/)});expect(activity.feed('other').activities).toEqual([]);
+    f.receipt(true);const receipt=await f.reader.getTransactionReceipt({hash:activity.feed('a').activities[0].txHash as Hex});vi.mocked(f.reader.getTransactionReceipt).mockResolvedValue({...receipt,status:'reverted'});
+    await expect(activity.publish(id)).rejects.toThrow('reverted');expect(activity.feed('a').activities[0]).toMatchObject({state:'failed',txHash:expect.stringMatching(/^0x/)});expect(activity.feed('a').activities[0].entityKey).toBeUndefined();
+    await expect(activity.publish(id)).rejects.toThrow();expect(f.sends).toBe(1);
+  }finally{db.close();f.close();}
+});
+it('serves account-scoped transaction activity over authenticated HTTP without exposing move payloads',async()=>{
+  const f=await authFixture();try{
+    const a=f.browser(),b=f.browser(),anonymous=f.browser();await a.login();await b.login('nova');
+    const account=(await a.request('session')).data.user.id,snapshot=f.levels.campaignSnapshots()[0];
+    f.levels.captureMove(snapshot,'http-match',1,1,['U','D'],[account],'solo');await f.levels.drain();
+    const response=await a.request('levels/activity');expect(response.status).toBe(200);expect(response.data.storage).toBe('test');expect(response.data.activities).toEqual([expect.objectContaining({state:'confirmed',kind:'move',entityKey:expect.stringMatching(/^0x/)})]);
+    expect(JSON.stringify(response.data)).not.toMatch(/inputs|http-match|levelKey|ownerId/);expect((await b.request('levels/activity')).data.activities).toEqual([]);expect((await anonymous.request('levels/activity')).status).toBe(401);
+  }finally{await f.close();}
+});

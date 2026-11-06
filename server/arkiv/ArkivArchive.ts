@@ -86,7 +86,9 @@ export class ArkivArchive implements LevelArchive {
           .where(last?and(scope,gt('$key',key(last))):scope).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
         for(const row of result.entities){
-          const record=await this.decode(row);if(record.category==='move')continue;found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
+          const record=await this.decode(row);if(record.category==='move')continue;
+          const plan=this.plan(`${record.category}:${record.id}:${record.revision}`);
+          found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:plan?.phase==='verified'&&plan.entity_key?.toLowerCase()===row.$key.toLowerCase()?plan.tx_hash??'':''}});
         }
         if(result.entities.length<100)return found;
         const next=result.entities.at(-1)!.$key;if(last&&next<=last)throw new Error();last=next;

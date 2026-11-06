@@ -143,7 +143,7 @@ export class LevelStore {
   activityFeed(accountId:string){return this.activity.feed(accountId);}
   captureMove(snapshot:PublishedSnapshot,sessionId:string,sequence:number,turn:number,inputs:[import('../../src/core/types').Direction,import('../../src/core/types').Direction],audience:string[],mode:'solo'|'coop'){
     if(!snapshot.ref)throw new LevelError(503,'Move has no published revision.');
-    const record:import('../arkiv/archive').MoveRecord={id:`${sessionId}:${sequence}`,revision:1,category:'move',ownerId:audience[0],ownerName:'',updatedAt:Date.now(),lifetimeDays:2,
+    const record:import('../arkiv/archive').MoveRecord={id:createHash('sha256').update(JSON.stringify([sessionId,sequence])).digest('hex'),revision:1,category:'move',ownerId:audience[0],ownerName:'',updatedAt:Date.now(),lifetimeDays:2,
       move:{levelKey:snapshot.ref.entityKey,sessionId,turn,sequence,mode,inputs:[...inputs]}};
     this.activity.enqueue(record,audience,`Turn ${turn} · move pair ${sequence}`);
     void this.flushMoves().catch(()=>{});

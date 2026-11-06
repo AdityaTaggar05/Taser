@@ -31,7 +31,7 @@ export class ActivityStore {
     return {storage:this.archive.mode,activities:rows.map(row=>{
       const record=JSON.parse(row.record) as ArchiveWrite,ref=row.ref?JSON.parse(row.ref) as ArchiveRef:undefined,status=this.archive.writeStatus?.(record);
       return {id:row.id,kind:record.category,label:row.label,createdAt:record.updatedAt,state:ref?'confirmed':status?.state==='confirmed'?'confirmed':status?.state==='failed'?'failed':row.state,
-        txHash:ref?.txHash||status?.txHash,entityKey:ref?.entityKey||status?.entityKey,...(row.error?{message:row.error}:{})};
+        txHash:ref?.txHash||status?.txHash,entityKey:ref?.entityKey||status?.entityKey,...(!ref&&status?.state!=='confirmed'&&row.error?{message:row.error}:{})};
     })};
   }
 }
