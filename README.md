@@ -8,6 +8,11 @@ Requires Node.js 22.13+ (Node 24 recommended; server authentication uses built-i
 
 ```sh
 npm install
+npm run arkiv:setup
+# Configure .env.local, fund its printed server signer, and set approved fee budgets.
+npm run arkiv:check
+npm run arkiv:quote
+npm run arkiv:migrate
 npm run dev
 ```
 
@@ -58,10 +63,10 @@ For players on different networks, run this Node service on a reachable host. A 
 - **Turns 1–4:** coordinate box positions with your partner. A shove moves the box while you stay put. Spatial weld markers and partner box ghosts are hidden.
 - **Turn 4:** corresponding box identities must match at the level's required unmarked weld coordinates. The corner chamber also requires its midpoint switch.
 - **Turns 5–8:** boxes replay your partner's history in reverse. Dotted trajectories show the next positions of your boxes. Reach both open exits exactly on turn 8.
-- **Backspace / Z:** undo for both players. **R:** reset for both. **1–5:** select a chamber for both. Either connected player can use these shared controls during this playtest.
+- **Backspace / Z:** undo for both players. **R:** reset for both. **1–9:** select the corresponding available campaign chamber for both. Either connected player can use these shared controls during this playtest.
 - **H:** local guide. **F:** browser fullscreen. Theme, sound, hints and timeline review are local to each browser.
 - Clicking recorded turns reviews only your own history. Return to live to choose moves. A new shared turn, undo, reset or chamber change returns the view to live.
-- Hints show only your role's reference input. Winning completions are verified by the server and saved to both accounts.
+- **Reference route** unlocks only after a server-verified win on the exact published revision. It displays both recorded input lists. Ordinary gameplay never receives either solution. Winning completions are verified by the server and saved to both accounts.
 
 ### Home, settings, disconnections and refresh
 
@@ -76,7 +81,7 @@ Closing both tabs reserves both seats until the grace period expires. Reopening 
 
 - `src/core/types.ts`: serializable level and simulation contracts.
 - `src/core/engine.ts`: deterministic simulation with no Phaser, DOM or networking dependencies. The multiplayer server uses this same engine for validation, turns, replay and undo.
-- `src/core/level.ts` and `src/data/levels.json`: validation/import boundary and five authored puzzles. Coordinates remain 1-indexed, bottom-left Cartesian; box indices are stable identities.
+- `src/core/level.ts`: shared validation/import boundary. `server/data/` holds the five original migration seeds and test fixtures; runtime campaigns are loaded from Arkiv. Coordinates remain 1-indexed, bottom-left Cartesian; box indices are stable identities.
 - `server/CoopRoom.ts`: transport-independent room, assigned roles, pending moves, revisions, shared controls and reconnect reservations. A future party service can own one instance per party.
 - `server/socket.ts`: authenticated one-use tickets, account-bound roles, bounded WebSocket messages, same-origin browser connections, heartbeat and reconnect cleanup.
 - `server/auth/AuthService.ts`: SIWE challenge verification, development login, persistent SQLite accounts, revocable sessions and verified progress.
@@ -93,7 +98,7 @@ Closing both tabs reserves both seats until the grace period expires. Reopening 
 - `src/render/TitleBackdrop.ts`: decorative animated title chamber using the swappable environment textures, independent of multiplayer state.
 - `src/input/TurnBuffer.ts`: reusable validated local input buffer retained for headless tests and future editor tools.
 
-This is one shared two-seat playtest room with mandatory account authentication. The server enforces accounts, assigned roles and rules; a future lobby/party layer will handle private groups and invitations. No blockchain transactions are required to play. Arkiv integration and ENS enrichment remain separate future work.
+This is one shared two-seat playtest room with mandatory account authentication. The server enforces accounts, assigned roles and rules; a future lobby/party layer will handle private groups and invitations. No blockchain transactions are required to play. The server pays bounded Rabdi test-token fees when saving or publishing levels; ENS enrichment remains future work.
 
 ## Replace artwork / add environments
 
@@ -101,7 +106,7 @@ Add square PNG/WebP assets to `public/assets/`. Register an `EnvironmentPack` in
 
 ## Custom chamber creator
 
-Sign in and choose **Level creator** on the home screen, or open `#create`. The fullscreen workspace starts with a blank floor and movable starter objects. The template picker copies any of the five campaign chambers, including its reference solution; editing the copy never changes the campaign.
+Sign in and choose **Level creator** on the home screen, or open `#create`. The fullscreen workspace starts with a blank floor and movable starter objects. The template picker lists the Arkiv campaign. An ordinary account must first complete the exact published revision to unlock its layout and reference solution for remixing. Campaign admins can access templates directly. Editing a copy never changes the campaign.
 
 ### Design and record a solution
 
@@ -116,17 +121,17 @@ Sign in and choose **Level creator** on the home screen, or open `#create`. The 
 
 ### Save, publish and play
 
-**Save draft** persists an account-owned draft even before it is solvable. Unsaved changes also have account-and-tab-scoped browser recovery; save to the server for access on another device. **Import/Export** exchanges one level object as JSON, including recorded solutions. Imports are capped at 64 KB and use the shared bounded schema; unknown fields are removed. There is no arbitrary script or remote-asset execution from level files.
+**Save draft** confirms an encrypted, account-owned revision on Arkiv even before it is solvable. A private SQLite recovery row is saved first; if the network write fails, it appears as Archive pending, and My levels can recover it. A save is not reported as Arkiv-confirmed before receipt verification and encrypted readback succeed. Unsaved changes also have account-and-tab-scoped browser recovery; save to the server for access on another device. **Import/Export** exchanges one level object as JSON, including recorded solutions. Imports are capped at 64 KB and use the shared bounded schema; unknown fields are removed. There is no arbitrary script or remote-asset execution from level files.
 
 **Publish** first saves the current draft, then the server independently replays both submitted move lists. A valid publication requires a complete winning run, including legal inputs, midpoint weld, hazard checks and both open exits on the final turn. This verifies the submitted witness, not every possible solution. No client-provided success flag is trusted.
 
-**My levels / Community** lists up to 100 owned drafts or the latest 100 published chambers. Only owners can load/edit a draft. Publishing returns a shareable `#play/<level-id>` link: open it with two different signed-in accounts to play in the existing shared co-op room. Custom-game hints are disabled, and clients receive neither the submitted witness nor partner objectives, initial boxes or weld coordinates. Custom wins do not award campaign completion markers yet.
+**My levels / Community** lists up to 100 owned drafts or the latest 100 published chambers. Only owners can load/edit a draft. Publishing returns a shareable `#play/<level-id>` link: open it with two different signed-in accounts to play in the existing shared co-op room. Clients receive neither the submitted witness nor partner objectives, initial boxes or weld coordinates. After completing the published revision, Reference route unlocks for that account. Custom wins do not award campaign completion markers yet.
 
-Saving a revision leaves the previous verified publication playable. Republishing replaces it only after another successful verification. A running room keeps the snapshot it started with. Concurrent saves from stale tabs return a conflict instead of overwriting newer work; export local edits, reload from My levels and reapply them. Accounts can store up to 100 drafts. Deletion/unpublishing, private parties, per-level ratings and Arkiv storage are future work.
+Saving a revision leaves the previous verified publication playable. Republishing replaces it only after another successful verification. A running room keeps the snapshot it started with. Concurrent saves from stale tabs return a conflict instead of overwriting newer work; export local edits, reload from My levels and reapply them. Accounts can store up to 100 drafts. Deletion/unpublishing, private parties and per-level ratings are future work.
 
 Custom levels use the **same single two-seat room** as campaign play. A custom link cannot interrupt another active chamber: both players should return Home first. An ordinary Play co-op connection can join the chamber already waiting in that room. A refresh resumes an existing account's current seat, including after a shared chamber change. If a reconnect reservation expires, the room resets to campaign chamber 1, as before.
 
-The SQLite database in `.data/` now contains accounts, sessions, campaign progress, drafts and published snapshots. Preserve it when hosting; production and Vite development/preview attach the same authenticated level API and game service.
+SQLite in `.data/` holds private accounts, sessions, exact-revision completion records, recovery drafts and the local Arkiv projection. Arkiv is the source of confirmed level revisions. Startup loads and validates the trusted encrypted catalog; it does not silently use bundled campaign levels when Arkiv fails. Preserve both databases and the encryption key when hosting; production and Vite development/preview attach the same authenticated level API and game service.
 
 ### Creator architecture
 
@@ -135,9 +140,30 @@ The SQLite database in `.data/` now contains accounts, sessions, campaign progre
 - `src/editor/solution.ts`: deterministic witness verification shared by the browser and publishing service.
 - `src/editor/EditorScreen.ts` and `editor.css`: fullscreen workspace, author/role perspectives, import/export, recovery, library and publishing UI.
 - `src/editor/LevelClient.ts`: authenticated draft/publish API adapter.
-- `server/levels/LevelStore.ts`: revision-checked SQLite drafts and separately verified published snapshots.
+- `server/levels/LevelStore.ts`: revision-checked recovery drafts, confirmed Arkiv publications, dynamic campaign slots and revision-specific solution access.
 - `server/levels/LevelApi.ts` and `server/api.ts`: account ownership, same-origin mutations, bounded JSON and application routing.
 - `server/CoopRoom.ts`: immutable custom-room snapshot and per-role public level projections.
+
+
+## Arkiv storage and campaign publishing
+
+The integration pins **@arkiv-network/sdk 1.0.1** and **arkiv-encryption 1.1.1**, on **Rabdi (7794095)**. `npm run arkiv:setup` creates independent signing and AES-256-GCM encryption keys in ignored `.env.local` with mode 0600. It preserves existing keys and prints only the public server signer. Obtain a free [access key](https://hub.arkiv.network/access-keys) and [faucet tGLM](https://hub.arkiv.network/faucet). The wallet used to obtain an access key and the generated server signer are different identities; fund the printed signer address. `npm run arkiv:check` reads its balance and sends no transaction.
+
+Set positive `ARKIV_MAX_TX_FEE_GLM` and `ARKIV_DAILY_FEE_BUDGET_GLM` in `.env.local` only after reviewing `npm run arkiv:quote`. Zero disables writes. Fees are capped using explicit latest nonce, network gasPrice, and the greater of 1,000,000 gas or twice the unsigned estimate; the cap must fit half the latest block gas limit. Daily budgets conservatively reserve the full cap of each admitted transaction rather than assuming refunds. The signer must be dedicated to this one server; do not use it in another process, wallet or host. A host lock coordinates instances. Quoting is unsigned and never broadcasts.
+
+Stop the game server before `npm run arkiv:migrate`. This explicit command uploads the five original campaign seeds and existing locally saved drafts/publications, then verifies receipts and encrypted readback. Startup never pays migration fees implicitly. The encrypted archive can reconstruct the level catalog on a fresh local projection using the same signer, namespace and encryption key. Account identities and completion history remain in the private account database and require its backup. Network resets are detected through the recorded genesis block; they require explicit recovery, rather than an automatic reseed.
+
+Each draft/community/campaign revision is an immutable readonly entity in `weldpoint_levels_v1`. Indexed public columns are namespace, opaque level ID, revision and category. The media type and ciphertext are public too. The full layout, author account/name and both reference solutions are encrypted together **before** SDK encoding. An authenticated envelope also binds its routing fields, namespace and chain. No plaintext solution hash is published. Reads require the configured creator and readonly policy, authenticate the envelope, validate the bounded level schema and replay published witnesses. Untrusted public entities with copied schema tags cannot enter the campaign. The server signer owns these entities; authorship and draft permissions are enforced through authenticated application accounts, rather than claiming each user wallet is the on-chain creator.
+
+Arkiv metadata, transaction timings, signer identity, ciphertext lengths and copies of encrypted data remain public. Keep the encryption key independently backed up; losing it loses level access. Keys, credentialed RPC URLs and raw provider diagnostics never enter browser bundles or API errors. SQLite/journal files are private server storage and include plaintext recovery data; do not publicly serve `.data/`. A player can still solve a puzzle, inspect their own visible board, or share a solution after unlocking it. Encryption cannot make previously public solutions secret: the original five campaign puzzles were present in earlier source releases and remain legacy migration/test fixtures. New authored levels gain the encrypted storage boundary.
+
+**Publish to community** is available to every signed-in author after a verified winning witness. **Publish to campaign** appears only for the Atlas development account while demo authentication is enabled, or for a signed-in wallet listed in `CAMPAIGN_PUBLISHER_WALLETS`. The same restriction is enforced on the server before writer entry. It appends the level to the campaign; republishing that level updates its existing slot. Both destinations retain their own verified snapshots. Campaign navigation and next-chamber actions use the dynamic catalog. Games already running keep their original revision; an empty room takes the updated campaign. Share links to campaign publications load the campaign slot and award campaign progress.
+
+A verified win records the exact Arkiv entity key for both participating accounts. The authenticated solution endpoint checks that record before reading/decrypting and returning the two input lists. Numeric completion flags from older releases do not grant access. Editing/republishing creates a new entity, so a win on an older revision does not reveal the new solution. Drafts remain visible only to their owner. Campaign admin access is an explicit editorial privilege; regular template access unlocks after completion.
+
+`server/arkiv/ArkivArchive.ts` keeps a durable, synchronous SQLite write journal in `.data/arkiv.sqlite`. It saves the frozen encrypted intent and captures/authenticates signed bytes and hash **before** forwarding. After successful canonical receipt confirmation it saves the key/deadline, then verifies readback before reporting success. A lost send reply, failed receipt lookup or failed readback never initiates another send. Restart/retry reconciles the original hash; unresolved or reverted transactions block new signing. Do not delete the journal to bypass this state. The implementation performs no automatic transaction retries.
+
+Entities use `ExpirationTime.max()` (7,884,000 blocks, nominally about 182 days). This is bounded retention, not permanent storage. Expired/deleted entities become unavailable through current-state reads. Lifetime extension and an operator renewal scheduler are not implemented in this MVP; plan renewal before these deadlines for long-term hosting. Losing encryption keys, a network reset or expiry cannot be repaired by silently switching to public plaintext.
 
 ## Rules and original design
 
@@ -152,4 +178,4 @@ npm test
 npm run build
 ```
 
-The tests include creator recording across all five templates, draft undo/redo and solution invalidation, bounded imports, verified publication, revision conflicts, ownership, snapshot persistence, custom-room privacy and reconnects, plus all five winning solutions, move rejection, ice, lasers and undo, plus authoritative two-player playthroughs, role enforcement, queue privacy, stale-command rejection, shared controls, disconnect/resume, expired reservations intentional home exits with immediate seat reuse, and authenticated WebSocket clients. Authentication tests cover development login and disabled-production behavior, tab isolation, origin checks, signed wallet verification, nonce replay, expiry, one-use game tickets, revocation and persistent verified progress. The socket integration test requires permission to bind a local loopback port.
+The tests additionally cover full-payload encryption, fresh IVs, wrong-key/tamper/routing rejection, trusted creator/readonly checks, lost send replies, failed readback after receipt confirmation, admin publishing denial, Arkiv catalog recovery, exact-revision solution unlocks and dynamic campaigns. HTTP/WebSocket fixtures use an explicit in-memory test archive; these tests do not certify live Rabdi writes. The tests include creator recording across all five templates, draft undo/redo and solution invalidation, bounded imports, verified publication, revision conflicts, ownership, snapshot persistence, custom-room privacy and reconnects, plus all five winning solutions, move rejection, ice, lasers and undo, plus authoritative two-player playthroughs, role enforcement, queue privacy, stale-command rejection, shared controls, disconnect/resume, expired reservations intentional home exits with immediate seat reuse, and authenticated WebSocket clients. Authentication tests cover development login and disabled-production behavior, tab isolation, origin checks, signed wallet verification, nonce replay, expiry, one-use game tickets, revocation and persistent verified progress. The socket integration test requires permission to bind a local loopback port.
