@@ -16,7 +16,12 @@
     "assets:prepare": "node scripts/prepare-theme.mjs",
     "assets:check": "node --import tsx scripts/swarm-assets.ts",
     "assets:upload": "node --import tsx scripts/swarm-assets.ts --write",
-    "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify"
+    "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify",
+    "assets:public:check": "node --import tsx scripts/swarm-public-assets.ts",
+    "assets:upload:public": "node --import tsx scripts/swarm-public-assets.ts --write",
+    "assets:verify:public": "node --import tsx scripts/swarm-public-assets.ts --verify",
+    "arkiv:theme:quote": "node --import tsx scripts/arkiv-theme.ts --quote",
+    "arkiv:theme:publish": "node --import tsx scripts/arkiv-theme.ts --write"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",

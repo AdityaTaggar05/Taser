@@ -44,5 +44,7 @@ for(const item of mvp.sheets){
 for(const name of ['shove','footsteps','iceSlide','catapult','laserDeath','paradox','weld','victory','impact','emission'])manifest.animations['fx.'+name]={frames:Array.from({length:['impact','emission'].includes(name)?4:6},(_,i)=>`fx.${name}.${i}`),fps:12,loop:false,...(name==='weld'?{visibility:'after-success-only'}:{})};
 await sheet('directional-model',resolve(art,'player-sprites/v1/directional-model-sheet.png'));
 await sheet('approved-reference',resolve(art,'artstyle-exploration/11-light-gray-neutral.png'));
-await writeFile(resolve(dir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+const serialized=JSON.stringify(manifest,null,2)+'\n';
+await writeFile(resolve(dir,'manifest.json'),serialized);
+await writeFile(resolve(repo,'src/assets/modern-gray.manifest.json'),serialized);
 console.log(`Prepared ${Object.keys(manifest.sheets).length} original PNGs, ${Object.keys(manifest.sprites).length} semantic sprites and ${Object.keys(manifest.animations).length} animations. No image pixels changed.`);

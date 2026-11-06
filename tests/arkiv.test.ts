@@ -14,6 +14,7 @@ import {MemoryArchive,type ArchiveRecord,type ArchiveRef} from '../server/arkiv/
 import {LevelStore} from '../server/levels/LevelStore';
 import {levels} from '../server/data/campaign';
 import {canonicalJSON} from '../server/arkiv/canonical';
+import {type ThemePublication} from '../server/arkiv/ThemePublication';
 import {authFixture} from './authFixture';
 
 const record=(revision=1):ArchiveRecord=>({id:'11111111-1111-4111-8111-111111111111',revision,category:'community',ownerId:'atlas',ownerName:'Atlas',updatedAt:0,level:structuredClone(levels[0])});
@@ -62,7 +63,7 @@ it('enforces campaign publishing and template access on authenticated server end
 });
 
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
-function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
+function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string;theme?:ThemePublication}={}){
   const directory=mkdtempSync(join(tmpdir(),'taser-writer-')),path=join(directory,'journal.sqlite'),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
   let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true;const queries:unknown[]=[];
   const entityKey=('0x'+'ab'.repeat(32)) as Hex,blockHash=('0x'+'cd'.repeat(32)) as Hex;
@@ -93,6 +94,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   vi.spyOn(reader,'getEntity').mockImplementation(async()=>{
     if(!readbackAvailable)throw new Error('Readback unavailable');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
+    if(budgets.theme){const t=budgets.theme;return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:7_884_100n,namespace:str('test'),theme_id:str(t.themeId),version:str(t.version),swarm_reference:str(t.swarmReference),manifest_sha256:str(t.manifestSha256),release_sha256:str(t.releaseSha256),content_type:str('application/json'),payload:bytes(plan.ciphertext as Hex)} as never;}
     return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:7_884_100n,
       namespace:str('test'),record_id:str(record().id),revision:u64(1),category:str('community'),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
   });
@@ -150,6 +152,19 @@ it('retains legacy snapshots across a partial campaign migration and resumes wit
     expect(store.campaign()).toHaveLength(levels.length);expect(store.community()).toHaveLength(1);expect(store.published(record().id)?.level.solutionP1).toEqual(levels[0].solutionP1);
     const count=archive.entries.size;await store.migrate(levels);expect(archive.entries.size).toBe(count);
   }finally{store.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+const themeRecord:ThemePublication={category:'theme',id:'modern-gray@1.0.0',revision:1,themeId:'modern-gray',version:'1.0.0',swarmReference:'a'.repeat(64),manifestSha256:'b'.repeat(64),releaseSha256:'c'.repeat(64),updatedAt:0};
+it('journals public theme pointers, reconciles unknown broadcasts without resending and verifies readback',async()=>{
+  const f=writerFixture({theme:themeRecord});try{
+    await expect(f.archive.putTheme(themeRecord)).rejects.toThrow();expect(f.sends).toBe(1);
+    f.receipt(true);const ref=await f.archive.putTheme(themeRecord);expect(f.sends).toBe(1);
+    expect(await f.archive.readTheme(ref.entityKey)).toEqual(themeRecord);
+    await expect(f.archive.putTheme({...themeRecord,swarmReference:'d'.repeat(64)})).rejects.toThrow(/different content/);expect(f.sends).toBe(1);
+  }finally{f.close();}
+});
+it('enforces the configured write budget for theme publication',async()=>{
+  const f=writerFixture({theme:themeRecord,maxTxFee:'0'});try{await expect(f.archive.putTheme(themeRecord)).rejects.toThrow(/budget/);expect(f.sends).toBe(0);}finally{f.close();}
 });
 
 it('scopes the level catalog query to level categories when other feature records share the namespace',async()=>{

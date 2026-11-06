@@ -13,6 +13,8 @@ import {LevelEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
 import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from './archive';
 import {canonicalJSON} from './canonical';
+import {ThemeEntities,decodeThemePublication,validateThemePublication,type ThemePublication} from './ThemePublication';
+type Publication=ArchiveRecord|ThemePublication;
 
 const NATIVE='0x4400000000000000000000000000000000000044';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
@@ -64,6 +66,12 @@ export class ArkivArchive implements LevelArchive {
     this.db.prepare("INSERT OR IGNORE INTO arkiv_identity VALUES('genesis',?)").run(genesis);return genesis;
   }
   private values(plan:Plan){const r=JSON.parse(plan.body) as ArchiveRecord;return {namespace:this.options.namespace,record_id:r.id,revision:u64(r.revision),category:r.category,content_type:CONTENT_TYPE,ciphertext:hexToBytes(plan.ciphertext as Hex)};}
+  private themeValues(plan:Plan){const r=validateThemePublication(JSON.parse(plan.body));return {namespace:this.options.namespace,theme_id:r.themeId,version:r.version,swarm_reference:r.swarmReference,manifest_sha256:r.manifestSha256,release_sha256:r.releaseSha256,content_type:'application/json',payload:hexToBytes(plan.ciphertext as Hex)};}
+  private createPublication(wallet:Pick<ReturnType<typeof createWalletClient>,'createEntity'>,plan:Plan,params?:TxParams){
+    return plan.operation.startsWith('theme:')?wallet.createEntity(ThemeEntities,this.themeValues(plan),this.optionsFor(plan),params):wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan),params);
+  }
+  async readTheme(entityKey:string){await this.identity();const row=await this.reader.getEntity(entityKey as Hex,ThemeEntities);return decodeThemePublication(row,this.signer,this.options.namespace,entityKey);}
+  putTheme(record:ThemePublication):Promise<ArchiveRef>{validateThemePublication(record);const task=this.queue.then(()=>this.write(record));this.queue=task.catch(()=>{});return task;}
   private optionsFor(plan:Plan){return {expiration:ExpirationTime.max(),flags:{readonly:true,permissionlessExtension:false},salt:BigInt(plan.salt)};}
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
@@ -94,14 +102,14 @@ export class ArkivArchive implements LevelArchive {
   put(record:ArchiveRecord):Promise<ArchiveRef>{
     const task=this.queue.then(()=>this.write(record));this.queue=task.catch(()=>{});return task;
   }
-  private async prepare(record:ArchiveRecord):Promise<Plan>{
+  private async prepare(record:Publication):Promise<Plan>{
     const operation=`${record.category}:${record.id}:${record.revision}`,body=JSON.stringify(record),existing=this.plan(operation);
     if(existing){if(canonicalJSON(JSON.parse(existing.body))!==canonicalJSON(record))throw new ArchiveError(409,'This archive revision already has different content.');return existing;}
     const genesis=await this.identity();
     const count=this.db.prepare('SELECT COUNT(*) AS n FROM arkiv_writes').get()!;
     if(Number(count.n)>=1_000_000)throw new ArchiveError(503,'Archive encryption key rotation is required before more writes.');
-    const ciphertext=bytesToHex(await this.cipher.encrypt(record));
-    // The local journal is private; only encrypted bytes enter SDK calls/calldata.
+    const ciphertext=record.category==='theme'?bytesToHex(new TextEncoder().encode(JSON.stringify(validateThemePublication(record)))):bytesToHex(await this.cipher.encrypt(record));
+    // Level bodies remain encrypted; theme publications contain only reviewed public asset pointers.
     this.db.prepare("INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,?,?,'prepared',?)")
       .run(operation,hash(body),body,BigInt('0x'+randomBytes(16).toString('hex')).toString(),ciphertext,genesis);
     return this.plan(operation)!;
@@ -122,7 +130,7 @@ export class ArkivArchive implements LevelArchive {
     }},{retryCount:0});
     const unsigned={...this.account,signTransaction:async()=>{throw new Error('Signing blocked');}} as LocalAccount;
     const wallet=createWalletClient({account:unsigned,chain:this.chain,transport});
-    try{await wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan));}catch(error){
+    try{await this.createPublication(wallet,plan);}catch(error){
       let cause:unknown=error;for(let depth=0;cause&&depth<30;depth++){
         if(cause===stop&&estimate>0n&&calldata)return {estimate,calldata};
         cause=typeof cause==='object'?(cause as {cause?:unknown}).cause:undefined;
@@ -130,16 +138,23 @@ export class ArkivArchive implements LevelArchive {
     }
     throw new ArchiveError(503,'Unsigned Arkiv preparation or gas estimate failed. No transaction was sent.');
   }
-  async quote(record:ArchiveRecord){const plan=await this.prepare(record),{estimate}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n,gasPrice=await getGasPrice(this.reader);return {gas:gas.toString(),maximumFeeWei:(gas*gasPrice).toString(),signer:this.signer};}
-  private async write(record:ArchiveRecord):Promise<ArchiveRef>{
+  async quote(record:Publication){const plan=await this.prepare(record),{estimate}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n,gasPrice=await getGasPrice(this.reader);return {gas:gas.toString(),maximumFeeWei:(gas*gasPrice).toString(),signer:this.signer};}
+  private async findPrior(record:Publication):Promise<Array<{record:Publication;ref:ArchiveRef}>>{
+    if(record.category==='theme'){
+      const prior=await this.reader.select('*').from(ThemeEntities,{onMismatch:'throw'}).createdBy(this.account.address).where(and(eq('namespace',this.options.namespace),eq('theme_id',record.themeId),eq('version',record.version))).limit(2).fetch();
+      return prior.entities.map(row=>({record:decodeThemePublication(row,this.signer,this.options.namespace,row.$key),ref:{entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()}}));
+    }
+    const prior=await this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address).where(and(eq('namespace',this.options.namespace),eq('record_id',record.id),eq('revision',u64(record.revision)),eq('category',record.category))).limit(2).fetch();
+    return Promise.all(prior.entities.map(async row=>({record:await this.decode(row),ref:{entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()}})));
+  }
+  private async write(record:Publication):Promise<ArchiveRef>{
     try{
       await this.identity();let plan=await this.prepare(record);
       if(plan.phase!=='prepared')return await this.reconcile(plan);
       await this.reconcilePending();
-      const prior=await this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
-        .where(and(eq('namespace',this.options.namespace),eq('record_id',record.id),eq('revision',u64(record.revision)),eq('category',record.category))).limit(2).fetch();
-      if(prior.entities.length>1)throw new ArchiveError(409,'Duplicate archive revisions require reconciliation.');
-      if(prior.entities.length===1){const row=prior.entities[0],existing=await this.decode(row);if(canonicalJSON(existing)!==canonicalJSON(record))throw new ArchiveError(409,'The remote archive revision has different content.');return {entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()};}
+      const prior=await this.findPrior(record);
+      if(prior.length>1)throw new ArchiveError(409,'Duplicate archive revisions require reconciliation.');
+      if(prior.length===1){if(canonicalJSON(prior[0].record)!==canonicalJSON(record))throw new ArchiveError(409,'The remote archive revision has different content.');return prior[0].ref;}
       const blocked=this.db.prepare("SELECT operation FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed','reverted') AND operation!=? LIMIT 1").get(plan.operation);
       if(blocked)throw new ArchiveError(503,'An earlier Arkiv write needs reconciliation. New writes are paused.');
       const {estimate,calldata}=await this.estimate(plan),gas=estimate*2n>1_000_000n?estimate*2n:1_000_000n;
@@ -165,7 +180,7 @@ export class ArkivArchive implements LevelArchive {
         return rpc.request(args as never);
       }},{retryCount:0})});
       const params:TxParams={nonce,gas,gasPrice};
-      try{await wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan),params);}catch{
+      try{await this.createPublication(wallet,plan,params);}catch{
         // An unknown response is not a failed write. Reconcile the original saved hash only.
         if(!this.plan(plan.operation)?.tx_hash)throw new ArchiveError(503,'Arkiv signing failed before broadcast. No transaction was sent.');
       }
@@ -184,8 +199,13 @@ export class ArkivArchive implements LevelArchive {
     if(events.length!==1||events[0].owner.toLowerCase()!==this.signer.toLowerCase())throw new Error();
     const ref={entityKey:events[0].entityKey,txHash,expiresAt:events[0].expiresAt.toString()};
     this.db.prepare("UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?").run(ref.entityKey,ref.expiresAt,plan.operation);
-    const entity=await this.entity(ref.entityKey);this.trusted(entity,plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
-    const record=await this.decode(entity);if(canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
+    if(plan.operation.startsWith('theme:')){
+      const entity=await this.reader.getEntity(ref.entityKey,ThemeEntities),record=decodeThemePublication(entity,this.signer,this.options.namespace,ref.entityKey);
+      if(entity.$expiresAt<BigInt(ref.expiresAt)||entity.payload.value.toLowerCase()!==plan.ciphertext.toLowerCase()||canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
+    }else{
+      const entity=await this.entity(ref.entityKey);this.trusted(entity,plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
+      const record=await this.decode(entity);if(canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
+    }
     this.db.prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?").run(plan.operation);return ref;
   }
   async reconcilePending(){for(const p of this.db.prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')").all() as unknown as Plan[])await this.reconcile(p);}

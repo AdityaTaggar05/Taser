@@ -18,9 +18,12 @@ import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
 import {EditorScreen} from './editor/EditorScreen';
 import {LevelClient} from './editor/LevelClient';
-import {registeredThemes} from './assets/catalog';
+import {registeredThemes,initializeThemes} from './assets/catalog';
 import {applyThemeInterface} from './assets/interface';
 import './assets/theme.css';
+
+const artworkStatus=document.createElement('div');artworkStatus.className='theme-asset-warning';artworkStatus.setAttribute('role','status');artworkStatus.textContent='Loading chamber artwork…';document.body.append(artworkStatus);
+try{await initializeThemes();artworkStatus.textContent='Loading sprite sheets…';}catch{artworkStatus.setAttribute('role','alert');artworkStatus.textContent='Chamber artwork is unavailable. Please reload to retry.';throw new Error('Artwork initialization failed');}
 
 let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
@@ -103,8 +106,8 @@ class ChamberScene extends Phaser.Scene {
   private title:TitleBackdrop|undefined;
   private artworkReady=false;
   constructor(){super('chamber');}
-  preload(){for(const p of registeredThemes)preloadEnvironment(this,p);this.load.on('loaderror',()=>{if(!document.querySelector('.theme-asset-warning')){const el=document.createElement('div');el.className='theme-asset-warning';el.setAttribute('role','alert');el.textContent='Artwork could not be loaded. Check the asset gateway and reload to retry.';document.body.append(el);}});}
-  create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch{this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;this.scale.on('resize',()=>this.redraw());this.redraw();}
+  preload(){for(const p of registeredThemes)preloadEnvironment(this,p);this.load.on('loaderror',()=>{artworkStatus.setAttribute('role','alert');artworkStatus.textContent='Artwork could not be loaded. Check the asset gateway and reload to retry.';document.body.append(artworkStatus);});}
+  create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch(error){console.error('Theme registration failed',error);artworkStatus.setAttribute('role','alert');artworkStatus.textContent='Chamber artwork could not be prepared. Please reload to retry.';document.body.append(artworkStatus);this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;artworkStatus.remove();this.scale.on('resize',()=>this.redraw());this.redraw();}
   redraw(previous?:StepSnapshot,animate=false){
     if(!this.artworkReady)return;
     this.cameras.main.setBackgroundColor(pack.palette.background);

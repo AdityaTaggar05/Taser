@@ -20,7 +20,7 @@ export async function prepareUpload(directory:string):Promise<UploadBundle>{
 export function makeTar(files:UploadFile[]):Buffer{
   const out:Buffer[]=[];
   for(const f of [...files].sort((a,b)=>a.name.localeCompare(b.name))){
-    if(!/^(manifest\.json|sheets\/[a-z0-9_-]+\.png)$/.test(f.name)||Buffer.byteLength(f.name)>100)throw new Error('Disallowed upload file');
+    if(!/^(manifest\.json|release\.json|sheets\/[a-z0-9_-]+\.png)$/.test(f.name)||Buffer.byteLength(f.name)>100)throw new Error('Disallowed upload file');
     const h=Buffer.alloc(512);h.write(f.name,0,100);const oct=(n:number,at:number,len:number)=>h.write(n.toString(8).padStart(len-1,'0')+'\0',at,len);
     oct(0o644,100,8);oct(0,108,8);oct(0,116,8);oct(f.data.length,124,12);oct(0,136,12);h.fill(32,148,156);h.write('0',156);h.write('ustar\0',257);h.write('00',263);
     const sum=h.reduce((a,b)=>a+b,0);h.write(sum.toString(8).padStart(6,'0')+'\0 ',148,8);
@@ -28,11 +28,13 @@ export function makeTar(files:UploadFile[]):Buffer{
   }
   out.push(Buffer.alloc(1024));return Buffer.concat(out);
 }
-export interface SwarmConfig{bee:string;gateway:string;batch:string;token?:string;pin?:boolean}
+export interface SwarmConfig{bee:string;gateway:string;mode?:'public'|'node';batch?:string;token?:string;pin?:boolean}
 export function validateSwarmConfig(c:SwarmConfig){
   validateDeployment({reference:null,gateway:c.gateway,verifiedAt:null,manifestSha256:null});
   validateDeployment({reference:null,gateway:c.bee,verifiedAt:null,manifestSha256:null});
-  if(!/^[a-fA-F0-9]{64}$/.test(c.batch))throw new Error('Set SWARM_POSTAGE_BATCH_ID to a usable 64-hex postage batch');
+  if(c.mode==='public'){
+    if(c.token||c.batch||c.pin)throw new Error('Public gateway mode uses operator-supplied postage; no private token, batch or pin option');
+  }else if(!/^[a-fA-F0-9]{64}$/.test(c.batch??''))throw new Error('Set SWARM_POSTAGE_BATCH_ID to a usable 64-hex postage batch');
   return c;
 }
 const endpoint=(base:string,path:string)=>base.replace(/\/$/,'')+'/'+path;
@@ -55,12 +57,15 @@ export async function verifyRemote(bundle:UploadBundle,c:SwarmConfig,reference:s
 }
 export async function uploadCollection(bundle:UploadBundle,c:SwarmConfig,fetcher:typeof fetch=fetch,admit:()=>Promise<void>=async()=>{}):Promise<string>{
   validateSwarmConfig(c);const auth:Record<string,string>=c.token?{Authorization:'Bearer '+c.token}:{};
-  const stamp=await fetcher(endpoint(c.bee,'stamps/'+c.batch),{headers:auth,signal:AbortSignal.timeout(15_000)});
-  if(!stamp.ok)throw new Error('Cannot verify the Bee postage batch (HTTP '+stamp.status+'). Check endpoint, access and batch ID.');
-  const state=await stamp.json() as {usable?:boolean};if(state.usable!==true)throw new Error('Bee postage batch is not usable yet');
+  if(c.mode!=='public'){
+    const stamp=await fetcher(endpoint(c.bee,'stamps/'+c.batch),{headers:auth,signal:AbortSignal.timeout(15_000)});
+    if(!stamp.ok)throw new Error('Cannot verify the Bee postage batch (HTTP '+stamp.status+'). Check endpoint, access and batch ID.');
+    const state=await stamp.json() as {usable?:boolean};if(state.usable!==true)throw new Error('Bee postage batch is not usable yet');
+  }
+  if(c.mode==='public'&&bundle.tar.length>8_000_000)throw new Error('Public gateway collection exceeds the 8 MB upload boundary');
   await admit();
-  const response=await fetcher(endpoint(c.bee,'bzz'),{method:'POST',headers:{...auth,'Content-Type':'application/x-tar','Swarm-Collection':'true','Swarm-Index-Document':'manifest.json','Swarm-Postage-Batch-Id':c.batch,'Swarm-Deferred-Upload':'false',...(c.pin?{'Swarm-Pin':'true'}:{})},body:bundle.tar as unknown as BodyInit,signal:AbortSignal.timeout(180_000)});
-  if(!response.ok)throw new Error('Swarm upload failed: HTTP '+response.status);
+  const response=await fetcher(endpoint(c.bee,'bzz'),{method:'POST',redirect:'error',headers:{...auth,'Content-Type':'application/x-tar','Swarm-Collection':'true','Swarm-Index-Document':bundle.files.some(f=>f.name==='release.json')?'release.json':'manifest.json',...(c.mode==='public'?{}:{'Swarm-Postage-Batch-Id':c.batch!}),'Swarm-Deferred-Upload':'false',...(c.pin?{'Swarm-Pin':'true'}:{})},body:bundle.tar as unknown as BodyInit,signal:AbortSignal.timeout(180_000)});
+  if(!response.ok){const error=new Error('Swarm upload rejected: HTTP '+response.status) as Error&{rejected:boolean};error.rejected=response.status>=400&&response.status<500;throw error;}
   const result=await response.json() as {reference?:string};if(!result.reference||!/^[a-f0-9]{64}$/.test(result.reference))throw new Error('Bee did not return an unencrypted collection reference');
   return result.reference;
 }
