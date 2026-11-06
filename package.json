@@ -10,7 +10,9 @@
     "test": "vitest run",
     "start": "tsx server/index.ts",
     "arkiv:setup": "node scripts/arkiv-setup.mjs",
-    "arkiv:check": "node scripts/arkiv-check.mjs"
+    "arkiv:check": "node scripts/arkiv-check.mjs",
+    "arkiv:quote": "tsx scripts/arkiv-migrate.ts --quote",
+    "arkiv:migrate": "tsx scripts/arkiv-migrate.ts --write"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",

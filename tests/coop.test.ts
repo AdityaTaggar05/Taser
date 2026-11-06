@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { CoopRoom,type Peer } from '../server/CoopRoom';
-import { levels } from '../src/core/level';
+import {levels} from '../server/data/campaign';
 import { RemoteView } from '../src/network/RemoteView';
 import { parseCommand,type ClientCommand,type ServerMessage,type SessionState } from '../src/network/protocol';
 class TestPeer implements Peer {

@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
-import {levels,parseLevel} from '../src/core/level';
+import {parseLevel} from '../src/core/level';
+import {levels} from '../server/data/campaign';
 import {cleanDraft,validateDraft} from '../src/core/levelValidation';
 import {EditorModel,blankLevel} from '../src/editor/EditorModel';
 import {verifySolution} from '../src/editor/solution';

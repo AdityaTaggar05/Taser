@@ -15,7 +15,7 @@ export class AuthClient {
   }
   get user(){return this.state.user;}
   private async request<T>(action:string,body?:unknown):Promise<T>{
-    const response=await fetch(`/api/auth/${this.context}/${action}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(15_000)});
+    const response=await fetch(`/api/auth/${this.context}/${action}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(action.startsWith('levels')?90_000:15_000)});
     const value=await response.json();
     if(!response.ok){if(response.status===401&&(action==='socket-ticket'||action.startsWith('levels')))this.expired();throw new Error(value.error??'Sign-in service is unavailable.');}
     return value as T;

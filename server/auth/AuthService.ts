@@ -49,10 +49,10 @@ export class AuthService {
     const identity=this.session(req,context);if(!identity)throw new AuthError(401,'Sign in to use the level creator.');return identity;
   }
   profile(id:string):PlayerProfile|null {
-    const row=this.db.prepare('SELECT id,display_name,wallet_address,ens_name,kind FROM accounts WHERE id=?').get(id) as unknown as Row|undefined;
+    const row=this.db.prepare('SELECT id,display_name,wallet_address,ens_name,kind,username FROM accounts WHERE id=?').get(id) as unknown as (Row&{username:string|null})|undefined;
     if(!row)return null;
     const completed=this.db.prepare('SELECT level_id FROM completions WHERE account_id=? ORDER BY level_id').all(id).map(r=>Number(r.level_id));
-    return {id:row.id,displayName:row.display_name,walletAddress:row.wallet_address,ensName:row.ens_name,kind:row.kind,completed};
+    return {id:row.id,displayName:row.display_name,walletAddress:row.wallet_address,ensName:row.ens_name,kind:row.kind,completed,campaignPublisher:this.demoEnabled&&row.kind==='demo'&&row.username==='atlas'};
   }
   recordCompletion(ids:string[],levelId:number){for(const id of ids)this.db.prepare('INSERT OR IGNORE INTO completions(account_id,level_id) VALUES(?,?)').run(id,levelId);}
   onRevoke(fn:(key:string)=>void){this.revoked.add(fn);return ()=>this.revoked.delete(fn);}

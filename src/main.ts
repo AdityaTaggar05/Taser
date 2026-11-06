@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
-import { levels } from './core/level';
+import type {CampaignSummary} from './editor/types';
+let levels:CampaignSummary[]=[];
 import { isLive, type Direction, type StepSnapshot } from './core/types';
 import { BoardView } from './render/BoardView';
 import { environments, buildEnvironment, preloadEnvironment, type EnvironmentPack } from './render/environment';
@@ -22,7 +23,7 @@ let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
 const audio=new GameAudio(),completed=new Set<number>();
 try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme))pack=environments[savedTheme];}catch{/* Preferences are optional. */}
-function view(){return client?.state?new RemoteView(client.state.level??levels[client.state.levelIndex],client.state,inspection):null;}
+function view(){return client?.state?.level?new RemoteView(client.state.level,client.state,inspection):null;}
 function refresh(){
   hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
@@ -41,25 +42,35 @@ function level(index:number){if(client?.state)client.send({type:'level',index,re
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{/* Viewport still fills embedded previews. */}}
 function toggleTheme(){pack=pack.id==='foundry'?environments.orbital:environments.foundry;try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();refresh();}
 function toggleSound(){audio.enabled=!audio.enabled;try{localStorage.setItem('weldpoint:sound',audio.enabled?'on':'off');}catch{}hud.setSound(audio.enabled);refresh();}
-const hud=new Hud(levels,{home:()=>{location.hash='';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
+const hud=new Hud(levels,{solution:()=>{void revealSolution();},home:()=>{location.hash='';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
   inspect:step=>{inspection=step===((client?.state?.history.length??0)-1)?null:step;scene?.redraw();},
   theme:toggleTheme,sound:toggleSound,
 });
 hud.setSound(audio.enabled);
 const auth=new AuthClient(()=>{
   completed.clear();auth.user?.completed.forEach(id=>completed.add(id));
-  signin.update();editor.setUser(auth.user);syncScreen();refresh();
+  signin.update();editor.setUser(auth.user);syncScreen();refresh();void loadCatalog();
 });
 const signin=new SignInScreen(auth);
 const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
-const editor=new EditorScreen(new LevelClient(auth),{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
+const levelApi=new LevelClient(auth);
+const editor=new EditorScreen(levelApi,{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
+let catalogUser:string|null=null,catalogRequest=0;
+async function loadCatalog(){
+  const user=auth.user?.id??null;if(user===catalogUser)return;catalogUser=user;const request=++catalogRequest;hud.clearSolution();levels=[];hud.setLevels(levels);if(!user)return;
+  try{const catalog=await levelApi.catalog();if(request!==catalogRequest||auth.user?.id!==user)return;levels=catalog.campaign;hud.setLevels(levels);refresh();}catch{if(request===catalogRequest)catalogUser=null;}
+}
+async function revealSolution(){
+  const session=client?.state,key=session?.publicationKey,user=auth.user?.id;if(!key||!session.solutionAvailable)return;
+  try{const solution=await levelApi.solution(key);if(client?.state?.publicationKey===key&&auth.user?.id===user)hud.showSolution(solution);}catch(error){client?.showNotice((error as Error).message);}
+}
 function syncScreen(){
   const custom=/^#play\/([a-f0-9-]{36})$/.exec(location.hash)?.[1];
   const next=!!auth.user&&(location.hash==='#play'||!!custom);
   const nextEditing=!!auth.user&&location.hash==='#create';
   if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
-  screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);
+  screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);hud.clearSolution();
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!!auth.user);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':auth.user?'home':'signin';
   if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),custom);}
   scene?.redraw();refresh();
@@ -72,8 +83,10 @@ function receive(previous:SessionState|null){
   const animate=!!previous&&current.levelIndex===previous.levelIndex&&current.customLevelId===previous.customLevelId&&current.player===previous.player&&last.step===previous.history.at(-1)!.step+1;
   if(animate)audio.play(last.status==='VICTORY'?'win':!isLive(last.status)?'fail':last.status==='WELD_SUCCESS'?'weld':current.shove!==null?'shove':'step');
   if(!current.customLevelId&&last.status==='VICTORY'&&previous?.history.at(-1)?.status!=='VICTORY')void auth.refresh();
-  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=(current.level??levels[current.levelIndex]).environment;if(environment&&environments[environment])pack=environments[environment];}
-  const old=animate?new RemoteView(previous!.level??levels[previous!.levelIndex],previous!).state:undefined;
+  if(current.campaign){levels=current.campaign;hud.setLevels(levels);}
+  if(previous?.publicationKey!==current.publicationKey)hud.clearSolution();
+  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=current.level?.environment;if(environment&&environments[environment])pack=environments[environment];}
+  const old=animate?new RemoteView(previous!.level!,previous!).state:undefined;
   scene?.redraw(old,animate);refresh();
 }
 class ChamberScene extends Phaser.Scene {
@@ -118,7 +131,7 @@ window.addEventListener('keydown',e=>{
   if(e.repeat)return;
   if(e.code==='Backspace'||e.code==='KeyZ'){e.preventDefault();command('undo');}
   if(e.code==='KeyR')command('reset');if(e.code==='KeyF'){e.preventDefault();void fullscreen();}
-  if(/^Digit[1-5]$/.test(e.code))level(Number(e.code.slice(-1))-1);
+  if(/^Digit[1-9]$/.test(e.code)&&Number(e.code.slice(-1))<=levels.length)level(Number(e.code.slice(-1))-1);
 });
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});

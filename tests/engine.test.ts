@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameEngine, resolvePhase1Move, computeLaserTiles, isExitOpen } from '../src/core/engine';
-import { levels, parseLevel } from '../src/core/level';
+import {parseLevel} from '../src/core/level';
+import {levels} from '../server/data/campaign';
 import { TurnBuffer } from '../src/input/TurnBuffer';
 import { sameCoord } from '../src/core/types';
 

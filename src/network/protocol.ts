@@ -7,6 +7,7 @@ export interface PlayerFrame {
 export interface SessionState {
   type: 'state'; player: Player; revision: number; levelIndex: number;
   customLevelId?:string;customRevision?:number;level?:LevelConfig;
+  campaign?:import('../editor/types').CampaignSummary[];publicationKey?:string;solutionAvailable?:boolean;
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;
