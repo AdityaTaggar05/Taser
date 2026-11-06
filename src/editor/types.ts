@@ -4,5 +4,6 @@ export interface StoredLevel extends LevelSummary {level:LevelConfig;publication
 export interface CampaignSummary extends LevelSummary {slot:number;entityKey:string}
 export interface LevelCatalog {campaign:CampaignSummary[];canPublishCampaign:boolean;storage:'arkiv'|'test'|'unconfigured'}
 export interface ReferenceSolution {name:string;solutionP1:import('../core/types').Direction[];solutionP2:import('../core/types').Direction[]}
-export type EditorTool='floor'|'wall'|'ice'|'p1'|'p2'|'box1'|'box2'|'weld'|'switch1'|'switch2'|'exit1'|'exit2'|'midpoint'|'laser'|'receiver'|'erase';
+export type EditorTool='floor'|'wall'|'ice'|'p1'|'p2'|'box1'|'box2'|'weld'|'switch1'|'switch2'|'exit1'|'exit2'|'midpoint'|'laser'|'receiver'|'erase'|'remove';
+export type EditorObjectTool=Exclude<EditorTool,'floor'|'wall'|'ice'|'erase'|'remove'>;
 export type EditorView='author'|'p1'|'p2';

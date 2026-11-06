@@ -82,7 +82,11 @@ export class ArkivArchive implements LevelArchive {
         const query=this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
           .where(last?and(eq('namespace',this.options.namespace),gt('$key',key(last))):eq('namespace',this.options.namespace)).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
-        for(const row of result.entities){const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});}
+        for(const row of result.entities){
+          // Other record categories can share this schema and namespace.
+          if(!['draft','community','campaign'].includes(row.category.value))continue;
+          const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
+        }
         if(result.entities.length<100)return found;
         const next=result.entities.at(-1)!.$key;if(last&&next<=last)throw new Error();last=next;
       }
