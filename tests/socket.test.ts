@@ -54,3 +54,25 @@ it('loads a server-published custom level over real authenticated sockets withou
     a.ws.send(JSON.stringify({type:'move',direction:'U',revision:a.state().revision}));b.ws.send(JSON.stringify({type:'move',direction:'D',revision:b.state().revision}));await expect.poll(()=>a.state().history.at(-1)?.step).toBe(1);
   }finally{for(const ws of clients)ws.terminate();close();await f.close();}
 },10_000);
+it('keeps campaign witnesses private until both accounts actually win the published revision',async()=>{
+  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
+  try{
+    const {levels}=await import('../server/data/campaign');
+    const a=f.browser(),b=f.browser();await a.login();await b.login('nova');
+    const campaign=(await b.request('levels/catalog')).data.campaign[0];
+    const novaId=(await b.request('session')).data.user.id;
+    // Numeric completion from the old release does not authorize a different encrypted publication.
+    f.auth.recordCompletion([novaId],1);
+    expect((await b.request(`levels/solution/${campaign.entityKey}`)).status).toBe(403);
+    async function connect(account:typeof a){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:campaign.id}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
+    const p1=await connect(a),p2=await connect(b);await expect.poll(()=>p1.state().partnerConnected).toBe(true);
+    expect(p1.state().level?.solutionP1).toEqual([]);expect(p1.state().level?.initialBoxesP2).toEqual([]);expect(p2.state().level?.switchesP1).toEqual([]);expect(p1.state().solutionAvailable).toBe(false);expect(p1.state().levelIndex).toBe(0);
+    for(let k=0;k<levels[0].totalSteps;k++){
+      const revision=p1.state().revision;p1.ws.send(JSON.stringify({type:'move',direction:levels[0].solutionP1[k],revision}));p2.ws.send(JSON.stringify({type:'move',direction:levels[0].solutionP2[k],revision}));
+      await expect.poll(()=>p1.state().history.at(-1)?.step).toBe(k+1);await expect.poll(()=>p2.state().history.at(-1)?.step).toBe(k+1);
+    }
+    expect(p2.state().history.at(-1)?.status).toBe('VICTORY');expect(p1.state().solutionAvailable).toBe(true);expect(p2.state().solutionAvailable).toBe(true);
+    expect((await b.request(`levels/solution/${campaign.entityKey}`)).data.solutionP2).toEqual(levels[0].solutionP2);
+    expect((await b.request(`levels/campaign/${campaign.id}/template`)).status).toBe(200);
+  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+},10_000);
