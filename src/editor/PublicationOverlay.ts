@@ -26,7 +26,6 @@ export class PublicationOverlay {
             ×
           </button>
         </header>
-        ${verificationNetwork()}
         <section class="publication-workflow" aria-label="Publication progress">
           <div class="publication-heading">
             <p class="publication-destination"></p>
@@ -67,6 +66,7 @@ export class PublicationOverlay {
               <span class="publication-block-state"></span>
             </li>
           </ol>
+          <div class="publication-graph-stage">${verificationNetwork()}</div>
           <div class="publication-result" role="status" aria-live="polite" aria-atomic="true">
             <div class="publication-seal" aria-hidden="true">
               <svg viewBox="0 0 80 80">
@@ -110,6 +110,9 @@ export class PublicationOverlay {
     this.recoverable = !!stored;
     this.el('.publication-name').textContent = name;
     this.el('.publication-destination').textContent = `${target} chamber`;
+    this.dialog.querySelectorAll<HTMLElement>('.publication-pipeline li').forEach((block) => {
+      delete block.dataset.entered;
+    });
     this.render();
     this.dialog.showModal();
   }
@@ -158,12 +161,31 @@ export class PublicationOverlay {
     if (this.dialog.dataset.network !== phase) {
       this.dialog.dataset.network = phase;
       const scene = networkScene(phase);
-      this.el('.publication-network h3').textContent = scene.title;
-      this.el('.publication-network-state').textContent = scene.state;
+      const host = this.el('.publication-graph-stage');
+      host.querySelectorAll('.network-leaving').forEach((node) => node.remove());
+      const previous = host.querySelector<HTMLElement>('.publication-network');
+      const template = document.createElement('template');
+      template.innerHTML = verificationNetwork();
+      const next = template.content.firstElementChild as HTMLElement;
+      next.dataset.phase = phase;
+      next.querySelector('h3')!.textContent = scene.title;
+      next.querySelector('.publication-network-state')!.textContent = scene.state;
       // Only fixed local diagram data enters SVG; polling the same phase preserves motion.
-      this.dialog.querySelector('.publication-network svg')!.innerHTML = scene.svg;
+      next.querySelector('svg')!.innerHTML = scene.svg;
+      if (previous) {
+        if (this.dialog.open && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          previous.classList.remove('network-entering');
+          previous.classList.add('network-leaving');
+          previous.setAttribute('aria-hidden', 'true');
+          previous.addEventListener('animationend', (event) => {
+            if (event.target === previous) previous.remove();
+          });
+          next.classList.add('network-entering');
+        } else previous.remove();
+      }
+      host.append(next);
     }
-    this.el('.publication-network-caption').textContent =
+    this.el('.publication-network:not(.network-leaving) .publication-network-caption').textContent =
       mode === 'cli-simulation'
         ? 'Network illustration · local CRE CLI simulation'
         : mode === 'simulation'
@@ -188,6 +210,18 @@ export class PublicationOverlay {
     this.dialog.querySelectorAll<HTMLElement>('.publication-pipeline li').forEach((block, i) => {
       const state = progress.blocks[i];
       block.dataset.state = state;
+      if (state !== 'waiting' && !block.dataset.entered) {
+        block.dataset.entered = 'true';
+        if (this.dialog.open && window.matchMedia('(max-width: 760px)').matches) {
+          const pipeline = this.el('.publication-pipeline');
+          pipeline.scrollTo({
+            left: block.offsetLeft - pipeline.offsetLeft,
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+              ? 'instant'
+              : 'smooth',
+          });
+        }
+      }
       if (state === 'active') block.setAttribute('aria-current', 'step');
       else block.removeAttribute('aria-current');
       block.querySelector('.publication-block-state')!.textContent = {
