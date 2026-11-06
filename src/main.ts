@@ -15,7 +15,7 @@ import {PublishedLevels} from './ui/PublishedLevels';
 import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
 import { RemoteView } from './network/RemoteView';
-import {InitialPreviewView} from './network/InitialPreviewView';
+import {OtherPerspectiveView} from './network/OtherPerspectiveView';
 import type { SessionState } from './network/protocol';
 import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
@@ -37,7 +37,7 @@ function view(){return client?.state?.level?new RemoteView(client.state.level,cl
 function refresh(){
   const inLobby=playing&&(client?.state?.party?!client.state.party.started:connectingParty);
   hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,client?.status??'connecting',client?.notice??null);
-  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,client?.previewSeconds??0);
+  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,!!client?.canStudy,!!client?.otherPerspective);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
   applyThemeInterface(pack,auth.user,client?.status,!!client?.state?.partnerReady);
 }
@@ -57,7 +57,7 @@ function toggleTheme(){pack=registeredThemes[(registeredThemes.indexOf(pack)+1)%
 function toggleSound(){audio.enabled=!audio.enabled;try{localStorage.setItem('weldpoint:sound',audio.enabled?'on':'off');}catch{}hud.setSound(audio.enabled);refresh();}
 const hud=new Hud(levels,{solution:()=>{void revealSolution();},home:()=>{location.hash='';},party:()=>{const state=client?.state;if(state?.mode==='coop'){inspection=null;hud.clearSolution();client?.party({type:'lobby',revision:state.revision});}else location.hash='solo';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
   inspect:step=>{inspection=step===((client?.state?.history.length??0)-1)?null:step;scene?.redraw();},
-  theme:toggleTheme,sound:toggleSound,
+  theme:toggleTheme,sound:toggleSound,perspective:()=>{inspection=null;hud.clearSolution();client?.togglePerspective();},
 });
 hud.setSound(audio.enabled);
 const auth=new AuthClient(()=>{
@@ -121,21 +121,17 @@ class ChamberScene extends Phaser.Scene {
     this.title?.clear();
     const current=view();
     if(current){
-      const preview=client?.initialPreview;
-      const index=preview?2:(current.session.player-1) as 0|1;
+      const study=client?.otherPerspective;
+      const index=((study?.player??current.session.player)-1) as 0|1;
       if(!this.board||this.board.index!==index){this.board?.destroy();this.board=new BoardView(this,index);}
       const width=this.scale.width,top=document.querySelector('.mission')!.getBoundingClientRect().bottom+48;
       const bottom=document.querySelector('.console')!.getBoundingClientRect().top-10,side=width<700?8:24;
-      this.board.render(preview?new InitialPreviewView(preview.level):current,{x:side,y:top,width:width-side*2,height:Math.max(130,bottom-top)},pack,preview?undefined:previous,!preview&&animate);
-      this.updatePreviewOverlap();
+      this.board.render(study?new OtherPerspectiveView(study.level):current,{x:side,y:top,width:width-side*2,height:Math.max(130,bottom-top)},pack,study?undefined:previous,!study&&animate);
     }
     document.body.dataset.environment=pack.id;refresh();
   }
-  updatePreviewOverlap(){this.board?.setPreviewSecond(10-(client?.previewSeconds??10));}
 }
 const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#151b1e',antialias:false,pixelArt:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
-let showingPreview=false;
-const previewClock=setInterval(()=>{const visible=!!client?.initialPreview;if(visible!==showingPreview){showingPreview=visible;scene?.redraw();}else if(visible){scene?.updatePreviewOverlap();refresh();}},100);
 syncScreen();void auth.refresh();
 window.addEventListener('hashchange',syncScreen);
 window.addEventListener('keydown',e=>{
@@ -149,8 +145,8 @@ window.addEventListener('keydown',e=>{
   }
   if(!lobby.root.hidden){if(e.code==='KeyF'){e.preventDefault();void fullscreen();}return;}
   if(e.code==='Escape'){hud.toggleHelp(false);inspection=null;scene?.redraw();return;}
-  if(e.code==='KeyH'&&!client?.state?.preview){e.preventDefault();if(!e.repeat)hud.toggleHelp();return;}
-  if(hud.helpOpen||client?.state?.preview)return;
+  if(e.code==='KeyH'){e.preventDefault();if(!e.repeat)hud.toggleHelp();return;}
+  if(hud.helpOpen)return;
   if(target.tagName==='BUTTON'&&(e.code==='Enter'||e.code==='Space'))return;
   if(KEY_MOVES[e.code]){e.preventDefault();if(!e.repeat)queue(KEY_MOVES[e.code][1]);return;}
   if(e.repeat)return;
@@ -162,5 +158,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{clearInterval(previewClock);client?.destroy();auth.destroy();editor.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();

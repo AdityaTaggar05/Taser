@@ -8,7 +8,7 @@ import { DIRECTIONS, parseCommand, type Player, type ServerMessage, type Session
 export type PublishedLevelLoader=(id:string)=>PublishedSnapshot|null;
 export interface Peer { send(message: ServerMessage): void; close(): void }
 interface Seat { accountId:string; token:string; peer:Peer|null; expiresAt:number }
-export interface RoomOptions {previewMs?:number;solo?:{player:Player;moves:Direction[]};fixedLevel?:boolean;win?:(snapshot:PublishedSnapshot,humans:Array<{id:string;role:Player}>,moves:[Direction[],Direction[]])=>void}
+export interface RoomOptions {solo?:{player:Player;moves:Direction[]};fixedLevel?:boolean;win?:(snapshot:PublishedSnapshot,humans:Array<{id:string;role:Player}>,moves:[Direction[],Direction[]])=>void}
 /** A single disposable playtest room. A future party layer can own one instance per party. */
 export class CoopRoom {
   private seats: [Seat|null,Seat|null]=[null,null];
@@ -18,24 +18,18 @@ export class CoopRoom {
   private customId:string|undefined;private customRevision:number|undefined;
   private inputs:[Direction[],Direction[]]=[[],[]];
   private pending:[Direction|null,Direction|null]=[null,null];
-  private revision=0;private previewUntil=0;private previewTimer:ReturnType<typeof setTimeout>|undefined;
+  private revision=0;private studyEnabled=false;private studyAttempt=0;private studyLocked:[boolean,boolean]=[false,false];
   constructor(private makeToken:()=>string, private now=()=>Date.now(), readonly reconnectMs=45_000, private completed:(ids:string[],levelId:number)=>void=()=>{},private loadPublished:PublishedLevelLoader=()=>null,
     private campaign:PublishedSnapshot[]=levels.map(level=>({level,revision:1})),
     private verified:(ids:string[],key:string)=>void=()=>{},private revealed:(accountId:string,key:string)=>boolean=()=>false,private options:RoomOptions={}) {
     if(!campaign.length)throw new Error('No campaign chambers are published. Run npm run arkiv:migrate.');
     this.publication=campaign[0];this.engine=new GameEngine(this.publication.level);
   }
-  startPreview(){
-    this.clearPreview();const duration=this.options.previewMs??0;if(duration<=0)return;
-    this.previewUntil=this.now()+duration;this.revision++;
-    const finish=()=>{const remaining=this.previewUntil-this.now();if(remaining>0){this.previewTimer=setTimeout(finish,remaining);this.previewTimer.unref?.();return;}this.previewTimer=undefined;this.previewUntil=0;this.broadcast();};
-    this.previewTimer=setTimeout(finish,duration);this.previewTimer.unref?.();
-  }
-  private clearPreview(){clearTimeout(this.previewTimer);this.previewTimer=undefined;this.previewUntil=0;}
-  dispose(){this.clearPreview();}
+  startStudy(){this.studyEnabled=true;this.studyAttempt++;this.studyLocked=[false,false];this.revision++;}
+  private clearStudy(){this.studyEnabled=false;}
   get empty(){return !this.seats.some(Boolean);}
   campaignSnapshot(index:number){return this.campaign[index];}
-  updateCampaign(campaign:PublishedSnapshot[]){if(!this.empty||!campaign.length)return;this.clearPreview();this.campaign=campaign;this.levelIndex=0;this.publication=campaign[0];this.customId=undefined;this.customRevision=undefined;this.engine=new GameEngine(this.publication.level);}
+  updateCampaign(campaign:PublishedSnapshot[]){if(!this.empty||!campaign.length)return;this.clearStudy();this.campaign=campaign;this.levelIndex=0;this.publication=campaign[0];this.customId=undefined;this.customRevision=undefined;this.engine=new GameEngine(this.publication.level);}
   private catalog():CampaignSummary[]{return this.campaign.map((s,i)=>({id:s.id??String(s.level.id),slot:s.slot??s.level.id,entityKey:s.ref?.entityKey??'',name:s.level.name,subtitle:s.level.subtitle,ownerName:'WeldPoint',revision:s.revision,publishedRevision:s.revision,updatedAt:0,width:s.level.width,height:s.level.height,totalSteps:s.level.totalSteps}));}
   join(peer:Peer, accountId:string, token?:string,requestedLevel?:string,requestedPlayer?:Player): Player|null {
     this.expire();
@@ -70,13 +64,13 @@ export class CoopRoom {
   /** Intentional menu exit: release now rather than reserve a disconnected seat. */
   release(peer:Peer) {
     const index=this.seats.findIndex(s=>s?.peer===peer);if(index<0)return;
-    this.clearPreview();this.seats[index]=null;this.pending=[null,null];this.engine.reset();this.inputs=[[],[]];this.revision++;
+    this.clearStudy();this.seats[index]=null;this.pending=[null,null];this.engine.reset();this.inputs=[[],[]];this.revision++;
     this.broadcast();
   }
   expire() {
     let expired=false;
     this.seats=this.seats.map(s=>{if(s&&!s.peer&&s.expiresAt<=this.now()){expired=true;return null;}return s;}) as typeof this.seats;
-    if(expired){this.clearPreview();this.customId=undefined;this.customRevision=undefined;this.levelIndex=0;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.pending=[null,null];this.inputs=[[],[]];this.revision++;this.broadcast();}
+    if(expired){this.clearStudy();this.customId=undefined;this.customRevision=undefined;this.levelIndex=0;this.publication=this.campaign[0];this.engine=new GameEngine(this.publication.level);this.pending=[null,null];this.inputs=[[],[]];this.revision++;this.broadcast();}
   }
   receive(peer:Peer, value:unknown) {
     const index=this.seats.findIndex(s=>s?.peer===peer); if(index<0)return;
@@ -84,10 +78,10 @@ export class CoopRoom {
     if(!command){peer.send({type:'error',message:'Invalid game command.'});return;}
     if(!this.options.solo&&!this.seats.every(s=>s?.peer)){peer.send({type:'error',message:'Waiting for your partner to connect.'});return;}
     if(command.revision!==this.revision){peer.send({type:'error',message:'The timeline changed. Choose your move again.'});this.broadcast();return;}
-    if(this.now()<this.previewUntil){peer.send({type:'error',message:'Study the initial configuration. Moves unlock when the countdown ends.'});return;}
     if(command.type==='move') {
       const error=this.engine.selectionError((index+1) as Player,command.direction);
       if(error){peer.send({type:'error',message:error});return;}
+      this.studyLocked[index]=true;
       this.pending[index]=command.direction;
       if(this.options.solo){
         const replay=this.options.solo.moves[this.engine.state.step];
@@ -116,26 +110,25 @@ export class CoopRoom {
       if(command.type==='level') {
         if(this.options.fixedLevel){peer.send({type:'error',message:'Return to the menu to choose another challenge.'});return;}
         if(command.index<0||command.index>=this.campaign.length){peer.send({type:'error',message:'Unknown chamber.'});return;}
-        this.customId=undefined;this.customRevision=undefined;this.levelIndex=command.index;this.publication=this.campaign[this.levelIndex];this.engine=new GameEngine(this.publication.level);this.inputs=[[],[]];
-      } else if(command.type==='reset'){this.engine.reset();this.inputs=[[],[]];this.startPreview();}
+        this.customId=undefined;this.customRevision=undefined;this.levelIndex=command.index;this.publication=this.campaign[this.levelIndex];this.engine=new GameEngine(this.publication.level);this.inputs=[[],[]];if(this.studyEnabled)this.startStudy();
+      } else if(command.type==='reset'){this.engine.reset();this.inputs=[[],[]];if(this.studyEnabled)this.startStudy();}
       else{this.engine.undo();this.inputs[0].length=this.engine.state.step;this.inputs[1].length=this.engine.state.step;}
       this.pending=[null,null];this.revision++;
     }
     this.broadcast();
   }
-  private publicLevel(player?:Player):LevelConfig {
+  private publicLevel(player:Player):LevelConfig {
     const level=structuredClone(this.engine.level);
-    // Live role projections hide partner data; only the timed preview requests both initial roles.
-    // Neither projection includes weld coordinates or solutions.
+    // Each projection contains only one role's initial layout, never welds or solutions.
     level.weldTargets=[];delete level.midpointSwitchRequired;level.solutionP1=[];level.solutionP2=[];
     if(player===1){level.initialP2=[0,0];level.initialBoxesP2=[];level.switchesP2=[];level.exitP2=[0,0];}
     else if(player===2){level.initialP1=[0,0];level.initialBoxesP1=[];level.switchesP1=[];level.exitP1=[0,0];delete level.laserReceiverP1;}
     return level;
   }
   private snapshot(index:number): SessionState {
-    const player=(index+1) as Player,now=this.now();
+    const player=(index+1) as Player,other=(2-index) as Player;
     return {
-      ...(now<this.previewUntil?{preview:{endsAt:this.previewUntil,serverNow:now,level:this.publicLevel()}}:{}),
+      ...(this.studyEnabled&&!this.studyLocked[index]?{study:{attempt:this.studyAttempt,player:other,level:this.publicLevel(other)}}:{}),
       type:'state', player, revision:this.revision,levelIndex:this.levelIndex,
       level:this.publicLevel(player),campaign:this.catalog(),publicationKey:this.publication.ref?.entityKey,solutionAvailable:!!this.publication.ref&&this.revealed(this.seats[index]!.accountId,this.publication.ref.entityKey),
       ...(this.customId?{customLevelId:this.customId,customRevision:this.customRevision}:{}),
@@ -149,7 +142,7 @@ export class CoopRoom {
   }
   returnToLobby(revision:unknown){
     if(revision!==this.revision||isLive(this.engine.state.status))return false;
-    this.clearPreview();this.engine.reset();this.inputs=[[],[]];this.pending=[null,null];this.revision++;return true;
+    this.clearStudy();this.engine.reset();this.inputs=[[],[]];this.pending=[null,null];this.revision++;return true;
   }
   notify(){this.broadcast();}
   private broadcast(){this.seats.forEach((s,i)=>{if(s?.peer)s.peer.send(this.snapshot(i));});}

@@ -5,8 +5,8 @@ import {WebSocket} from 'ws';
 import {attachCoop} from '../server/socket';
 import type {JoinIntent,ServerMessage,SessionState} from '../src/network/protocol';
 import {levels} from '../server/data/campaign';
-async function fixture(previewMs=0){
-  const f=await authFixture(),stop=attachCoop(f.server,f.auth,undefined,f.levels,previewMs),clients:WebSocket[]=[];
+async function fixture(){
+  const f=await authFixture(),stop=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
   const a=f.browser(),b=f.browser();await a.login();await b.login('nova');const catalog=(await a.request('levels/catalog')).data.campaign;
   async function connect(account:typeof a,intent:unknown,ticket?:string){
     const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');
@@ -91,15 +91,18 @@ it('pins a community party to its publication and rejects wrong revision or wron
   }finally{await f.close();}
 },10_000);
 
-it('broadcasts preview expiry over real sockets and rejects early turn selections',async()=>{
-  const f=await fixture(400);try{
-    const host=await f.connect(f.a,create(f.catalog[0].id,1)),guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});
+it('locks the opposite starting projection per player over real sockets and restores it on reset',async()=>{
+  const f=await fixture();try{
+    const host=await f.connect(f.a,create(f.catalog[0].id,2)),guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});
+    expect(host.state().study).toBeUndefined();expect(guest.state().study).toBeUndefined();
     host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await expect.poll(()=>host.state().party!.members.every(m=>m.ready)).toBe(true);host.send({type:'start'});
-    await expect.poll(()=>host.messages.some(m=>m.type==='state'&&!!m.preview)).toBe(true);
-    host.send({type:'move',direction:'U',revision:host.state().revision});await expect.poll(()=>host.messages.some(m=>m.type==='error'&&m.message.includes('countdown'))).toBe(true);
-    expect(host.state().history.at(-1)?.step).toBe(0);expect(host.state().pendingMove).toBeNull();
-    await expect.poll(()=>host.state().party!.started&&!host.state().preview).toBe(true);await expect.poll(()=>guest.state().party!.started&&!guest.state().preview).toBe(true);
-    expect(host.state().level?.initialBoxesP2).toEqual([]);expect(guest.state().level?.initialBoxesP1).toEqual([]);
-    host.send({type:'move',direction:'U',revision:host.state().revision});guest.send({type:'move',direction:'D',revision:guest.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(1);
+    await expect.poll(()=>host.state().study?.player).toBe(1);await expect.poll(()=>guest.state().study?.player).toBe(2);
+    const attempt=host.state().study!.attempt;
+    host.send({type:'move',direction:'D',revision:host.state().revision});await expect.poll(()=>host.state().pendingMove).toBe('D');expect(host.state().study).toBeUndefined();expect(guest.state().study).toBeDefined();
+    host.send({type:'cancel',revision:host.state().revision});await expect.poll(()=>host.state().pendingMove).toBeNull();expect(host.state().study).toBeUndefined();
+    host.send({type:'move',direction:'D',revision:host.state().revision});guest.send({type:'move',direction:'U',revision:guest.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(1);await expect.poll(()=>guest.state().study).toBeUndefined();
+    expect(host.state().level?.initialBoxesP1).toEqual([]);expect(guest.state().level?.initialBoxesP2).toEqual([]);
+    host.send({type:'undo',revision:host.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(0);expect(host.state().study).toBeUndefined();
+    host.send({type:'reset',revision:host.state().revision});await expect.poll(()=>host.state().study?.attempt).toBeGreaterThan(attempt);await expect.poll(()=>guest.state().study?.attempt).toBe(host.state().study!.attempt);
   }finally{await f.close();}
 },10_000);

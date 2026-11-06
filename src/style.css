@@ -14,5 +14,16 @@ body[data-player='2'] .queued.ready,body[data-player='2'] .peer-status.ready{col
 
 /* Reference routes unlock per publication after authoritative completion. */
 .hint{max-width:calc(100vw - 24px);max-height:60vh;overflow:auto;z-index:8}.hint span{font-size:14px;line-height:1.8;overflow-wrap:anywhere}.hint button{padding:6px 12px;font:10px monospace}.levels{max-width:42vw;overflow:auto;flex-shrink:1}.levels button{flex-shrink:0}
-.connection.initial-preview{background:#26332a;border-color:#93b9a1;color:#e4edcf;font-size:12px;letter-spacing:1px}.connection.initial-preview::before{content:'◷';margin-right:10px;font-size:18px;color:var(--cyan)}
-@media(max-width:760px){.connection.initial-preview{font-size:9px;letter-spacing:.3px}.connection.initial-preview::before{font-size:15px;margin-right:6px}}
+/* Opposite-role study is local and available until the first valid selection. */
+.perspective-bar{position:absolute;top:169px;left:32px;right:32px;display:flex;gap:10px;height:36px;z-index:2}
+.perspective-bar .connection{position:static;flex:1;min-width:0;height:100%;white-space:nowrap;overflow:hidden}
+#perspective-toggle{display:flex;align-items:center;justify-content:center;gap:9px;padding:6px 12px;flex-shrink:0;font:10px monospace;white-space:nowrap}
+.switch-track{position:relative;width:29px;height:16px;border:1px solid var(--muted);background:#263337;flex-shrink:0}
+.switch-track::after{content:'';position:absolute;left:2px;top:2px;width:10px;height:10px;background:var(--muted);transition:transform .15s,background .15s}
+#perspective-toggle[aria-checked=true]{border-color:var(--cyan)}
+#perspective-toggle[aria-checked=true] .switch-track::after{transform:translateX(13px);background:var(--cyan)}
+.perspective-bar .connection.other-perspective{border-color:var(--amber);color:var(--paper);background:#302b26}
+@media(min-width:1600px){.perspective-bar{top:194px;left:44px;right:44px}}
+@media(max-width:1100px){.perspective-bar{left:20px;right:20px}}
+@media(max-height:650px){.perspective-bar{top:124px}}
+@media(max-width:760px){.perspective-bar{top:135px;left:12px;right:12px;gap:5px;height:38px}.perspective-bar .connection{font-size:8px;letter-spacing:0;white-space:normal;padding:3px 5px}#perspective-toggle{font-size:8px;gap:5px;padding:4px 6px}}
