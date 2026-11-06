@@ -22,7 +22,7 @@ let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
 const audio=new GameAudio(),completed=new Set<number>();
 try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme))pack=environments[savedTheme];}catch{/* Preferences are optional. */}
-function view(){return client?.state?new RemoteView(levels[client.state.levelIndex],client.state,inspection):null;}
+function view(){return client?.state?new RemoteView(client.state.level??levels[client.state.levelIndex],client.state,inspection):null;}
 function refresh(){
   hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
@@ -54,13 +54,14 @@ const signin=new SignInScreen(auth);
 const home=new HomeScreen({play:()=>{location.hash='play';},create:()=>{location.hash='create';},sound:toggleSound,theme:toggleTheme,fullscreen,logout:async()=>{await auth.logout();location.hash='';}});
 const editor=new EditorScreen(new LevelClient(auth),{home:()=>{location.hash='';},play:id=>{location.hash='play/'+id;},fullscreen});
 function syncScreen(){
-  const next=!!auth.user&&location.hash==='#play';
+  const custom=/^#play\/([a-f0-9-]{36})$/.exec(location.hash)?.[1];
+  const next=!!auth.user&&(location.hash==='#play'||!!custom);
   const nextEditing=!!auth.user&&location.hash==='#create';
   if(screenInitialized&&next===playing&&nextEditing===editing&&screenRoute===location.hash&&screenUser===(auth.user?.id??null))return;
   client?.leave();client=undefined;screenUser=auth.user?.id??null;
   screenInitialized=true;playing=next;editing=nextEditing;screenRoute=location.hash;inspection=null;hud.toggleHelp(false);
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!!auth.user);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':auth.user?'home':'signin';
-  if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired());}
+  if(playing){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),custom);}
   scene?.redraw();refresh();
 }
 function receive(previous:SessionState|null){
@@ -68,11 +69,11 @@ function receive(previous:SessionState|null){
   const changed=!previous||previous.revision!==current.revision||previous.player!==current.player;
   if(changed)inspection=null;
   const last=current.history.at(-1)!;
-  const animate=!!previous&&current.levelIndex===previous.levelIndex&&current.player===previous.player&&last.step===previous.history.at(-1)!.step+1;
+  const animate=!!previous&&current.levelIndex===previous.levelIndex&&current.customLevelId===previous.customLevelId&&current.player===previous.player&&last.step===previous.history.at(-1)!.step+1;
   if(animate)audio.play(last.status==='VICTORY'?'win':!isLive(last.status)?'fail':last.status==='WELD_SUCCESS'?'weld':current.shove!==null?'shove':'step');
-  if(last.status==='VICTORY'&&previous?.history.at(-1)?.status!=='VICTORY')void auth.refresh();
-  if(!previous||previous.levelIndex!==current.levelIndex){const environment=levels[current.levelIndex].environment;if(environment&&environments[environment])pack=environments[environment];}
-  const old=animate?new RemoteView(levels[previous!.levelIndex],previous!).state:undefined;
+  if(!current.customLevelId&&last.status==='VICTORY'&&previous?.history.at(-1)?.status!=='VICTORY')void auth.refresh();
+  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=(current.level??levels[current.levelIndex]).environment;if(environment&&environments[environment])pack=environments[environment];}
+  const old=animate?new RemoteView(previous!.level??levels[previous!.levelIndex],previous!).state:undefined;
   scene?.redraw(old,animate);refresh();
 }
 class ChamberScene extends Phaser.Scene {

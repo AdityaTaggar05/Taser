@@ -1,4 +1,4 @@
-import type { Coord, Direction, GameStatus } from '../core/types';
+import type { Coord, Direction, GameStatus, LevelConfig } from '../core/types';
 export type Player = 1 | 2;
 export const DIRECTIONS: Direction[] = ['U','D','L','R','W'];
 export interface PlayerFrame {
@@ -6,6 +6,7 @@ export interface PlayerFrame {
 }
 export interface SessionState {
   type: 'state'; player: Player; revision: number; levelIndex: number;
+  customLevelId?:string;customRevision?:number;level?:LevelConfig;
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;

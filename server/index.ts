@@ -20,6 +20,6 @@ const server=createServer((req,res)=>{
   res.writeHead(200,{'Content-Type':types[extname(file)]??'application/octet-stream','Cache-Control':path.startsWith('/assets/')?'public, max-age=31536000, immutable':'no-cache'});
   if(req.method==='HEAD')res.end();else createReadStream(file).on('error',()=>res.destroy()).pipe(res);
 });
-const close=attachCoop(server,auth);
+const close=attachCoop(server,auth,id=>levels.published(id));
 server.listen(Number(process.env.PORT??5173),'0.0.0.0',()=>console.log(`WeldPoint co-op listening on port ${process.env.PORT??5173}`));
 for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{close();server.close(()=>{levels.close();auth.close();process.exit(0);});});

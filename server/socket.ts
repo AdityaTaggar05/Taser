@@ -1,11 +1,11 @@
 import type { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { WebSocket, WebSocketServer } from 'ws';
-import { CoopRoom, type Peer } from './CoopRoom';
+import { CoopRoom, type Peer,type PublishedLevelLoader } from './CoopRoom';
 import {AuthService,type SessionIdentity} from './auth/AuthService';
 
-export function attachCoop(server:EventEmitter,auth:AuthService) {
-  const room=new CoopRoom(randomUUID,Date.now,45_000,(ids,level)=>auth.recordCompletion(ids,level));
+export function attachCoop(server:EventEmitter,auth:AuthService,loadPublished?:PublishedLevelLoader) {
+  const room=new CoopRoom(randomUUID,Date.now,45_000,(ids,level)=>auth.recordCompletion(ids,level),loadPublished);
   const identities=new Map<WebSocket,{identity:SessionIdentity;peer:Peer}>();
   const reject=(ws:WebSocket,peer:Peer)=>{room.release(peer);peer.send({type:'auth_required',message:'Your session ended. Please sign in again.'});ws.close(4401,'Sign in required');};
   const unsubscribe=auth.onRevoke(key=>{for(const [ws,entry] of identities)if(entry.identity.key===key)reject(ws,entry.peer);});
@@ -36,7 +36,7 @@ export function attachCoop(server:EventEmitter,auth:AuthService) {
         const token=typeof m.token==='string'&&m.token.length<=128?m.token:undefined;
         const identity=auth.consumeTicket(m.ticket);
         if(!identity){reject(ws,peer);return;}
-        identities.set(ws,{identity,peer});joined=room.join(peer,identity.user.id,token)!==null;return;
+        identities.set(ws,{identity,peer});joined=room.join(peer,identity.user.id,token,typeof m.customLevelId==='string'&&/^[a-f0-9-]{36}$/.test(m.customLevelId)?m.customLevelId:undefined)!==null;return;
       }
       const entry=identities.get(ws);if(!entry||!auth.isActive(entry.identity.key)){reject(ws,peer);return;}
       if(message&&typeof message==='object'&&'type' in message&&message.type==='leave'){
