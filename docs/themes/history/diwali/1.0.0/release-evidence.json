@@ -1,0 +1,195 @@
+{
+  "reference": "7872d6b2b46eb9e5f6e0c1d79e9e067f566a9fd8a65609ac4a748052735f120b",
+  "gateway": "https://bzz.limo",
+  "verifiedAt": "2026-11-06T13:07:37.126Z",
+  "manifestSha256": "82e7004f3d4c1233c0ee95930ee2d5a340208d54bacc8d2eeb761b9b723c34ef",
+  "releaseSha256": "0ca3acc2d358cf91e5836e0c37555d61d55ec7ddf6267ec7ee6bf53eec26087f",
+  "sheetReferences": {
+    "p1-idle": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
+    "p1-walk": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
+    "p1-shove": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
+    "p1-recoil": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
+    "p1-hit": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "p1-death": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "p1-exit": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "p1-victory": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
+    "p2-idle": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
+    "p2-walk": "e1336c13dc8c6b9feaa04d2a63b25a4fdc75d15bfd5c382361dc4cdc8bfe937f",
+    "p2-shove": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
+    "p2-recoil": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
+    "p2-hit": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
+    "p2-death": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
+    "p2-exit": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
+    "p2-victory": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
+    "01-crates-and-mirrors": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "02-environment-tiles": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "03-pressure-switches": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "04-exits": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "05-laser-equipment": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "06-laser-segments-and-impacts": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "07-physical-effects": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "08-resolution-effects": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
+    "09-replay-indicators": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "10-mvp-ui-icons-and-avatars": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "directional-model": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
+    "approved-reference": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc"
+  },
+  "manifestReference": "c98c26e3faaf8046a39fb40fb99deddf3e3adb450e4210dda220f66d5b00c45d",
+  "uploadService": "https://bzz.limo",
+  "postageSupplier": "Swarm Foundation public gateway",
+  "postageBatchId": null,
+  "retention": "Not yet confirmed by operator",
+  "files": [
+    {
+      "path": "manifest.json",
+      "sha256": "82e7004f3d4c1233c0ee95930ee2d5a340208d54bacc8d2eeb761b9b723c34ef",
+      "bytes": 187139
+    },
+    {
+      "path": "sheets/p1-idle.png",
+      "sha256": "0cd8b206ec671958d02431e70e97d2d84d084a277d187dbe80c8313d4f2cd3cf",
+      "bytes": 1628982
+    },
+    {
+      "path": "sheets/p1-walk.png",
+      "sha256": "8a7fb35c94ce48e0e74862c953b813d40187b72052c29bf69c78d92982bb8791",
+      "bytes": 1686515
+    },
+    {
+      "path": "sheets/p1-shove.png",
+      "sha256": "244b106205d09d4fc5166608d103b8c79397b0edea1ded2d389e6f1a968a4e1c",
+      "bytes": 1658457
+    },
+    {
+      "path": "sheets/p1-recoil.png",
+      "sha256": "12edbc694adea695069c8558e75d4a6787394a2a827ccb057b34105efd13e6a9",
+      "bytes": 1717519
+    },
+    {
+      "path": "sheets/p1-hit.png",
+      "sha256": "4a2d2ebb85e1e95aebc2571fd7389f04e5c14340a4c02a1df98f62cd526da71e",
+      "bytes": 1699866
+    },
+    {
+      "path": "sheets/p1-death.png",
+      "sha256": "4d552651d1dd2c2b7df7c66cf43b83c41073f1fb238fd869a7c54dc8fce7370d",
+      "bytes": 1618644
+    },
+    {
+      "path": "sheets/p1-exit.png",
+      "sha256": "26b2334f83e370ea4b637899a6aa15094603e2fc4f957d60c98a5685dbb8d25a",
+      "bytes": 1620074
+    },
+    {
+      "path": "sheets/p1-victory.png",
+      "sha256": "1db9a4405c01ce79d150156ffd425acfd8052c8ce919224e185bc3d0984a6fb4",
+      "bytes": 1691276
+    },
+    {
+      "path": "sheets/p2-idle.png",
+      "sha256": "3ba770c2e6817c62b8232908bc6e250f9b9020cdf1eb1bd1a4c283676cc7b164",
+      "bytes": 1680394
+    },
+    {
+      "path": "sheets/p2-walk.png",
+      "sha256": "c4910e03fb0982452c93d6b1614c65b27f504e553dde24e7c9bdb9c453186fff",
+      "bytes": 1689693
+    },
+    {
+      "path": "sheets/p2-shove.png",
+      "sha256": "a377a5005b0d9534c0781535e69a1ccf3df9f7f742eaf1e6dbc6efbdd4a5cefd",
+      "bytes": 1662265
+    },
+    {
+      "path": "sheets/p2-recoil.png",
+      "sha256": "6451af57cc20d08deef64e5e53244054c69ec8f9622b96e4afbcc061b1840b50",
+      "bytes": 1715742
+    },
+    {
+      "path": "sheets/p2-hit.png",
+      "sha256": "cf128596aac7a808a7eb01033316b51e3b7ff96ddd72edc1c75c1ddbda10d66a",
+      "bytes": 1777849
+    },
+    {
+      "path": "sheets/p2-death.png",
+      "sha256": "e543e0f43be2ab2bc5c4e66938cb5b93174e857081af755e53776947f664fe70",
+      "bytes": 1665861
+    },
+    {
+      "path": "sheets/p2-exit.png",
+      "sha256": "efe95003ef11b73b33aedea86810c24d6f9e83625b2b4e2d31b7fc6ea9f7a568",
+      "bytes": 1632247
+    },
+    {
+      "path": "sheets/p2-victory.png",
+      "sha256": "ebfc2e1aac0fd54909b4b2cfb89f4384914fb2194ec15249c0de6de372319e7d",
+      "bytes": 1691827
+    },
+    {
+      "path": "sheets/01-crates-and-mirrors.png",
+      "sha256": "7bb809ea3155002638fe8a8510b8be5de1d05e25e45f2f257e4bf472a31091ba",
+      "bytes": 853204
+    },
+    {
+      "path": "sheets/02-environment-tiles.png",
+      "sha256": "9a46adc882c748ff0e69d8f1a7252d807391186d2895e532e52e5a331788330c",
+      "bytes": 1151755
+    },
+    {
+      "path": "sheets/03-pressure-switches.png",
+      "sha256": "f9fb16a545a19802974305a0a4afc7cbe3ab17c4f541480d3ca84bcdde2aebad",
+      "bytes": 894781
+    },
+    {
+      "path": "sheets/04-exits.png",
+      "sha256": "9f9ddeb39cb2a07bb6d04526f59a61ff1f7d116e26c733319dad3337abefd0f2",
+      "bytes": 1190307
+    },
+    {
+      "path": "sheets/05-laser-equipment.png",
+      "sha256": "13496a405aab878e34f81b2a01e26c53d3b003f8501daa779f631b77bfb1cb14",
+      "bytes": 781550
+    },
+    {
+      "path": "sheets/06-laser-segments-and-impacts.png",
+      "sha256": "0db52b3025bb4f00790a9bd450ef608d935952c17122f83507c8bc2749e68114",
+      "bytes": 260075
+    },
+    {
+      "path": "sheets/07-physical-effects.png",
+      "sha256": "433d2dd8337c02b817a67c4b48e9b24fec2fcf9ace0bad1b7ebd720ca6064b80",
+      "bytes": 1393484
+    },
+    {
+      "path": "sheets/08-resolution-effects.png",
+      "sha256": "282c76a433ea8bae327a9db82fef27ebc7145f364195acd2fc92e203fc358b2d",
+      "bytes": 1278263
+    },
+    {
+      "path": "sheets/09-replay-indicators.png",
+      "sha256": "f339f7f6e372ae02acf837e9da0a61d6b6cb9c808c63bf2fe0dcfec4b8deae86",
+      "bytes": 628066
+    },
+    {
+      "path": "sheets/10-mvp-ui-icons-and-avatars.png",
+      "sha256": "ce41cf1b9bb0737ca281e4fe1331cd6edd6695f83d289be2995c6002d2bee550",
+      "bytes": 698876
+    },
+    {
+      "path": "sheets/directional-model.png",
+      "sha256": "beb067c1cb432566695f3f65df73c6ec834e53cecac10d2dff1ea83f795aaee6",
+      "bytes": 612611
+    },
+    {
+      "path": "sheets/approved-reference.png",
+      "sha256": "c46230a0d860a8418512892fb3c8751a0f57fccefae25314891a02512f30d1b6",
+      "bytes": 614743
+    }
+  ],
+  "arkiv": {
+    "entityKey": "0xc0d49d668a7c08ab5b6759902c4ab4e0de925400633ac95e4037c575b6c4f5e3",
+    "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+    "txHash": "0x753dce51cb3040f6defe62877929849eeb4fff21e17d6adaf52e28a0344b9926"
+  },
+  "arkivExpiresAt": "8176370"
+}

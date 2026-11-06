@@ -1,40 +1,41 @@
 {
-  "reference": "7872d6b2b46eb9e5f6e0c1d79e9e067f566a9fd8a65609ac4a748052735f120b",
+  "reference": "d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf",
   "gateway": "https://bzz.limo",
-  "verifiedAt": "2026-11-06T13:07:37.126Z",
-  "manifestSha256": "82e7004f3d4c1233c0ee95930ee2d5a340208d54bacc8d2eeb761b9b723c34ef",
-  "releaseSha256": "0ca3acc2d358cf91e5836e0c37555d61d55ec7ddf6267ec7ee6bf53eec26087f",
+  "verifiedAt": "2026-11-06T14:23:50.191Z",
+  "manifestSha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+  "releaseSha256": "712129c65eec16d3651e8321df535257a35dfd6cf798159d2c51a8129549c678",
   "sheetReferences": {
-    "p1-idle": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
-    "p1-walk": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
-    "p1-shove": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
-    "p1-recoil": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
-    "p1-hit": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "p1-death": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "p1-exit": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "p1-victory": "5b555a5f1d58e18507afa40abaa95c3b7ae44ecd14d26711cd15ccfc16fb4123",
-    "p2-idle": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
-    "p2-walk": "e1336c13dc8c6b9feaa04d2a63b25a4fdc75d15bfd5c382361dc4cdc8bfe937f",
-    "p2-shove": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
-    "p2-recoil": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
-    "p2-hit": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
-    "p2-death": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
-    "p2-exit": "f7410bd43b69aa5c4a886354c901ca34c80edc9def659695ae35d8af6059d47f",
-    "p2-victory": "86c500081e8bb2a2ba6e5c8dd3e7cfb9ab4c85cf44027b0aa38f44a2aef0f1b5",
-    "01-crates-and-mirrors": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "02-environment-tiles": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "03-pressure-switches": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "04-exits": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "05-laser-equipment": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "06-laser-segments-and-impacts": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "07-physical-effects": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "08-resolution-effects": "c832a7ac74a4e56c485c53cc74edec1999731da43b62669a550aad25ea6d859e",
-    "09-replay-indicators": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "10-mvp-ui-icons-and-avatars": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "directional-model": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc",
-    "approved-reference": "5ae98d921588746014db25d7b85a55489089bf2f17d9355a90ddfded070ec7dc"
+    "p1-idle": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-walk": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-shove": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-recoil": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-hit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-death": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "p1-exit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-victory": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-idle": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-walk": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-shove": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-recoil": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-hit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-death": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-exit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-victory": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "01-crates-and-mirrors": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "02-environment-tiles": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "03-pressure-switches": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "04-exits": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "05-laser-equipment": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "06-laser-segments-and-impacts": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "07-physical-effects": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "08-resolution-effects": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "09-replay-indicators": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "10-mvp-ui-icons-and-avatars": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "directional-model": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "approved-reference": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "11-standard-crates": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5"
   },
-  "manifestReference": "c98c26e3faaf8046a39fb40fb99deddf3e3adb450e4210dda220f66d5b00c45d",
+  "manifestReference": "09fb587d8be79881791ad32c0d9121236905cd09acbd5ae94260a36f454e77d2",
   "uploadService": "https://bzz.limo",
   "postageSupplier": "Swarm Foundation public gateway",
   "postageBatchId": null,
@@ -42,8 +43,8 @@
   "files": [
     {
       "path": "manifest.json",
-      "sha256": "82e7004f3d4c1233c0ee95930ee2d5a340208d54bacc8d2eeb761b9b723c34ef",
-      "bytes": 187139
+      "sha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+      "bytes": 187700
     },
     {
       "path": "sheets/p1-idle.png",
@@ -137,8 +138,8 @@
     },
     {
       "path": "sheets/03-pressure-switches.png",
-      "sha256": "f9fb16a545a19802974305a0a4afc7cbe3ab17c4f541480d3ca84bcdde2aebad",
-      "bytes": 894781
+      "sha256": "299adc3070b8a9d64131dcba55bacd96219aa9640eea3a644633577fa61d8e57",
+      "bytes": 939914
     },
     {
       "path": "sheets/04-exits.png",
@@ -184,12 +185,17 @@
       "path": "sheets/approved-reference.png",
       "sha256": "c46230a0d860a8418512892fb3c8751a0f57fccefae25314891a02512f30d1b6",
       "bytes": 614743
+    },
+    {
+      "path": "sheets/11-standard-crates.png",
+      "sha256": "695acbe5295729f3f67b1ac05e5a5cc24113cf6e2fd125efabd83a1085a687d1",
+      "bytes": 862697
     }
   ],
   "arkiv": {
-    "entityKey": "0xc0d49d668a7c08ab5b6759902c4ab4e0de925400633ac95e4037c575b6c4f5e3",
+    "entityKey": "0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f",
     "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
-    "txHash": "0x753dce51cb3040f6defe62877929849eeb4fff21e17d6adaf52e28a0344b9926"
+    "txHash": "0xff7d214ad5f52287116b674dc58442fce6a7523dd5d0a4d5c524e1783223984e"
   },
-  "arkivExpiresAt": "8176370"
+  "arkivExpiresAt": "8178700"
 }

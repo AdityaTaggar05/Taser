@@ -25,7 +25,7 @@ No core engine or screen edits should be necessary for a complete pack. New game
 
 ## Current pack and publication
 
-`npm run assets:prepare` writes identical public and bundled bootstrap manifests and reproducibly copies the 28 selected original PNGs from the sibling `output/` art folders and builds the modern-gray manifest. Rejected exploration images are excluded. It currently defines 556 sprite frames and 74 animations.
+`npm run assets:prepare` writes identical public and bundled bootstrap manifests and reproducibly copies the 29 selected original PNGs from the sibling `output/` art folders and builds the modern-gray manifest. Rejected exploration images are excluded. It currently defines 556 sprite frames and 74 animations.
 
 `npm run assets:public:check` validates the original PNG allowlist and bounded upload plan without network writes. `npm run assets:upload:public` uploads the source manifest, groups of original PNGs, then a release index. New uploads use `https://bzz.limo` unless `SWARM_PUBLIC_GATEWAY_URL` overrides it. A resumed journal preserves its original upload service. `SWARM_GATEWAY_URL` chooses the public read endpoint. Public mode never sends an upload token, queries private postage endpoints or purchases a batch.
 
@@ -41,7 +41,7 @@ The root HTML `data-asset-source` reports `swarm` for the verified deployed pack
 
 ## Diwali pack
 
-`diwali` 1.0.0 provides both players’ complete eight-action, four-facing animation sets, festive exit states and matching kurta avatars. P1 wears burgundy with gold trim; P2 retains the green helmet and two eyes but wears a dark navy kurta. Neither costume uses chest identity bars. Exits carry warm lights and marigold trim. Neutral gameplay objects retain the approved Modern Gray art, and every semantic sprite/animation ID is preserved.
+`diwali` 1.1.0 provides both players’ complete eight-action, four-facing animation sets, festive exit states and matching kurta avatars. P1 wears burgundy with gold trim; P2 retains the green helmet and two eyes but wears a dark navy kurta. Neither costume uses chest identity bars. Exits carry warm lights and marigold trim. Neutral gameplay objects retain the approved Modern Gray art, and every semantic sprite/animation ID is preserved.
 
 Choose **Diwali** with the home settings theme control or the gameplay environment button. The choice persists across reloads and chamber entry; editor levels retain their own authored environment. Use the editor’s environment selector to author a Diwali level.
 
@@ -56,3 +56,9 @@ npm run arkiv:theme:publish -- --theme diwali
 ```
 
 The Diwali deployment and verification evidence are separate from Modern Gray, so adding or publishing it cannot overwrite the original pack’s pins.
+
+## Crate and plate refresh — 1.1.0
+
+Both packs use the approved X-braced shipping crates and recessed floor plates from `public/art-reviews/crate-pressure-v1/`. `scripts/lib/object-art.mjs` applies the same source PNGs, crop rectangles and render metrics during preparation. The plate spans 0.98 tiles; the crate spans 0.80 tiles and anchors its front edge 0.35 tiles below the ground center, leaving the plate rim exposed. All six plate states share a canvas and pivot. Ground-based depth sorting remains unchanged. Mirrors and every other gameplay sprite retain their earlier art.
+
+The original 1.0.0 manifests, deployment pins and verification records are archived under `docs/themes/history/<id>/1.0.0/`. Swarm upload journals now include the pack version, preserving earlier release records and uncertain-write protection. New releases never replace files at an old content reference.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "modern-gray",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Modern Gray",
   "palette": {
     "background": "#151b1e",
@@ -147,8 +147,8 @@
       "file": "sheets/03-pressure-switches.png",
       "width": 1774,
       "height": 887,
-      "bytes": 894781,
-      "sha256": "f9fb16a545a19802974305a0a4afc7cbe3ab17c4f541480d3ca84bcdde2aebad"
+      "bytes": 939914,
+      "sha256": "299adc3070b8a9d64131dcba55bacd96219aa9640eea3a644633577fa61d8e57"
     },
     "04-exits": {
       "file": "sheets/04-exits.png",
@@ -212,6 +212,13 @@
       "height": 887,
       "bytes": 614743,
       "sha256": "c46230a0d860a8418512892fb3c8751a0f57fccefae25314891a02512f30d1b6"
+    },
+    "11-standard-crates": {
+      "file": "sheets/11-standard-crates.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 862697,
+      "sha256": "695acbe5295729f3f67b1ac05e5a5cc24113cf6e2fd125efabd83a1085a687d1"
     }
   },
   "sprites": {
@@ -5976,48 +5983,48 @@
       }
     },
     "crate.neutral": {
-      "sheet": "01-crates-and-mirrors",
+      "sheet": "11-standard-crates",
       "frame": {
-        "x": 91,
-        "y": 97,
-        "w": 265,
-        "h": 277
+        "x": 103,
+        "y": 94,
+        "w": 240,
+        "h": 264
       },
       "render": {
-        "width": 0.84,
-        "height": 0.84,
+        "width": 0.8,
+        "height": 0.8800000000000001,
         "originX": 0.5,
-        "originY": 0.5
+        "originY": 0.6022727272727273
       }
     },
     "crate.p1": {
-      "sheet": "01-crates-and-mirrors",
+      "sheet": "11-standard-crates",
       "frame": {
-        "x": 534,
-        "y": 97,
-        "w": 266,
-        "h": 277
+        "x": 103,
+        "y": 486,
+        "w": 240,
+        "h": 264
       },
       "render": {
-        "width": 0.84,
-        "height": 0.84,
+        "width": 0.8,
+        "height": 0.8800000000000001,
         "originX": 0.5,
-        "originY": 0.5
+        "originY": 0.6022727272727273
       }
     },
     "crate.p2": {
-      "sheet": "01-crates-and-mirrors",
+      "sheet": "11-standard-crates",
       "frame": {
-        "x": 978,
-        "y": 97,
-        "w": 265,
-        "h": 277
+        "x": 103,
+        "y": 878,
+        "w": 240,
+        "h": 264
       },
       "render": {
-        "width": 0.84,
-        "height": 0.84,
+        "width": 0.8,
+        "height": 0.8800000000000001,
         "originX": 0.5,
-        "originY": 0.5
+        "originY": 0.6022727272727273
       }
     },
     "mirror.slash.off": {
@@ -6338,14 +6345,14 @@
     "switch.neutral.up": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 62,
+        "x": 35,
         "y": 60,
-        "w": 200,
+        "w": 239,
         "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6353,14 +6360,14 @@
     "switch.neutral.press1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 354,
-        "y": 61,
-        "w": 201,
-        "h": 197
+        "x": 331,
+        "y": 60,
+        "w": 239,
+        "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6368,14 +6375,14 @@
     "switch.neutral.press2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 646,
-        "y": 61,
-        "w": 200,
-        "h": 197
+        "x": 626,
+        "y": 60,
+        "w": 239,
+        "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6383,14 +6390,14 @@
     "switch.neutral.held": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 938,
-        "y": 61,
-        "w": 200,
-        "h": 197
+        "x": 922,
+        "y": 60,
+        "w": 239,
+        "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6398,14 +6405,14 @@
     "switch.neutral.release1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1230,
-        "y": 61,
-        "w": 201,
-        "h": 197
+        "x": 1218,
+        "y": 60,
+        "w": 239,
+        "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6413,14 +6420,14 @@
     "switch.neutral.release2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1522,
-        "y": 61,
-        "w": 201,
-        "h": 197
+        "x": 1513,
+        "y": 60,
+        "w": 239,
+        "h": 198
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8118828451882845,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6428,14 +6435,14 @@
     "switch.p1.up": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 62,
-        "y": 353,
-        "w": 200,
-        "h": 197
+        "x": 35,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6443,14 +6450,14 @@
     "switch.p1.press1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 354,
-        "y": 354,
-        "w": 201,
-        "h": 197
+        "x": 331,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6458,14 +6465,14 @@
     "switch.p1.press2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 646,
-        "y": 354,
-        "w": 200,
-        "h": 197
+        "x": 626,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6473,14 +6480,14 @@
     "switch.p1.held": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 938,
-        "y": 354,
-        "w": 200,
-        "h": 197
+        "x": 922,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6488,14 +6495,14 @@
     "switch.p1.release1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1230,
-        "y": 354,
-        "w": 201,
-        "h": 197
+        "x": 1218,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6503,14 +6510,14 @@
     "switch.p1.release2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1522,
-        "y": 354,
-        "w": 201,
-        "h": 197
+        "x": 1513,
+        "y": 347,
+        "w": 240,
+        "h": 200
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8166666666666667,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6518,14 +6525,14 @@
     "switch.p2.up": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 62,
-        "y": 646,
-        "w": 200,
-        "h": 198
+        "x": 35,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6533,14 +6540,14 @@
     "switch.p2.press1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 354,
-        "y": 647,
-        "w": 201,
-        "h": 198
+        "x": 331,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6548,14 +6555,14 @@
     "switch.p2.press2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 646,
-        "y": 648,
-        "w": 200,
-        "h": 197
+        "x": 626,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6563,14 +6570,14 @@
     "switch.p2.held": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 938,
-        "y": 648,
-        "w": 200,
-        "h": 196
+        "x": 922,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6578,14 +6585,14 @@
     "switch.p2.release1": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1230,
-        "y": 648,
-        "w": 201,
-        "h": 197
+        "x": 1218,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }
@@ -6593,14 +6600,14 @@
     "switch.p2.release2": {
       "sheet": "03-pressure-switches",
       "frame": {
-        "x": 1522,
-        "y": 648,
-        "w": 201,
-        "h": 197
+        "x": 1513,
+        "y": 638,
+        "w": 240,
+        "h": 202
       },
       "render": {
-        "width": 0.68,
-        "height": 0.68,
+        "width": 0.98,
+        "height": 0.8248333333333334,
         "originX": 0.5,
         "originY": 0.5
       }

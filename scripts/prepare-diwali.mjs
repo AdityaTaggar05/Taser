@@ -6,7 +6,7 @@ const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const base=resolve(repo,'public/themes/modern-gray'),dir=resolve(repo,'public/themes/diwali');
 const manifest=JSON.parse(await readFile(resolve(base,'manifest.json'),'utf8'));
 const bounds=JSON.parse(await readFile(resolve(repo,'output/diwali/frame-bounds.json'),'utf8'));
-Object.assign(manifest,{id:'diwali',version:'1.0.0',name:'Diwali'});
+Object.assign(manifest,{id:'diwali',version:'1.1.0',name:'Diwali'});
 const replacements=Object.fromEntries(Object.keys(manifest.sheets).filter(id=>/^p[12]-/.test(id)||id==='04-exits'||id==='10-mvp-ui-icons-and-avatars'||id==='directional-model').map(id=>[id,id]));
 Object.assign(replacements,{'p2-idle':'p2-idle-v5','p2-walk':'p2-walk-v5','directional-model':'directional-model-v3'});
 await mkdir(resolve(dir,'sheets'),{recursive:true});

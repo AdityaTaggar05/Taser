@@ -19,3 +19,9 @@ Remaining submission information: operator-supplied postage batch ID and attribu
 The Diwali 1.0.0 release contains 28 PNGs, a manifest and a release index, all verified by exact public readback through `bzz.limo`. Its separate readonly Arkiv publication was submitted within the configured test-token budget and verified on readback. `/api/themes/diwali` returns the matching published reference and hashes. [Per-file hashes and publication proof](themes/diwali-release.json).
 
 The browser rendered both kurta-clad operators and decorated exits on the home chamber. Its active theme is `diwali`, asset source is `swarm`, artwork warnings are zero, and there are no local DOM sprite URLs. [Diwali home preview](screenshots/diwali-home.png). All 384 player animation cells passed nonempty/cell-clipping inspection. All 125 tests and the final production build passed. No original Modern Gray PNGs were changed.
+
+## Crate and pressure plate release — 1.1.0
+
+The user approved publication of the local sprite study. Modern Gray and Diwali each now contain 29 PNGs; every PNG, manifest and release index passed exact public readback through `bzz.limo`. Both new readonly Arkiv theme pointers were verified on readback using the configured test-token budgets. The three standard crates and eighteen pressure-plate frames use the approved original PNG bytes, with wider plates, raised crate pivots and stable pressure-state canvases. All other semantic sprites and all 74 animations are unchanged. The 1.0.0 publication records and content references are preserved in `themes/history/`. All 126 tests pass.
+
+[Object refresh references and direct asset URLs](../public/art-reviews/crate-pressure-v1/publication.json).

@@ -1,0 +1,42 @@
+{
+  "reference": "ea2b39ea4e686a1059b530e3fe06a5f3b8a11ab35af2941b81820c7cf900ef8e",
+  "gateway": "https://bzz.limo",
+  "verifiedAt": "2026-11-06T09:36:34.550Z",
+  "manifestSha256": "84509196f50524bbe12492bf2f30afc0004c16d99295718f206d9751daabd914",
+  "releaseSha256": "8f7b277aa8bdd5808c3f12cdd768871a2bc28552c1208ed7461261f8548145ff",
+  "sheetReferences": {
+    "p1-idle": "dfc0423094121e515b8f17cae33ea98e8a5554749e9daae3f1cb4a0300d09859",
+    "p1-walk": "a3689e677a8baeb81c2d868ddf451253c9ac3b3addde0a4286bd47f53336db6e",
+    "p1-shove": "dfc0423094121e515b8f17cae33ea98e8a5554749e9daae3f1cb4a0300d09859",
+    "p1-recoil": "dfc0423094121e515b8f17cae33ea98e8a5554749e9daae3f1cb4a0300d09859",
+    "p1-hit": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "p1-death": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "p1-exit": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "p1-victory": "dfc0423094121e515b8f17cae33ea98e8a5554749e9daae3f1cb4a0300d09859",
+    "p2-idle": "aebb66ede19ce09d88f0f8ef4cbb1cd03ac66e58204bc4bee289d4eb0af19f31",
+    "p2-walk": "5e367c65f840e3aa5a22ac1666c850bbfec1938eadb364f8242f460e9e318802",
+    "p2-shove": "aebb66ede19ce09d88f0f8ef4cbb1cd03ac66e58204bc4bee289d4eb0af19f31",
+    "p2-recoil": "aebb66ede19ce09d88f0f8ef4cbb1cd03ac66e58204bc4bee289d4eb0af19f31",
+    "p2-hit": "a3689e677a8baeb81c2d868ddf451253c9ac3b3addde0a4286bd47f53336db6e",
+    "p2-death": "a3689e677a8baeb81c2d868ddf451253c9ac3b3addde0a4286bd47f53336db6e",
+    "p2-exit": "a3689e677a8baeb81c2d868ddf451253c9ac3b3addde0a4286bd47f53336db6e",
+    "p2-victory": "aebb66ede19ce09d88f0f8ef4cbb1cd03ac66e58204bc4bee289d4eb0af19f31",
+    "01-crates-and-mirrors": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "02-environment-tiles": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "03-pressure-switches": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "04-exits": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "05-laser-equipment": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "06-laser-segments-and-impacts": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "07-physical-effects": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "08-resolution-effects": "d8ce30b3b2b768838c362aa0cc60ff882a5e58addacb86131278a85118d91447",
+    "09-replay-indicators": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "10-mvp-ui-icons-and-avatars": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "directional-model": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07",
+    "approved-reference": "0fa8c4c6f020bc304cae96c0a460cdf58e332666be6fc3cdc07b84104ed83a07"
+  },
+  "arkiv": {
+    "entityKey": "0x39a6f9a494b3d8f48355b53c8cf45b9892f5ba17dcac63089a12358c9ebdace9",
+    "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+    "txHash": "0xfbef96480ab93717cd100c66bcd4bab61b8bfdf408ab0ec3d01d13e36041174a"
+  }
+}

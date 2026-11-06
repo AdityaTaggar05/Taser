@@ -2,9 +2,10 @@ import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {applyObjectArt} from './lib/object-art.mjs';
 const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..'),art=resolve(repo,'../output');
 const dir=resolve(repo,'public/themes/modern-gray');await mkdir(resolve(dir,'sheets'),{recursive:true});
-const manifest={schemaVersion:1,id:'modern-gray',version:'1.0.0',name:'Modern Gray',
+const manifest={schemaVersion:1,id:'modern-gray',version:'1.1.0',name:'Modern Gray',
   palette:{background:'#151b1e',floor:'#bdc3c7',wall:'#7c858c',edge:'#454d54',p1:'#815751',p2:'#65a090',weld:'#e4e7e8',ink:'#e4e7e8'},
   presentation:{boxIdentityLabels:false},sheets:{},sprites:{},animations:{}};
 const sha=data=>createHash('sha256').update(data).digest('hex');
@@ -44,6 +45,7 @@ for(const item of mvp.sheets){
 for(const name of ['shove','footsteps','iceSlide','catapult','laserDeath','paradox','weld','victory','impact','emission'])manifest.animations['fx.'+name]={frames:Array.from({length:['impact','emission'].includes(name)?4:6},(_,i)=>`fx.${name}.${i}`),fps:12,loop:false,...(name==='weld'?{visibility:'after-success-only'}:{})};
 await sheet('directional-model',resolve(art,'player-sprites/v1/directional-model-sheet.png'));
 await sheet('approved-reference',resolve(art,'artstyle-exploration/11-light-gray-neutral.png'));
+await applyObjectArt(manifest,dir,repo);
 const serialized=JSON.stringify(manifest,null,2)+'\n';
 await writeFile(resolve(dir,'manifest.json'),serialized);
 await writeFile(resolve(repo,'src/assets/modern-gray.manifest.json'),serialized);

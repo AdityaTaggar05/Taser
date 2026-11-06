@@ -1,0 +1,6 @@
+{
+  "src/assets/deployment.json": "de1a90b15247e5d271b2667fac3fbdae828f7d3ae178abc30dfe806510dfeacd",
+  "src/assets/diwali.deployment.json": "f3de58fb78395fc7020df21c3f22f70a1b09909c7f5f35d5ef8784c8a3d71a1e",
+  "public/themes/modern-gray/manifest.json": "84509196f50524bbe12492bf2f30afc0004c16d99295718f206d9751daabd914",
+  "public/themes/diwali/manifest.json": "82e7004f3d4c1233c0ee95930ee2d5a340208d54bacc8d2eeb761b9b723c34ef"
+}

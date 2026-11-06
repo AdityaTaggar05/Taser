@@ -27,7 +27,7 @@ it('loads the Arkiv pointer, Swarm release and manifest, checking both hashes be
   const deployment={reference:record.swarmReference,gateway:'https://bzz.limo',manifestSha256:manifestHash,releaseSha256:releaseHash,verifiedAt:'2026-11-06',arkiv:{entityKey,publisher,txHash}};
   const pack=makePack(theme,deployment),urls:string[]=[];
   const transport=async(url:unknown)=>{urls.push(String(url));if(urls.length===1)return Response.json({entityKey,publisher,chainId:7794095,themeId:theme.id,version:theme.version,swarmReference:deployment.reference,manifestSha256:manifestHash,releaseSha256:releaseHash});return new Response(urls.length===2?releaseBytes:manifestBytes);};
-  const loaded=await loadPublishedTheme(pack,transport as typeof fetch);expect(urls[0]).toBe('/api/themes/modern-gray');expect(urls[1]).toContain('/bzz/'+deployment.reference+'/release.json');expect(Object.keys(loaded.deployment.sheetReferences!)).toHaveLength(28);
+  const loaded=await loadPublishedTheme(pack,transport as typeof fetch);expect(urls[0]).toBe('/api/themes/modern-gray');expect(urls[1]).toContain('/bzz/'+deployment.reference+'/release.json');expect(Object.keys(loaded.deployment.sheetReferences!)).toHaveLength(29);
   await expect(loadPublishedTheme({...pack,deployment:{...deployment,arkiv:undefined}},(async()=>new Response('corrupt')) as typeof fetch)).rejects.toThrow(/integrity/);
   const bad=structuredClone(release);bad.sheets['p1-idle'].path='../../.env.local';expect(()=>validateRelease(bad,theme)).toThrow();
 });

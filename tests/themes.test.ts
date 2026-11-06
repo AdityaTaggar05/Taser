@@ -13,7 +13,7 @@ const copy=()=>structuredClone(raw);
 const deployment={reference:null,gateway:'https://gateway.example',verifiedAt:null,manifestSha256:null};
 describe('theme contract',()=>{
   it('contains every approved player sequence and gameplay/UI role',()=>{
-    expect(bootstrapManifest).toEqual(raw);const pack=validateTheme(copy());expect(Object.keys(pack.sheets)).toHaveLength(28);expect(Object.keys(pack.sprites)).toHaveLength(556);
+    expect(bootstrapManifest).toEqual(raw);const pack=validateTheme(copy());expect(Object.keys(pack.sheets)).toHaveLength(29);expect(Object.keys(pack.sprites)).toHaveLength(556);
     expect(REQUIRED_ANIMATIONS).toHaveLength(74);expect(pack.presentation.boxIdentityLabels).toBe(false);expect(pack.animations['fx.weld'].visibility).toBe('after-success-only');
   });
   it('keeps Diwali interchangeable with the original pack and validates all published PNG bytes',async()=>{
@@ -24,7 +24,7 @@ describe('theme contract',()=>{
     expect(environments.foundry).toBe(environments['modern-gray']);expect(environments.diwali.id).toBe('diwali');
     for(const id of ['p1-idle','p2-idle','04-exits','10-mvp-ui-icons-and-avatars'])expect(pack.sheets[id].sha256).not.toBe(raw.sheets[id as keyof typeof raw.sheets].sha256);
     expect(pack.sheets['02-environment-tiles'].sha256).toBe(raw.sheets['02-environment-tiles'].sha256);
-    const upload=await prepareUpload(resolve('public/themes/diwali'));expect(upload.files).toHaveLength(29);
+    const upload=await prepareUpload(resolve('public/themes/diwali'));expect(upload.files).toHaveLength(30);
     expect(splitPublicBundle(upload).every(p=>p.tar.length<=8_000_000)).toBe(true);
     expect(themeSourceFromArgs(['--theme','diwali']).deploymentFile).toBe('src/assets/diwali.deployment.json');
     expect(()=>themeSourceFromArgs(['--theme','../../.env.local'])).toThrow(/Unknown theme/);
@@ -37,6 +37,21 @@ describe('theme contract',()=>{
     const d=copy();delete (d.animations as Record<string,unknown>)['player.p2.walk.north'];expect(()=>validateTheme(d)).toThrow(/missing animation/);
     const e=copy();(e.animations['fx.weld'] as {visibility:string}).visibility='before';expect(()=>validateTheme(e)).toThrow(/visibility/);
   });
+  it('keeps the recessed plate visible beneath the crate with stable pressure-state pivots',()=>{
+    for(const theme of [raw,diwali])for(const owner of ['neutral','p1','p2']){
+      const sprites=theme.sprites as Record<string,{sheet:string;frame:{w:number;h:number};render:{width:number;height:number;originX:number;originY:number}}>;
+      const crate=sprites['crate.'+owner],up=sprites[`switch.${owner}.up`];
+      expect(theme.version).toBe('1.1.0');expect(crate.sheet).toBe('11-standard-crates');
+      expect(up.render.width-crate.render.width).toBeGreaterThan(.15);
+      expect(crate.render.height*(1-crate.render.originY)).toBeCloseTo(.35);
+      for(const state of ['press1','press2','held','release1','release2']){
+        const plate=sprites[`switch.${owner}.${state}`];expect(plate.render).toEqual(up.render);
+        expect([plate.frame.w,plate.frame.h]).toEqual([up.frame.w,up.frame.h]);
+      }
+    }
+    expect(diwali.sheets['11-standard-crates'].sha256).toBe(raw.sheets['11-standard-crates'].sha256);
+    expect(diwali.sheets['03-pressure-switches'].sha256).toBe(raw.sheets['03-pressure-switches'].sha256);
+  });
   it('resolves all sheets from the immutable Swarm collection when configured',()=>{
     const m=validateTheme(copy()),d={...deployment,reference:'a'.repeat(64)};
     for(const sheet of Object.keys(m.sheets))expect(spriteUrl(m,d,sheet)).toBe(`https://gateway.example/bzz/${d.reference}/${m.sheets[sheet].file}`);
@@ -47,7 +62,7 @@ describe('theme contract',()=>{
 });
 describe('Swarm upload boundary',()=>{
   it('packages only the manifest and original PNG allowlist; hashes every file',async()=>{
-    const b=await prepareUpload(resolve('public/themes/modern-gray'));expect(b.files).toHaveLength(29);
+    const b=await prepareUpload(resolve('public/themes/modern-gray'));expect(b.files).toHaveLength(30);
     const parts=splitPublicBundle(b);expect(parts.length).toBeGreaterThan(1);expect(parts.every(p=>p.tar.length<=8_000_000)).toBe(true);
     expect(parts.flatMap(p=>p.files.filter(f=>f.name!=='manifest.json').map(f=>f.name)).sort()).toEqual(b.files.filter(f=>f.name!=='manifest.json').map(f=>f.name).sort());
     const names:string[]=[];let at=0;while(at<b.tar.length&&b.tar[at]){names.push(b.tar.subarray(at,at+100).toString().replace(/\0.*$/,''));const size=parseInt(b.tar.subarray(at+124,at+136).toString().replace(/\0.*$/,''),8);at+=512+Math.ceil(size/512)*512;}
