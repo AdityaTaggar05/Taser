@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 1,
+  "status": "approved-published",
+  "sheets": {
+    "design-sheet": {
+      "file": "design-sheet.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "695acbe5295729f3f67b1ac05e5a5cc24113cf6e2fd125efabd83a1085a687d1",
+      "transparentCorner": true
+    },
+    "pressure-states": {
+      "file": "pressure-states.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "299adc3070b8a9d64131dcba55bacd96219aa9640eea3a644633577fa61d8e57",
+      "transparentCorner": true
+    }
+  },
+  "sprites": {
+    "neutral.crate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 103,
+        "y": 94,
+        "w": 240,
+        "h": 264
+      },
+      "cell": {
+        "x": 0,
+        "y": 0,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "neutral.plate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 493,
+        "y": 130,
+        "w": 268,
+        "h": 231
+      },
+      "cell": {
+        "x": 418,
+        "y": 0,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "neutral.loaded-reference": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 881,
+        "y": 80,
+        "w": 288,
+        "h": 290
+      },
+      "cell": {
+        "x": 836,
+        "y": 0,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p1.crate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 103,
+        "y": 486,
+        "w": 240,
+        "h": 264
+      },
+      "cell": {
+        "x": 0,
+        "y": 418,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p1.plate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 493,
+        "y": 522,
+        "w": 268,
+        "h": 232
+      },
+      "cell": {
+        "x": 418,
+        "y": 418,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p1.loaded-reference": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 881,
+        "y": 472,
+        "w": 289,
+        "h": 290
+      },
+      "cell": {
+        "x": 836,
+        "y": 418,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p2.crate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 103,
+        "y": 878,
+        "w": 240,
+        "h": 264
+      },
+      "cell": {
+        "x": 0,
+        "y": 836,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p2.plate": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 493,
+        "y": 914,
+        "w": 268,
+        "h": 232
+      },
+      "cell": {
+        "x": 418,
+        "y": 836,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "p2.loaded-reference": {
+      "sheet": "design-sheet",
+      "frame": {
+        "x": 881,
+        "y": 864,
+        "w": 289,
+        "h": 291
+      },
+      "cell": {
+        "x": 836,
+        "y": 836,
+        "w": 418,
+        "h": 418
+      }
+    },
+    "neutral.up": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 62,
+        "y": 60,
+        "w": 212,
+        "h": 198
+      },
+      "cell": {
+        "x": 0,
+        "y": 0,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "neutral.press1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 356,
+        "y": 60,
+        "w": 212,
+        "h": 197
+      },
+      "cell": {
+        "x": 296,
+        "y": 0,
+        "w": 295,
+        "h": 296
+      }
+    },
+    "neutral.press2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 650,
+        "y": 61,
+        "w": 211,
+        "h": 197
+      },
+      "cell": {
+        "x": 591,
+        "y": 0,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "neutral.held": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 940,
+        "y": 61,
+        "w": 210,
+        "h": 197
+      },
+      "cell": {
+        "x": 887,
+        "y": 0,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "neutral.release1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1230,
+        "y": 61,
+        "w": 213,
+        "h": 197
+      },
+      "cell": {
+        "x": 1183,
+        "y": 0,
+        "w": 295,
+        "h": 296
+      }
+    },
+    "neutral.release2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1513,
+        "y": 60,
+        "w": 214,
+        "h": 198
+      },
+      "cell": {
+        "x": 1478,
+        "y": 0,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "p1.up": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 61,
+        "y": 347,
+        "w": 214,
+        "h": 199
+      },
+      "cell": {
+        "x": 0,
+        "y": 296,
+        "w": 296,
+        "h": 295
+      }
+    },
+    "p1.press1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 355,
+        "y": 348,
+        "w": 214,
+        "h": 199
+      },
+      "cell": {
+        "x": 296,
+        "y": 296,
+        "w": 295,
+        "h": 295
+      }
+    },
+    "p1.press2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 649,
+        "y": 348,
+        "w": 214,
+        "h": 199
+      },
+      "cell": {
+        "x": 591,
+        "y": 296,
+        "w": 296,
+        "h": 295
+      }
+    },
+    "p1.held": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 939,
+        "y": 348,
+        "w": 214,
+        "h": 199
+      },
+      "cell": {
+        "x": 887,
+        "y": 296,
+        "w": 296,
+        "h": 295
+      }
+    },
+    "p1.release1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1229,
+        "y": 348,
+        "w": 215,
+        "h": 199
+      },
+      "cell": {
+        "x": 1183,
+        "y": 296,
+        "w": 295,
+        "h": 295
+      }
+    },
+    "p1.release2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1513,
+        "y": 348,
+        "w": 215,
+        "h": 199
+      },
+      "cell": {
+        "x": 1478,
+        "y": 296,
+        "w": 296,
+        "h": 295
+      }
+    },
+    "p2.up": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 61,
+        "y": 638,
+        "w": 214,
+        "h": 201
+      },
+      "cell": {
+        "x": 0,
+        "y": 591,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "p2.press1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 356,
+        "y": 640,
+        "w": 213,
+        "h": 200
+      },
+      "cell": {
+        "x": 296,
+        "y": 591,
+        "w": 295,
+        "h": 296
+      }
+    },
+    "p2.press2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 649,
+        "y": 640,
+        "w": 214,
+        "h": 200
+      },
+      "cell": {
+        "x": 591,
+        "y": 591,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "p2.held": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 938,
+        "y": 639,
+        "w": 215,
+        "h": 201
+      },
+      "cell": {
+        "x": 887,
+        "y": 591,
+        "w": 296,
+        "h": 296
+      }
+    },
+    "p2.release1": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1230,
+        "y": 639,
+        "w": 214,
+        "h": 201
+      },
+      "cell": {
+        "x": 1183,
+        "y": 591,
+        "w": 295,
+        "h": 296
+      }
+    },
+    "p2.release2": {
+      "sheet": "pressure-states",
+      "frame": {
+        "x": 1513,
+        "y": 640,
+        "w": 216,
+        "h": 200
+      },
+      "cell": {
+        "x": 1478,
+        "y": 591,
+        "w": 296,
+        "h": 296
+      }
+    }
+  },
+  "publication": "See publication.json for verified Swarm 1.1.0 release references and Arkiv proofs."
+}

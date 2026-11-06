@@ -27,7 +27,7 @@ import { SignInScreen } from './ui/SignInScreen';
 import { EditorScreen } from './editor/EditorScreen';
 import { LevelClient } from './editor/LevelClient';
 import type { GameEngine } from './core/engine';
-import { registeredThemes } from './assets/catalog';
+import { registeredThemes, initializeThemes } from './assets/catalog';
 import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 
@@ -36,6 +36,21 @@ const artworkAvailable = new Promise<void>((resolve) => {
   resolveArtwork = resolve;
 });
 let connectingParty = false;
+
+const artworkStatus = document.createElement('div');
+artworkStatus.className = 'theme-asset-warning';
+artworkStatus.setAttribute('role', 'status');
+artworkStatus.textContent = 'Loading chamber artwork…';
+document.body.append(artworkStatus);
+try {
+  await initializeThemes();
+  artworkStatus.textContent = 'Loading sprite sheets…';
+} catch {
+  artworkStatus.setAttribute('role', 'alert');
+  artworkStatus.textContent = 'Chamber artwork is unavailable. Please reload to retry.';
+  throw new Error('Artwork initialization failed');
+}
+
 let playing = false,
   editing = false,
   screenInitialized = false,
@@ -43,6 +58,7 @@ let playing = false,
   screenRoute = '';
 let inspection: number | null = null,
   pack: EnvironmentPack = environments.foundry;
+let preferredTheme: string | null = null;
 let scene: ChamberScene | undefined, client: CoopClient | undefined;
 let playtestEngine: GameEngine | null = null;
 let playtestView: EditorView = 'author';
@@ -51,7 +67,10 @@ const audio = new GameAudio(),
 try {
   audio.enabled = localStorage.getItem('weldpoint:sound') !== 'off';
   const savedTheme = localStorage.getItem('weldpoint:theme');
-  if (savedTheme && Object.hasOwn(environments, savedTheme)) pack = environments[savedTheme];
+  if (savedTheme && Object.hasOwn(environments, savedTheme)) {
+    pack = environments[savedTheme];
+    preferredTheme = pack.id;
+  }
 } catch {
   /* Preferences are optional. */
 }
@@ -76,7 +95,7 @@ function refresh() {
     !!client?.canStudy,
     !!client?.otherPerspective,
   );
-  home.update(audio.enabled, pack.id, completed.size, levels.length, auth.user);
+  home.update(audio.enabled, pack.name, completed.size, levels.length, auth.user);
   applyThemeInterface(pack, auth.user, client?.status, !!client?.state?.partnerReady);
 }
 function queue(direction: Direction) {
@@ -112,6 +131,7 @@ async function fullscreen() {
 }
 function toggleTheme() {
   pack = registeredThemes[(registeredThemes.indexOf(pack) + 1) % registeredThemes.length];
+  preferredTheme = pack.id;
   try {
     localStorage.setItem('weldpoint:theme', pack.id);
   } catch {}
@@ -357,7 +377,7 @@ function receive(previous: SessionState | null) {
     previous.levelIndex !== current.levelIndex ||
     previous.customLevelId !== current.customLevelId
   ) {
-    const environment = current.level?.environment;
+    const environment = preferredTheme ?? current.level?.environment;
     if (environment && environments[environment]) pack = environments[environment];
   }
   const old = animate ? new RemoteView(previous!.level!, previous!).state : undefined;
@@ -376,14 +396,10 @@ class ChamberScene extends Phaser.Scene {
   preload() {
     for (const p of registeredThemes) preloadEnvironment(this, p);
     this.load.on('loaderror', () => {
-      if (!document.querySelector('.theme-asset-warning')) {
-        const el = document.createElement('div');
-        el.className = 'theme-asset-warning';
-        el.setAttribute('role', 'alert');
-        el.textContent =
-          'Artwork could not be loaded. Check the asset gateway and reload to retry.';
-        document.body.append(el);
-      }
+      artworkStatus.setAttribute('role', 'alert');
+      artworkStatus.textContent =
+        'Artwork could not be loaded. Check the asset gateway and reload to retry.';
+      document.body.append(artworkStatus);
     });
   }
 
@@ -392,12 +408,17 @@ class ChamberScene extends Phaser.Scene {
     this.title = new TitleBackdrop(this);
     try {
       for (const p of registeredThemes) buildEnvironment(this, p);
-    } catch {
+    } catch (error) {
+      console.error('Theme registration failed', error);
+      artworkStatus.setAttribute('role', 'alert');
+      artworkStatus.textContent = 'Chamber artwork could not be prepared. Please reload to retry.';
+      document.body.append(artworkStatus);
       this.cameras.main.setBackgroundColor(pack.palette.background);
       return;
     }
     this.artworkReady = true;
     resolveArtwork();
+    artworkStatus.remove();
     this.scale.on('resize', () => this.redraw());
     this.redraw();
   }

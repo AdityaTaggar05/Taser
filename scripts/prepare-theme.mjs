@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { applyObjectArt } from './lib/object-art.mjs';
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..'),
   art = resolve(repo, '../output');
 const dir = resolve(repo, 'public/themes/modern-gray');
@@ -9,7 +10,7 @@ await mkdir(resolve(dir, 'sheets'), { recursive: true });
 const manifest = {
   schemaVersion: 1,
   id: 'modern-gray',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Modern Gray',
   palette: {
     background: '#151b1e',
@@ -198,9 +199,10 @@ for (const name of [
   };
 await sheet('directional-model', resolve(art, 'player-sprites/v1/directional-model-sheet.png'));
 await sheet('approved-reference', resolve(art, 'artstyle-exploration/11-light-gray-neutral.png'));
-const manifestJson = JSON.stringify(manifest, null, 2) + '\n';
-await writeFile(resolve(dir, 'manifest.json'), manifestJson);
-await writeFile(resolve(repo, 'src/assets/modern-gray.json'), manifestJson);
+await applyObjectArt(manifest, dir, repo);
+const serialized = JSON.stringify(manifest, null, 2) + '\n';
+await writeFile(resolve(dir, 'manifest.json'), serialized);
+await writeFile(resolve(repo, 'src/assets/modern-gray.manifest.json'), serialized);
 console.log(
   `Prepared ${Object.keys(manifest.sheets).length} original PNGs, ${Object.keys(manifest.sprites).length} semantic sprites and ${Object.keys(manifest.animations).length} animations. No image pixels changed.`,
 );

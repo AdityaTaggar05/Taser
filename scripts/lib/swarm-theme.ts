@@ -41,7 +41,7 @@ export function makeTar(files: UploadFile[]): Buffer {
   const out: Buffer[] = [];
   for (const f of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
     if (
-      !/^(manifest\.json|sheets\/[a-z0-9_-]+\.png)$/.test(f.name) ||
+      !/^(manifest\.json|release\.json|sheets\/[a-z0-9_-]+\.png)$/.test(f.name) ||
       Buffer.byteLength(f.name) > 100
     )
       throw new Error('Disallowed upload file');
@@ -68,7 +68,8 @@ export function makeTar(files: UploadFile[]): Buffer {
 export interface SwarmConfig {
   bee: string;
   gateway: string;
-  batch: string;
+  mode?: 'public' | 'node';
+  batch?: string;
   token?: string;
   pin?: boolean;
 }
@@ -80,7 +81,12 @@ export function validateSwarmConfig(c: SwarmConfig) {
     manifestSha256: null,
   });
   validateDeployment({ reference: null, gateway: c.bee, verifiedAt: null, manifestSha256: null });
-  if (!/^[a-fA-F0-9]{64}$/.test(c.batch))
+  if (c.mode === 'public') {
+    if (c.token || c.batch || c.pin)
+      throw new Error(
+        'Public gateway mode uses operator-supplied postage; no private token, batch or pin option',
+      );
+  } else if (!/^[a-fA-F0-9]{64}$/.test(c.batch ?? ''))
     throw new Error('Set SWARM_POSTAGE_BATCH_ID to a usable 64-hex postage batch');
   return c;
 }
@@ -131,34 +137,47 @@ export async function uploadCollection(
 ): Promise<string> {
   validateSwarmConfig(c);
   const auth: Record<string, string> = c.token ? { Authorization: 'Bearer ' + c.token } : {};
-  const stamp = await fetcher(endpoint(c.bee, 'stamps/' + c.batch), {
-    headers: auth,
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!stamp.ok)
-    throw new Error(
-      'Cannot verify the Bee postage batch (HTTP ' +
-        stamp.status +
-        '). Check endpoint, access and batch ID.',
-    );
-  const state = (await stamp.json()) as { usable?: boolean };
-  if (state.usable !== true) throw new Error('Bee postage batch is not usable yet');
+  if (c.mode !== 'public') {
+    const stamp = await fetcher(endpoint(c.bee, 'stamps/' + c.batch), {
+      headers: auth,
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!stamp.ok)
+      throw new Error(
+        'Cannot verify the Bee postage batch (HTTP ' +
+          stamp.status +
+          '). Check endpoint, access and batch ID.',
+      );
+    const state = (await stamp.json()) as { usable?: boolean };
+    if (state.usable !== true) throw new Error('Bee postage batch is not usable yet');
+  }
+  if (c.mode === 'public' && bundle.tar.length > 8_000_000)
+    throw new Error('Public gateway collection exceeds the 8 MB upload boundary');
   await admit();
   const response = await fetcher(endpoint(c.bee, 'bzz'), {
     method: 'POST',
+    redirect: 'error',
     headers: {
       ...auth,
       'Content-Type': 'application/x-tar',
       'Swarm-Collection': 'true',
-      'Swarm-Index-Document': 'manifest.json',
-      'Swarm-Postage-Batch-Id': c.batch,
+      'Swarm-Index-Document': bundle.files.some((f) => f.name === 'release.json')
+        ? 'release.json'
+        : 'manifest.json',
+      ...(c.mode === 'public' ? {} : { 'Swarm-Postage-Batch-Id': c.batch! }),
       'Swarm-Deferred-Upload': 'false',
       ...(c.pin ? { 'Swarm-Pin': 'true' } : {}),
     },
     body: bundle.tar as unknown as BodyInit,
     signal: AbortSignal.timeout(180_000),
   });
-  if (!response.ok) throw new Error('Swarm upload failed: HTTP ' + response.status);
+  if (!response.ok) {
+    const error = new Error('Swarm upload rejected: HTTP ' + response.status) as Error & {
+      rejected: boolean;
+    };
+    error.rejected = response.status >= 400 && response.status < 500;
+    throw error;
+  }
   const result = (await response.json()) as { reference?: string };
   if (!result.reference || !/^[a-f0-9]{64}$/.test(result.reference))
     throw new Error('Bee did not return an unencrypted collection reference');

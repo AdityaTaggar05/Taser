@@ -1,0 +1,43 @@
+{
+  "reference": "d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf",
+  "gateway": "https://bzz.limo",
+  "verifiedAt": "2026-11-06T14:23:50.191Z",
+  "manifestSha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+  "releaseSha256": "712129c65eec16d3651e8321df535257a35dfd6cf798159d2c51a8129549c678",
+  "sheetReferences": {
+    "p1-idle": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-walk": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-shove": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-recoil": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-hit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-death": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "p1-exit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-victory": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-idle": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-walk": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-shove": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-recoil": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-hit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-death": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-exit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-victory": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "01-crates-and-mirrors": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "02-environment-tiles": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "03-pressure-switches": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "04-exits": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "05-laser-equipment": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "06-laser-segments-and-impacts": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "07-physical-effects": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "08-resolution-effects": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "09-replay-indicators": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "10-mvp-ui-icons-and-avatars": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "directional-model": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "approved-reference": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "11-standard-crates": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5"
+  },
+  "arkiv": {
+    "entityKey": "0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f",
+    "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+    "txHash": "0xff7d214ad5f52287116b674dc58442fce6a7523dd5d0a4d5c524e1783223984e"
+  }
+}

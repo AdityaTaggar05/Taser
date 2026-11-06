@@ -4,6 +4,7 @@ dist/
 *.local
 temporal_pincer_mvp_specification.md
 .data/
+output/diwali/generated/
 .env
 .env.*
 !.env.example

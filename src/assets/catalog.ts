@@ -1,5 +1,4 @@
-import raw from './modern-gray.json';
-import deploymentValue from './deployment.json';
+import { themeSources } from './sources';
 import {
   ROLE_IDS,
   validateTheme,
@@ -16,17 +15,24 @@ export interface ThemePack {
   deployment: Deployment;
   palette: Record<keyof ThemeManifest['palette'], number>;
 }
-export const modernGray: ThemePack = makePack(raw, deploymentValue);
-export const registeredThemes: ThemePack[] = [modernGray];
+export const registeredThemes: ThemePack[] = themeSources.map((source) =>
+  makePack(source.manifest, source.deployment),
+);
+export const modernGray: ThemePack = registeredThemes.find((pack) => pack.id === 'modern-gray')!;
 /** Legacy Arkiv level IDs resolve here; rules and archived layouts do not need migrations. */
-export const environments: Record<string, ThemePack> = {
-  foundry: modernGray,
-  orbital: modernGray,
-  'modern-gray': modernGray,
-};
+export const environments: Record<string, ThemePack> = Object.fromEntries(
+  themeSources.flatMap((source, i) =>
+    [source.id, ...source.aliases].map((id) => [id, registeredThemes[i]]),
+  ),
+);
 export function makePack(value: unknown, deployment: Deployment): ThemePack {
   const manifest = validateTheme(value);
   validateDeployment(deployment);
+  if (
+    deployment.sheetReferences &&
+    Object.keys(manifest.sheets).some((id) => !deployment.sheetReferences?.[id])
+  )
+    throw new Error('Incomplete theme deployment');
   return {
     id: manifest.id,
     name: manifest.name,
@@ -56,4 +62,16 @@ export function applyThemeVariables(pack: ThemePack) {
   root.style.setProperty('--amber', pack.manifest.palette.p2);
   root.style.setProperty('--paper', pack.manifest.palette.ink);
   root.style.setProperty('--line', pack.manifest.palette.edge);
+}
+
+export async function initializeThemes() {
+  const { loadPublishedTheme } = await import('./remote');
+  await Promise.all(
+    registeredThemes
+      .filter((pack) => pack.deployment.reference)
+      .map(async (pack) => {
+        const loaded = await loadPublishedTheme(pack);
+        Object.assign(pack, makePack(loaded.manifest, loaded.deployment));
+      }),
+  );
 }

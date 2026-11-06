@@ -1,0 +1,201 @@
+{
+  "reference": "d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf",
+  "gateway": "https://bzz.limo",
+  "verifiedAt": "2026-11-06T14:23:50.191Z",
+  "manifestSha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+  "releaseSha256": "712129c65eec16d3651e8321df535257a35dfd6cf798159d2c51a8129549c678",
+  "sheetReferences": {
+    "p1-idle": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-walk": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-shove": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p1-recoil": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-hit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-death": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "p1-exit": "e7b76b9d7f9cab2da8e7c3dca62d5a677b66729fcbed90adece43466de9b0726",
+    "p1-victory": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-idle": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-walk": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-shove": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "p2-recoil": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-hit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-death": "cae45d31e610e93e870d6319fdd05466dec0a85040c4855e8efeff1f2b9ef39e",
+    "p2-exit": "4017efbc0aec4c919ac65de2144e9f7a03ec97efd963bb8989f51ea59f3e88ba",
+    "p2-victory": "877d1079e470cd6e32564ae6252ec0de0bfd189a627edec482aec18b287e9727",
+    "01-crates-and-mirrors": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "02-environment-tiles": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "03-pressure-switches": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "04-exits": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "05-laser-equipment": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "06-laser-segments-and-impacts": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "07-physical-effects": "56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc",
+    "08-resolution-effects": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "09-replay-indicators": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "10-mvp-ui-icons-and-avatars": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "directional-model": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "approved-reference": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5",
+    "11-standard-crates": "83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5"
+  },
+  "manifestReference": "09fb587d8be79881791ad32c0d9121236905cd09acbd5ae94260a36f454e77d2",
+  "uploadService": "https://bzz.limo",
+  "postageSupplier": "Swarm Foundation public gateway",
+  "postageBatchId": null,
+  "retention": "Not yet confirmed by operator",
+  "files": [
+    {
+      "path": "manifest.json",
+      "sha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+      "bytes": 187700
+    },
+    {
+      "path": "sheets/p1-idle.png",
+      "sha256": "0cd8b206ec671958d02431e70e97d2d84d084a277d187dbe80c8313d4f2cd3cf",
+      "bytes": 1628982
+    },
+    {
+      "path": "sheets/p1-walk.png",
+      "sha256": "8a7fb35c94ce48e0e74862c953b813d40187b72052c29bf69c78d92982bb8791",
+      "bytes": 1686515
+    },
+    {
+      "path": "sheets/p1-shove.png",
+      "sha256": "244b106205d09d4fc5166608d103b8c79397b0edea1ded2d389e6f1a968a4e1c",
+      "bytes": 1658457
+    },
+    {
+      "path": "sheets/p1-recoil.png",
+      "sha256": "12edbc694adea695069c8558e75d4a6787394a2a827ccb057b34105efd13e6a9",
+      "bytes": 1717519
+    },
+    {
+      "path": "sheets/p1-hit.png",
+      "sha256": "4a2d2ebb85e1e95aebc2571fd7389f04e5c14340a4c02a1df98f62cd526da71e",
+      "bytes": 1699866
+    },
+    {
+      "path": "sheets/p1-death.png",
+      "sha256": "4d552651d1dd2c2b7df7c66cf43b83c41073f1fb238fd869a7c54dc8fce7370d",
+      "bytes": 1618644
+    },
+    {
+      "path": "sheets/p1-exit.png",
+      "sha256": "26b2334f83e370ea4b637899a6aa15094603e2fc4f957d60c98a5685dbb8d25a",
+      "bytes": 1620074
+    },
+    {
+      "path": "sheets/p1-victory.png",
+      "sha256": "1db9a4405c01ce79d150156ffd425acfd8052c8ce919224e185bc3d0984a6fb4",
+      "bytes": 1691276
+    },
+    {
+      "path": "sheets/p2-idle.png",
+      "sha256": "3ba770c2e6817c62b8232908bc6e250f9b9020cdf1eb1bd1a4c283676cc7b164",
+      "bytes": 1680394
+    },
+    {
+      "path": "sheets/p2-walk.png",
+      "sha256": "c4910e03fb0982452c93d6b1614c65b27f504e553dde24e7c9bdb9c453186fff",
+      "bytes": 1689693
+    },
+    {
+      "path": "sheets/p2-shove.png",
+      "sha256": "a377a5005b0d9534c0781535e69a1ccf3df9f7f742eaf1e6dbc6efbdd4a5cefd",
+      "bytes": 1662265
+    },
+    {
+      "path": "sheets/p2-recoil.png",
+      "sha256": "6451af57cc20d08deef64e5e53244054c69ec8f9622b96e4afbcc061b1840b50",
+      "bytes": 1715742
+    },
+    {
+      "path": "sheets/p2-hit.png",
+      "sha256": "cf128596aac7a808a7eb01033316b51e3b7ff96ddd72edc1c75c1ddbda10d66a",
+      "bytes": 1777849
+    },
+    {
+      "path": "sheets/p2-death.png",
+      "sha256": "e543e0f43be2ab2bc5c4e66938cb5b93174e857081af755e53776947f664fe70",
+      "bytes": 1665861
+    },
+    {
+      "path": "sheets/p2-exit.png",
+      "sha256": "efe95003ef11b73b33aedea86810c24d6f9e83625b2b4e2d31b7fc6ea9f7a568",
+      "bytes": 1632247
+    },
+    {
+      "path": "sheets/p2-victory.png",
+      "sha256": "ebfc2e1aac0fd54909b4b2cfb89f4384914fb2194ec15249c0de6de372319e7d",
+      "bytes": 1691827
+    },
+    {
+      "path": "sheets/01-crates-and-mirrors.png",
+      "sha256": "7bb809ea3155002638fe8a8510b8be5de1d05e25e45f2f257e4bf472a31091ba",
+      "bytes": 853204
+    },
+    {
+      "path": "sheets/02-environment-tiles.png",
+      "sha256": "9a46adc882c748ff0e69d8f1a7252d807391186d2895e532e52e5a331788330c",
+      "bytes": 1151755
+    },
+    {
+      "path": "sheets/03-pressure-switches.png",
+      "sha256": "299adc3070b8a9d64131dcba55bacd96219aa9640eea3a644633577fa61d8e57",
+      "bytes": 939914
+    },
+    {
+      "path": "sheets/04-exits.png",
+      "sha256": "9f9ddeb39cb2a07bb6d04526f59a61ff1f7d116e26c733319dad3337abefd0f2",
+      "bytes": 1190307
+    },
+    {
+      "path": "sheets/05-laser-equipment.png",
+      "sha256": "13496a405aab878e34f81b2a01e26c53d3b003f8501daa779f631b77bfb1cb14",
+      "bytes": 781550
+    },
+    {
+      "path": "sheets/06-laser-segments-and-impacts.png",
+      "sha256": "0db52b3025bb4f00790a9bd450ef608d935952c17122f83507c8bc2749e68114",
+      "bytes": 260075
+    },
+    {
+      "path": "sheets/07-physical-effects.png",
+      "sha256": "433d2dd8337c02b817a67c4b48e9b24fec2fcf9ace0bad1b7ebd720ca6064b80",
+      "bytes": 1393484
+    },
+    {
+      "path": "sheets/08-resolution-effects.png",
+      "sha256": "282c76a433ea8bae327a9db82fef27ebc7145f364195acd2fc92e203fc358b2d",
+      "bytes": 1278263
+    },
+    {
+      "path": "sheets/09-replay-indicators.png",
+      "sha256": "f339f7f6e372ae02acf837e9da0a61d6b6cb9c808c63bf2fe0dcfec4b8deae86",
+      "bytes": 628066
+    },
+    {
+      "path": "sheets/10-mvp-ui-icons-and-avatars.png",
+      "sha256": "ce41cf1b9bb0737ca281e4fe1331cd6edd6695f83d289be2995c6002d2bee550",
+      "bytes": 698876
+    },
+    {
+      "path": "sheets/directional-model.png",
+      "sha256": "beb067c1cb432566695f3f65df73c6ec834e53cecac10d2dff1ea83f795aaee6",
+      "bytes": 612611
+    },
+    {
+      "path": "sheets/approved-reference.png",
+      "sha256": "c46230a0d860a8418512892fb3c8751a0f57fccefae25314891a02512f30d1b6",
+      "bytes": 614743
+    },
+    {
+      "path": "sheets/11-standard-crates.png",
+      "sha256": "695acbe5295729f3f67b1ac05e5a5cc24113cf6e2fd125efabd83a1085a687d1",
+      "bytes": 862697
+    }
+  ],
+  "arkiv": {
+    "entityKey": "0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f",
+    "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+    "txHash": "0xff7d214ad5f52287116b674dc58442fce6a7523dd5d0a4d5c524e1783223984e"
+  },
+  "arkivExpiresAt": "8178700"
+}

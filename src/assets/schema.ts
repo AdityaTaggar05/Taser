@@ -212,10 +212,63 @@ export interface Deployment {
   gateway: string;
   verifiedAt: string | null;
   manifestSha256: string | null;
+  sheetReferences?: Record<string, string>;
+  releaseSha256?: string;
+  arkiv?: { entityKey: string; publisher: string; txHash: string };
+}
+export interface ThemeRelease {
+  schemaVersion: 1;
+  kind: 'taser-theme-release';
+  id: string;
+  version: string;
+  manifest: { reference: string; sha256: string; bytes: number };
+  sheets: Record<string, { reference: string; path: string }>;
+}
+export function validateRelease(value: unknown, theme: ThemeManifest): ThemeRelease {
+  const r = value as ThemeRelease,
+    ref = (s: unknown) => typeof s === 'string' && /^[a-f0-9]{64}$/.test(s);
+  if (
+    !r ||
+    r.schemaVersion !== 1 ||
+    r.kind !== 'taser-theme-release' ||
+    r.id !== theme.id ||
+    r.version !== theme.version ||
+    !r.manifest ||
+    !ref(r.manifest.reference) ||
+    !ref(r.manifest.sha256) ||
+    !Number.isSafeInteger(r.manifest.bytes) ||
+    r.manifest.bytes < 1 ||
+    r.manifest.bytes > 2_000_000 ||
+    !r.sheets ||
+    Object.keys(r.sheets).length !== Object.keys(theme.sheets).length
+  )
+    throw new Error('Invalid theme release');
+  for (const [id, s] of Object.entries(theme.sheets))
+    if (!r.sheets[id] || !ref(r.sheets[id].reference) || r.sheets[id].path !== s.file)
+      throw new Error('Invalid theme release sheet');
+  return r;
 }
 export function validateDeployment(d: Deployment) {
   if (d.reference !== null && !/^[a-f0-9]{64}$/.test(d.reference))
     throw new Error('Invalid Swarm reference');
+  if (
+    d.sheetReferences &&
+    (!d.reference ||
+      Object.keys(d.sheetReferences).length > 64 ||
+      !Object.entries(d.sheetReferences).every(
+        ([id, ref]) => /^[a-z0-9_-]+$/.test(id) && /^[a-f0-9]{64}$/.test(ref),
+      ))
+  )
+    throw new Error('Invalid sheet references');
+  if (d.releaseSha256 && !/^[a-f0-9]{64}$/.test(d.releaseSha256))
+    throw new Error('Invalid release hash');
+  if (
+    d.arkiv &&
+    (!/^0x[\da-f]{64}$/i.test(d.arkiv.entityKey) ||
+      !/^0x[\da-f]{40}$/i.test(d.arkiv.publisher) ||
+      !/^0x[\da-f]{64}$/i.test(d.arkiv.txHash))
+  )
+    throw new Error('Invalid Arkiv theme proof');
   const url = new URL(d.gateway);
   if (
     url.username ||
@@ -233,7 +286,8 @@ export function validateDeployment(d: Deployment) {
 export function spriteUrl(theme: ThemeManifest, deployment: Deployment, sheet: string) {
   const file = theme.sheets[sheet]?.file;
   if (!file) throw new Error('Unknown sprite sheet');
-  return deployment.reference
-    ? `${deployment.gateway.replace(/\/$/, '')}/bzz/${deployment.reference}/${file}`
+  const ref = deployment.sheetReferences?.[sheet] ?? deployment.reference;
+  return ref
+    ? `${deployment.gateway.replace(/\/$/, '')}/bzz/${ref}/${file}`
     : `/themes/${theme.id}/${file}`;
 }

@@ -48,6 +48,13 @@ import {
   type ArchivedLevel,
 } from './archive';
 import { canonicalJSON } from './canonical';
+import {
+  ThemeEntities,
+  decodeThemePublication,
+  validateThemePublication,
+  type ThemePublication,
+} from './ThemePublication';
+type Publication = ArchiveRecord | ThemePublication;
 
 const NATIVE = '0x4400000000000000000000000000000000000044';
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -203,7 +210,39 @@ export class ArkivArchive implements LevelArchive {
       ciphertext: hexToBytes(plan.ciphertext as Hex),
     };
   }
-
+  private themeValues(plan: Plan) {
+    const r = validateThemePublication(JSON.parse(plan.body));
+    return {
+      namespace: this.options.namespace,
+      theme_id: r.themeId,
+      version: r.version,
+      swarm_reference: r.swarmReference,
+      manifest_sha256: r.manifestSha256,
+      release_sha256: r.releaseSha256,
+      content_type: 'application/json',
+      payload: hexToBytes(plan.ciphertext as Hex),
+    };
+  }
+  private createPublication(
+    wallet: Pick<ReturnType<typeof createWalletClient>, 'createEntity'>,
+    plan: Plan,
+    params?: TxParams,
+  ) {
+    return plan.operation.startsWith('theme:')
+      ? wallet.createEntity(ThemeEntities, this.themeValues(plan), this.optionsFor(plan), params)
+      : wallet.createEntity(LevelEntities, this.values(plan), this.optionsFor(plan), params);
+  }
+  async readTheme(entityKey: string) {
+    await this.identity();
+    const row = await this.reader.getEntity(entityKey as Hex, ThemeEntities);
+    return decodeThemePublication(row, this.signer, this.options.namespace, entityKey);
+  }
+  putTheme(record: ThemePublication): Promise<ArchiveRef> {
+    validateThemePublication(record);
+    const task = this.queue.then(() => this.write(record));
+    this.queue = task.catch(() => {});
+    return task;
+  }
   private optionsFor(plan: Plan) {
     const record = JSON.parse(plan.body) as ArchiveRecord;
     return {
@@ -313,8 +352,7 @@ export class ArkivArchive implements LevelArchive {
     this.queue = task.catch(() => {});
     return task;
   }
-
-  private async prepare(record: ArchiveRecord): Promise<Plan> {
+  private async prepare(record: Publication): Promise<Plan> {
     const operation = `${record.category}:${record.id}:${record.revision}`,
       body = JSON.stringify(record),
       existing = this.plan(operation);
@@ -330,8 +368,11 @@ export class ArkivArchive implements LevelArchive {
         503,
         'Archive encryption key rotation is required before more writes.',
       );
-    const ciphertext = bytesToHex(await this.cipher.encrypt(record));
-    // The local journal is private; only encrypted bytes enter SDK calls/calldata.
+    const ciphertext =
+      record.category === 'theme'
+        ? bytesToHex(new TextEncoder().encode(JSON.stringify(validateThemePublication(record))))
+        : bytesToHex(await this.cipher.encrypt(record));
+    // Level bodies remain encrypted; theme publications contain only reviewed public asset pointers.
     this.db
       .prepare(
         "INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,?,?,'prepared',?)",
@@ -392,7 +433,7 @@ export class ArkivArchive implements LevelArchive {
     } as LocalAccount;
     const wallet = createWalletClient({ account: unsigned, chain: this.chain, transport });
     try {
-      await wallet.createEntity(LevelEntities, this.values(plan), this.optionsFor(plan));
+      await this.createPublication(wallet, plan);
     } catch (error) {
       let cause: unknown = error;
       for (let depth = 0; cause && depth < 30; depth++) {
@@ -405,43 +446,69 @@ export class ArkivArchive implements LevelArchive {
       'Unsigned Arkiv preparation or gas estimate failed. No transaction was sent.',
     );
   }
-
-  async quote(record: ArchiveRecord) {
+  async quote(record: Publication) {
     const plan = await this.prepare(record),
       { estimate } = await this.estimate(plan),
       gas = estimate * 2n > 1_000_000n ? estimate * 2n : 1_000_000n,
       gasPrice = await getGasPrice(this.reader);
     return { gas: gas.toString(), maximumFeeWei: (gas * gasPrice).toString(), signer: this.signer };
   }
-
-  private async write(record: ArchiveRecord): Promise<ArchiveRef> {
+  private async findPrior(
+    record: Publication,
+  ): Promise<Array<{ record: Publication; ref: ArchiveRef }>> {
+    if (record.category === 'theme') {
+      const prior = await this.reader
+        .select('*')
+        .from(ThemeEntities, { onMismatch: 'throw' })
+        .createdBy(this.account.address)
+        .where(
+          and(
+            eq('namespace', this.options.namespace),
+            eq('theme_id', record.themeId),
+            eq('version', record.version),
+          ),
+        )
+        .limit(2)
+        .fetch();
+      return prior.entities.map((row) => ({
+        record: decodeThemePublication(row, this.signer, this.options.namespace, row.$key),
+        ref: { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() },
+      }));
+    }
+    const prior = await this.reader
+      .select('*')
+      .from(LevelEntities, { onMismatch: 'throw' })
+      .createdBy(this.account.address)
+      .where(
+        and(
+          eq('namespace', this.options.namespace),
+          eq('record_id', record.id),
+          eq('revision', u64(record.revision)),
+          eq('category', record.category),
+        ),
+      )
+      .limit(2)
+      .fetch();
+    return Promise.all(
+      prior.entities.map(async (row) => ({
+        record: await this.decode(row),
+        ref: { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() },
+      })),
+    );
+  }
+  private async write(record: Publication): Promise<ArchiveRef> {
     try {
       await this.identity();
       let plan = await this.prepare(record);
       if (plan.phase !== 'prepared') return await this.reconcile(plan);
       await this.reconcilePending();
-      const prior = await this.reader
-        .select('*')
-        .from(LevelEntities, { onMismatch: 'throw' })
-        .createdBy(this.account.address)
-        .where(
-          and(
-            eq('namespace', this.options.namespace),
-            eq('record_id', record.id),
-            eq('revision', u64(record.revision)),
-            eq('category', record.category),
-          ),
-        )
-        .limit(2)
-        .fetch();
-      if (prior.entities.length > 1)
+      const prior = await this.findPrior(record);
+      if (prior.length > 1)
         throw new ArchiveError(409, 'Duplicate archive revisions require reconciliation.');
-      if (prior.entities.length === 1) {
-        const row = prior.entities[0],
-          existing = await this.decode(row);
-        if (canonicalJSON(existing) !== canonicalJSON(record))
+      if (prior.length === 1) {
+        if (canonicalJSON(prior[0].record) !== canonicalJSON(record))
           throw new ArchiveError(409, 'The remote archive revision has different content.');
-        return { entityKey: row.$key, txHash: '', expiresAt: row.$expiresAt.toString() };
+        return prior[0].ref;
       }
       const blocked = this.db
         .prepare(
@@ -549,7 +616,7 @@ export class ArkivArchive implements LevelArchive {
       });
       const params: TxParams = { nonce, gas, gasPrice };
       try {
-        await wallet.createEntity(LevelEntities, this.values(plan), this.optionsFor(plan), params);
+        await this.createPublication(wallet, plan, params);
       } catch {
         // An unknown response is not a failed write. Reconcile the original saved hash only.
         if (!this.plan(plan.operation)?.tx_hash)
@@ -631,11 +698,22 @@ export class ArkivArchive implements LevelArchive {
         "UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?",
       )
       .run(ref.entityKey, ref.expiresAt, plan.operation);
-    const entity = await this.entity(ref.entityKey);
-    this.trusted(entity, plan);
-    if (entity.$expiresAt < BigInt(ref.expiresAt)) throw new Error();
-    const record = await this.decode(entity);
-    if (canonicalJSON(record) !== canonicalJSON(JSON.parse(plan.body))) throw new Error();
+    if (plan.operation.startsWith('theme:')) {
+      const entity = await this.reader.getEntity(ref.entityKey, ThemeEntities),
+        record = decodeThemePublication(entity, this.signer, this.options.namespace, ref.entityKey);
+      if (
+        entity.$expiresAt < BigInt(ref.expiresAt) ||
+        entity.payload.value.toLowerCase() !== plan.ciphertext.toLowerCase() ||
+        canonicalJSON(record) !== canonicalJSON(JSON.parse(plan.body))
+      )
+        throw new Error();
+    } else {
+      const entity = await this.entity(ref.entityKey);
+      this.trusted(entity, plan);
+      if (entity.$expiresAt < BigInt(ref.expiresAt)) throw new Error();
+      const record = await this.decode(entity);
+      if (canonicalJSON(record) !== canonicalJSON(JSON.parse(plan.body))) throw new Error();
+    }
     this.db
       .prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?")
       .run(plan.operation);

@@ -28,7 +28,13 @@
     "cre:rehearsal": "node --env-file-if-exists=.env.local --import tsx scripts/cre/rehearsal.mts",
     "cre:local-mode": "node --import tsx scripts/cre/operator.mts local-mode",
     "format": "prettier --write src server scripts tests cre cre-project contracts *.ts *.json index.html .prettierrc.json",
-    "format:check": "prettier --check src server scripts tests cre cre-project contracts *.ts *.json index.html .prettierrc.json"
+    "format:check": "prettier --check src server scripts tests cre cre-project contracts *.ts *.json index.html .prettierrc.json",
+    "assets:prepare:diwali": "node scripts/prepare-diwali.mjs",
+    "assets:public:check": "node --import tsx scripts/swarm-public-assets.ts",
+    "assets:upload:public": "node --import tsx scripts/swarm-public-assets.ts --write",
+    "assets:verify:public": "node --import tsx scripts/swarm-public-assets.ts --verify",
+    "arkiv:theme:quote": "node --import tsx scripts/arkiv-theme.ts --quote",
+    "arkiv:theme:publish": "node --import tsx scripts/arkiv-theme.ts --write"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",

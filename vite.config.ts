@@ -17,7 +17,12 @@ async function setup(
   const levels = await levelRuntime(auth),
     api = applicationApi(auth, levels);
   server.middlewares.use((req, res, next) => {
-    if (req.url?.startsWith('/api/auth/') || req.url?.startsWith('/api/cre/')) void api(req, res);
+    if (
+      req.url?.startsWith('/api/auth/') ||
+      req.url?.startsWith('/api/cre/') ||
+      req.url?.startsWith('/api/themes/')
+    )
+      void api(req, res);
     else next();
   });
   const close = attachCoop(server.httpServer, auth, undefined, levels);

@@ -25,7 +25,11 @@ const auth = new AuthService({ demoEnabled: process.env.DEMO_AUTH === 'true' });
 const levels = await levelRuntime(auth),
   api = applicationApi(auth, levels);
 const server = createServer((req, res) => {
-  if (req.url?.startsWith('/api/auth/') || req.url?.startsWith('/api/cre/')) {
+  if (
+    req.url?.startsWith('/api/auth/') ||
+    req.url?.startsWith('/api/cre/') ||
+    req.url?.startsWith('/api/themes/')
+  ) {
     void api(req, res);
     return;
   }

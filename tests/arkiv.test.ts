@@ -24,6 +24,7 @@ import { MemoryArchive, type ArchiveRecord, type ArchiveRef } from '../server/ar
 import { LevelStore } from '../server/levels/LevelStore';
 import { levels } from '../server/data/campaign';
 import { canonicalJSON } from '../server/arkiv/canonical';
+import { type ThemePublication } from '../server/arkiv/ThemePublication';
 import { authFixture } from './authFixture';
 
 const record = (revision = 1): ArchiveRecord => ({
@@ -122,7 +123,9 @@ it('enforces campaign publishing and template access on authenticated server end
 });
 
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
-function writerFixture(budgets: { maxTxFee?: string; dailyBudget?: string } = {}) {
+function writerFixture(
+  budgets: { maxTxFee?: string; dailyBudget?: string; theme?: ThemePublication } = {},
+) {
   const directory = mkdtempSync(join(tmpdir(), 'taser-writer-')),
     path = join(directory, 'journal.sqlite'),
     privateKey = generatePrivateKey(),
@@ -131,6 +134,7 @@ function writerFixture(budgets: { maxTxFee?: string; dailyBudget?: string } = {}
     sends = 0,
     receiptAvailable = false,
     readbackAvailable = true;
+  const queries: unknown[] = [];
   const entityKey = ('0x' + 'ab'.repeat(32)) as Hex,
     blockHash = ('0x' + 'cd'.repeat(32)) as Hex;
   const transport = custom(
@@ -142,7 +146,10 @@ function writerFixture(budgets: { maxTxFee?: string; dailyBudget?: string } = {}
         if (method === 'eth_gasPrice') return '0x3b9aca00';
         if (method === 'eth_getBalance') return '0x8ac7230489e80000';
         if (method === 'eth_estimateGas') return '0x493e0';
-        if (method === 'arkiv_query') return { data: [], blockNumber: '0x64' };
+        if (method === 'arkiv_query') {
+          queries.push(params);
+          return { data: [], blockNumber: '0x64' };
+        }
         if (method === 'eth_sendRawTransaction') {
           sends++;
           raw = (params as TransactionSerialized[])[0];
@@ -214,6 +221,24 @@ function writerFixture(budgets: { maxTxFee?: string; dailyBudget?: string } = {}
     const db = new DatabaseSync(path),
       plan = db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;
     db.close();
+    if (budgets.theme) {
+      const t = budgets.theme;
+      return {
+        $key: entityKey,
+        $creator: account.address,
+        $owner: account.address,
+        $creationFlags: { readonly: true, permissionlessExtension: false },
+        $expiresAt: 7_884_100n,
+        namespace: str('test'),
+        theme_id: str(t.themeId),
+        version: str(t.version),
+        swarm_reference: str(t.swarmReference),
+        manifest_sha256: str(t.manifestSha256),
+        release_sha256: str(t.releaseSha256),
+        content_type: str('application/json'),
+        payload: bytes(plan.ciphertext as Hex),
+      } as never;
+    }
     return {
       $key: entityKey,
       $creator: account.address,
@@ -232,6 +257,7 @@ function writerFixture(budgets: { maxTxFee?: string; dailyBudget?: string } = {}
     archive,
     path,
     reader,
+    queries,
     get sends() {
       return sends;
     },
@@ -502,5 +528,55 @@ it('loads supported level and run categories from a mixed archive across pages a
   } finally {
     archive.close();
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+const themeRecord: ThemePublication = {
+  category: 'theme',
+  id: 'modern-gray@1.0.0',
+  revision: 1,
+  themeId: 'modern-gray',
+  version: '1.0.0',
+  swarmReference: 'a'.repeat(64),
+  manifestSha256: 'b'.repeat(64),
+  releaseSha256: 'c'.repeat(64),
+  updatedAt: 0,
+};
+it('journals public theme pointers, reconciles unknown broadcasts without resending and verifies readback', async () => {
+  const f = writerFixture({ theme: themeRecord });
+  try {
+    await expect(f.archive.putTheme(themeRecord)).rejects.toThrow();
+    expect(f.sends).toBe(1);
+    f.receipt(true);
+    const ref = await f.archive.putTheme(themeRecord);
+    expect(f.sends).toBe(1);
+    expect(await f.archive.readTheme(ref.entityKey)).toEqual(themeRecord);
+    await expect(
+      f.archive.putTheme({ ...themeRecord, swarmReference: 'd'.repeat(64) }),
+    ).rejects.toThrow(/different content/);
+    expect(f.sends).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+it('enforces the configured write budget for theme publication', async () => {
+  const f = writerFixture({ theme: themeRecord, maxTxFee: '0' });
+  try {
+    await expect(f.archive.putTheme(themeRecord)).rejects.toThrow(/budget/);
+    expect(f.sends).toBe(0);
+  } finally {
+    f.close();
+  }
+});
+
+it('scopes the level catalog query to level categories when other feature records share the namespace', async () => {
+  const f = writerFixture();
+  try {
+    expect(await f.archive.list()).toEqual([]);
+    const query = JSON.stringify(f.queries.at(-1));
+    for (const value of ['category', 'draft', 'community', 'campaign'])
+      expect(query).toContain(value);
+  } finally {
+    f.close();
   }
 });

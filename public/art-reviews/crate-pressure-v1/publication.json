@@ -1,0 +1,34 @@
+{
+  "status": "published",
+  "approvedBy": "User request: put this on swarm now",
+  "themes": {
+    "modern-gray": {
+      "version": "1.1.0",
+      "reference": "948e9c1809ead2e8784a706a1d533e0b5ca8c3d4086a2eb635598582e9e86e72",
+      "verifiedAt": "2026-11-06T14:23:55.312Z",
+      "manifestSha256": "3b6561504da5ee10541c58a511c9eabb778ac2d7aa5399ffe8afd617490e6fe8",
+      "releaseSha256": "84325d35f7bcfa574f65309869bf55bb48eb206e9751dc1a8f0d6140bf547feb",
+      "arkiv": {
+        "entityKey": "0xa96d9463f43648df11ac8a002bfcffcf791a8dd00e2efd7e4f68d490f3565ca9",
+        "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+        "txHash": "0xa262113a4f90d665ae0004ff5b37176ed7dd2f411ecc1857b861c1a16146ff70"
+      },
+      "crateSheet": "https://bzz.limo/bzz/a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7/sheets/11-standard-crates.png",
+      "pressureSheet": "https://bzz.limo/bzz/8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f/sheets/03-pressure-switches.png"
+    },
+    "diwali": {
+      "version": "1.1.0",
+      "reference": "d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf",
+      "verifiedAt": "2026-11-06T14:23:50.191Z",
+      "manifestSha256": "3f5b47b49fa976013211bdfa08d0ac813ff265301542c7b3eca72c447f84c3e1",
+      "releaseSha256": "712129c65eec16d3651e8321df535257a35dfd6cf798159d2c51a8129549c678",
+      "arkiv": {
+        "entityKey": "0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f",
+        "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+        "txHash": "0xff7d214ad5f52287116b674dc58442fce6a7523dd5d0a4d5c524e1783223984e"
+      },
+      "crateSheet": "https://bzz.limo/bzz/83c1ff12aaf871184287a8963bfb0c7be0ece660fbe861f8cd65a3ae98ff1dc5/sheets/11-standard-crates.png",
+      "pressureSheet": "https://bzz.limo/bzz/56938723e70d87ccb80e38c62c94a4a499b70c100ec9f1729762fdbece7ff9fc/sheets/03-pressure-switches.png"
+    }
+  }
+}

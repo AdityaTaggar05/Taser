@@ -1,1 +1,43 @@
-{"reference":null,"gateway":"https://api.gateway.ethswarm.org","verifiedAt":null,"manifestSha256":null}
+{
+  "reference": "948e9c1809ead2e8784a706a1d533e0b5ca8c3d4086a2eb635598582e9e86e72",
+  "gateway": "https://bzz.limo",
+  "verifiedAt": "2026-11-06T14:23:55.312Z",
+  "manifestSha256": "3b6561504da5ee10541c58a511c9eabb778ac2d7aa5399ffe8afd617490e6fe8",
+  "releaseSha256": "84325d35f7bcfa574f65309869bf55bb48eb206e9751dc1a8f0d6140bf547feb",
+  "sheetReferences": {
+    "p1-idle": "4b5bf2ad1c5c0e1ccde787c9e4cd1384c371e5cacd548649096adc95d6ee46d2",
+    "p1-walk": "7d7b5fc4c6042f1fd77eef5381033317924f0f700f55c08cac2d0379344c89db",
+    "p1-shove": "4b5bf2ad1c5c0e1ccde787c9e4cd1384c371e5cacd548649096adc95d6ee46d2",
+    "p1-recoil": "4b5bf2ad1c5c0e1ccde787c9e4cd1384c371e5cacd548649096adc95d6ee46d2",
+    "p1-hit": "4b5bf2ad1c5c0e1ccde787c9e4cd1384c371e5cacd548649096adc95d6ee46d2",
+    "p1-death": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "p1-exit": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "p1-victory": "4b5bf2ad1c5c0e1ccde787c9e4cd1384c371e5cacd548649096adc95d6ee46d2",
+    "p2-idle": "6e942f1c418e64f4551b82164a9e467b1ccac51e5ac45e2e26be30ac83165a38",
+    "p2-walk": "0d30dadf725e4542dd1dd0bcba1d9283d17203f866170114d13a7e384a571510",
+    "p2-shove": "6e942f1c418e64f4551b82164a9e467b1ccac51e5ac45e2e26be30ac83165a38",
+    "p2-recoil": "6e942f1c418e64f4551b82164a9e467b1ccac51e5ac45e2e26be30ac83165a38",
+    "p2-hit": "7d7b5fc4c6042f1fd77eef5381033317924f0f700f55c08cac2d0379344c89db",
+    "p2-death": "7d7b5fc4c6042f1fd77eef5381033317924f0f700f55c08cac2d0379344c89db",
+    "p2-exit": "7d7b5fc4c6042f1fd77eef5381033317924f0f700f55c08cac2d0379344c89db",
+    "p2-victory": "6e942f1c418e64f4551b82164a9e467b1ccac51e5ac45e2e26be30ac83165a38",
+    "01-crates-and-mirrors": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "02-environment-tiles": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "03-pressure-switches": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "04-exits": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "05-laser-equipment": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "06-laser-segments-and-impacts": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "07-physical-effects": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "08-resolution-effects": "8614fa38fbd6ca71fa9b32cf08ac12611d25aa8d9ccbdd47229a7c9566a4c84f",
+    "09-replay-indicators": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "10-mvp-ui-icons-and-avatars": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "directional-model": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "approved-reference": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7",
+    "11-standard-crates": "a592c2736434d2bc71e42e0b308896d71ee7bc821b6325e32b9ed1d15e23c3a7"
+  },
+  "arkiv": {
+    "entityKey": "0xa96d9463f43648df11ac8a002bfcffcf791a8dd00e2efd7e4f68d490f3565ca9",
+    "publisher": "0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca",
+    "txHash": "0xa262113a4f90d665ae0004ff5b37176ed7dd2f411ecc1857b861c1a16146ff70"
+  }
+}
