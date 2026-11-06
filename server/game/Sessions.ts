@@ -12,7 +12,7 @@ export class Sessions {
   private sessions=new Map<string,Session>();private peers=new Map<Peer,{session:Session;member:Member}>();
   private creating=new Set<string>();private closed=false;
   constructor(private auth:AuthService,private store:LevelStore){}
-  async join(peer:Peer,user:PlayerProfile,value:unknown,token?:string){
+  async join(peer:Peer,user:PlayerProfile,value:unknown,token?:string,isActive:()=>boolean=()=>true){
     if(!value||typeof value!=='object')throw new LevelError(400,'Choose Solo, create a party, or enter an invite code.');
     const intent=value as JoinIntent;
     let session:Session|undefined,role:Player;
@@ -22,10 +22,15 @@ export class Sessions {
       this.checkAccount(user.id);if(this.sessions.size>=200)throw new LevelError(503,'The server has reached its session limit.');
       this.creating.add(user.id);
       try{
-        await this.store.refreshAvailability();const snapshot=this.store.forPlay(intent.levelId);if(!snapshot)throw new LevelError(404,'Published chamber unavailable or expired.');
-        await this.store.validateSnapshot(snapshot);
+        peer.send({type:'joining',stage:'availability',storage:this.store.storage});
+        await this.store.refreshAvailability();
+        if(this.closed||!isActive())throw new LevelError(409,'Party creation was cancelled.');const snapshot=this.store.forPlay(intent.levelId);if(!snapshot)throw new LevelError(404,'Published chamber unavailable or expired.');
+        peer.send({type:'joining',stage:intent.mode==='solo'?'replay':'level',storage:this.store.storage});
+        // echo validates the selected level before loading its replay; do not read the level twice.
         const echo=intent.mode==='solo'?await this.store.echo(snapshot,intent.player===1?2:1,intent.runId):undefined;
-        if(this.closed)throw new LevelError(503,'Game service is closing.');this.checkAccount(user.id);
+        if(intent.mode==='coop')await this.store.validateSnapshot(snapshot);
+        if(this.closed||!isActive())throw new LevelError(409,'Party creation was cancelled.');this.checkAccount(user.id);
+        peer.send({type:'joining',stage:'party',storage:this.store.storage});
         const id=randomUUID();let code:string;do{code=Array.from(randomBytes(INVITE_LENGTH),byte=>INVITE_ALPHABET[byte%INVITE_ALPHABET.length]).join('');}while([...this.sessions.values()].some(s=>s.code===code));
         const members=new Map<string,Member>();
         const room=new CoopRoom(randomUUID,()=>Date.now(),45_000,ids=>{if(snapshot.slot)this.auth.recordCompletion(ids,snapshot.slot);},undefined,[snapshot],
@@ -51,6 +56,7 @@ export class Sessions {
     }else if(intent.kind==='resume'){
       session=this.sessions.get(intent.id);const member=session?.members.get(user.id);if(!session||!member)throw new LevelError(404,'This session has ended. Return home to start another.');role=member.role;
     }else throw new LevelError(400,'Unknown game session request.');
+    if(this.closed||!isActive())throw new LevelError(409,'Party creation was cancelled.');
     const selected=session!;
     let member=selected.members.get(user.id);
     if(member?.peer)throw new LevelError(409,'This account is already connected to this session in another tab.');

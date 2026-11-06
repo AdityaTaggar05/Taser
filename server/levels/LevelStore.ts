@@ -16,6 +16,7 @@ export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:Archi
 export class LevelStore {
   private activity:ActivityStore;private flushingMoves=false;
   private closed=false;private observedHead=0n;private availabilityAt=0;
+  private availabilityRequest:Promise<void>|undefined;
   private db:DatabaseSync;private queue:Promise<unknown>=Promise.resolve();
   get storage(){return this.archive.mode;}
   constructor(path:string,readonly archive:LevelArchive=new UnconfiguredArchive()){
@@ -106,7 +107,12 @@ export class LevelStore {
     const r=await this.archive.read(JSON.parse(String(row.ref)));return {name:r.level.name,solutionP1:r.level.solutionP1,solutionP2:r.level.solutionP2};
   }
   async template(accountId:string,id:string,admin:boolean){const entry=this.latest('campaign',id)[0];if(!entry)throw new LevelError(404,'Campaign chamber unavailable.');if(!admin&&!this.canReveal(accountId,entry.ref.entityKey))throw new LevelError(403,'Complete this campaign revision before using it as an editable template.');return (await this.archive.read(entry.ref)).level;}
-  async refreshAvailability(){if(Date.now()-this.availabilityAt<10_000)return;this.observedHead=await this.archive.head?.()??0n;this.availabilityAt=Date.now();}
+  async refreshAvailability(){
+    if(Date.now()-this.availabilityAt<10_000)return;
+    if(this.availabilityRequest)return this.availabilityRequest;
+    this.availabilityRequest=(async()=>{this.observedHead=await this.archive.head?.()??0n;this.availabilityAt=Date.now();})();
+    try{await this.availabilityRequest;}finally{this.availabilityRequest=undefined;}
+  }
   runs(levelId:string,role:1|2){
     const snapshot=this.forPlay(levelId);if(!snapshot?.ref)throw new LevelError(404,'Published chamber unavailable.');
     return this.db.prepare("SELECT id,record,ref FROM game_runs WHERE status='confirmed' ORDER BY rowid DESC").all().flatMap(row=>{

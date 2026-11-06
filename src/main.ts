@@ -28,8 +28,7 @@ import {registeredThemes} from './assets/catalog';
 import {applyThemeInterface} from './assets/interface';
 import './assets/theme.css';
 
-let resolveArtwork!:()=>void;
-const artworkAvailable=new Promise<void>(resolve=>{resolveArtwork=resolve;});
+let artworkReady=false;
 let connectingParty=false;
 let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
@@ -41,15 +40,17 @@ try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedThe
 function view(){return client?.state?.level?new RemoteView(client.state.level,client.state,inspection):null;}
 function refresh(){
   const inLobby=playing&&(client?.state?.party?!client.state.party.started:connectingParty);
-  hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,client?.status??'connecting',client?.notice??null);
-  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,!!client?.canStudy,!!client?.otherPerspective);
+  const status=client?.status??'connecting';
+  const notice=client?.notice??client?.loadingMessage??(!artworkReady&&client?.state?'Loading chamber artwork…':null);
+  hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,status,client?.notice??null,client?.loadingMessage??null);
+  hud.render(view(),client?.state??null,status==='connected'&&!artworkReady?'connecting':status,notice,completed,!!client?.canStudy,!!client?.otherPerspective);
   explorer.context(client?.state?.publicationKey);
   moveSequence.context(auth.user?.id??null,client?.state?.party?.id,client?.state?.moveSequences??[],inspection??client?.state?.history.at(-1)?.step??0,playing&&!inLobby);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
   applyThemeInterface(pack,auth.user,client?.status,!!client?.state?.partnerReady);
 }
 function queue(direction:Direction){
-  const session=client?.state;if(!session||!client?.playable||hud.helpOpen||inspection!==null)return;
+  const session=client?.state;if(!artworkReady||!session||!client?.playable||hud.helpOpen||inspection!==null)return;
   const error=session.moveErrors[direction];if(error){client.showNotice(error);return;}
   client.send({type:'move',direction,revision:session.revision});
 }
@@ -77,7 +78,7 @@ const levelApi=new LevelClient(auth);
 const explorer=new ArkivPanel(levelApi);
 const moveSequence=new MoveSequence(levelApi,hud.root.querySelector('.timeline-row')!,step=>{inspection=step;scene?.redraw();refresh();});
 const library=new PublishedLevels(levelApi,{home:()=>{location.hash='';},fullscreen});
-const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'})});
+const lobby=new PartyLobby({leave:()=>{location.hash='';},ready:ready=>client?.party({type:'ready',ready}),start:()=>client?.party({type:'start'}),retry:()=>client?.retryJoin()});
 const editor=new EditorScreen(levelApi,{
   home:()=>{location.hash='';},
   play:id=>{location.hash='play/'+id;},
@@ -110,7 +111,7 @@ function syncScreen(){
   hud.root.hidden=!playing;home.show(!playing&&!editing&&!browsing&&!!auth.user);library.show(browsing,location.hash);editor.show(editing);signin.update();document.body.dataset.screen=playing?'play':editing?'creator':browsing?'library':auth.user?'home':'signin';
   explorer.show(!!auth.user&&(editing||browsing),auth.user?.id??null);
   connectingParty=intent?.kind==='invite'||intent?.kind==='create'&&intent.mode==='coop';
-  if(playing&&intent){client=new CoopClient(receive,async()=>{await artworkAvailable;return auth.ticket();},()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
+  if(playing&&intent){client=new CoopClient(receive,()=>auth.ticket(),()=>auth.expired(),intent,id=>{history.replaceState(null,'','#session/'+id);screenRoute=location.hash;});}
   scene?.redraw();refresh();
 }
 function receive(previous:SessionState|null){
@@ -133,7 +134,7 @@ class ChamberScene extends Phaser.Scene {
   private artworkReady=false;
   constructor(){super('chamber');}
   preload(){for(const p of registeredThemes)preloadEnvironment(this,p);this.load.on('loaderror',()=>{if(!document.querySelector('.theme-asset-warning')){const el=document.createElement('div');el.className='theme-asset-warning';el.setAttribute('role','alert');el.textContent='Artwork could not be loaded. Check the asset gateway and reload to retry.';document.body.append(el);}});}
-  create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch{this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;resolveArtwork();this.scale.on('resize',()=>this.redraw());this.redraw();}
+  create(){scene=this;this.title=new TitleBackdrop(this);try{for(const p of registeredThemes)buildEnvironment(this,p);}catch{this.cameras.main.setBackgroundColor(pack.palette.background);return;}this.artworkReady=true;artworkReady=true;this.scale.on('resize',()=>this.redraw());this.redraw();}
   redrawPlaytest(previous?:StepSnapshot,animate=false){
     if(!playtestEngine)return;
     const id=playtestEngine.level.environment??'foundry';

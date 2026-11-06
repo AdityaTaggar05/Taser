@@ -14,7 +14,9 @@ export interface SessionState {
   pendingMove: Direction | null; partnerReady: boolean; partnerConnected: boolean;
   moveErrors: Record<Direction, string | null>;
 }
-export type ServerMessage = SessionState | { type: 'welcome'; token: string;sessionId?:string } | { type: 'error'; message: string } | { type: 'full'; message: string } | {type:'auth_required';message:string};
+export const JOIN_TIMEOUT_MS=60_000;
+export type JoinProgress={type:'joining';stage:'availability'|'level'|'replay'|'party';storage:'arkiv'|'test'|'unconfigured'};
+export type ServerMessage = SessionState | JoinProgress | { type: 'welcome'; token: string;sessionId?:string } | { type: 'error'; message: string } | { type: 'full'; message: string } | {type:'auth_required';message:string};
 export type ClientCommand = { type:'move'; direction:Direction; revision:number } | { type:'undo'|'reset'|'cancel'; revision:number } | { type:'level'; index:number; revision:number };
 export function parseCommand(value: unknown): ClientCommand | null {
   if (!value || typeof value!=='object') return null;
