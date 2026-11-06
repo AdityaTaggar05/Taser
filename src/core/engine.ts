@@ -52,7 +52,7 @@ export class GameEngine {
   get state(): StepSnapshot { return this.stateStack[this.stateStack.length - 1]; }
   reset() {
     const l = this.level;
-    this.stateStack = [{ step: 0, p1Pos: [...l.initialP1], p2Pos: [...l.initialP2], boxesP1: copyBoxes(l.initialBoxesP1), boxesP2: copyBoxes(l.initialBoxesP2), status: 'PLAYING_PHASE_1', message: 'Meet at the weld. Every box must match at turn 4.' }];
+    this.stateStack = [{ step: 0, p1Pos: [...l.initialP1], p2Pos: [...l.initialP2], boxesP1: copyBoxes(l.initialBoxesP1), boxesP2: copyBoxes(l.initialBoxesP2), status: 'PLAYING_PHASE_1', message: `Meet at the weld. Every box must match at turn ${l.weldStep}.` }];
     this.lastShoves = [null,null];
   }
   undo() { if (this.stateStack.length > 1) this.stateStack.pop(); this.lastShoves = [null,null]; return this.state; }
