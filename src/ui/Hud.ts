@@ -4,7 +4,7 @@ import type { ConnectionStatus } from '../network/CoopClient';
 import type { RemoteView } from '../network/RemoteView';
 export interface HudActions {
   level:(index:number)=>void;undo:()=>void;reset:()=>void;fullscreen:()=>void;
-  queue:(direction:Direction)=>void;inspect:(step:number|null)=>void;theme:()=>void;sound:()=>void;cancel:()=>void;
+  queue:(direction:Direction)=>void;inspect:(step:number|null)=>void;theme:()=>void;sound:()=>void;cancel:()=>void;home:()=>void;
 }
 const arrows:Record<Direction,string>={U:'↑',D:'↓',L:'←',R:'→',W:'·'};
 export class Hud {
@@ -14,7 +14,7 @@ export class Hud {
     this.root.innerHTML=`
       <header class="topbar"><div class="wordmark"><span class="mark">⌁</span> WELDPOINT<span class="edition">TEMPORAL PINCER / ONLINE CO-OP</span></div>
       <nav class="levels" aria-label="Level selector">${levels.map((l,i)=>`<button data-level="${i}" title="${l.name}" aria-label="Level ${i+1}: ${l.name}">${String(i+1).padStart(2,'0')}</button>`).join('')}<span class="level-caption">CHAMBERS</span></nav>
-      <div class="utilities"><button data-action="sound" aria-label="Toggle sound" id="sound">SFX ON</button><button data-action="theme" aria-label="Change environment">◐</button><button data-action="help" aria-label="How to play">?</button><button data-action="fullscreen" aria-label="Fullscreen">⛶</button></div></header>
+      <div class="utilities"><button data-action="home" aria-label="Return to home" title="Leave session and return home">⌂</button><button data-action="sound" aria-label="Toggle sound" id="sound">SFX ON</button><button data-action="theme" aria-label="Change environment">◐</button><button data-action="help" aria-label="How to play">?</button><button data-action="fullscreen" aria-label="Fullscreen">⛶</button></div></header>
       <section class="mission"><div><span class="eyebrow" id="chamber"></span><h1 id="level-name"></h1></div><div class="phase"><span id="phase-led"></span><span id="phase-name"></span><small id="phase-detail"></small></div><div class="turn-count"><span>TURN</span><strong id="turn">00</strong><span id="turn-total">/ 08</span></div></section>
       <div id="preview-banner" hidden>REVIEWING YOUR HISTORY <button data-action="live">Return to live ↗</button></div>
       <div id="connection" class="connection" role="status" aria-live="polite">Connecting to the shared chamber…</div>

@@ -2,9 +2,13 @@ import type { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { WebSocket, WebSocketServer } from 'ws';
 import { CoopRoom, type Peer } from './CoopRoom';
+import {AuthService,type SessionIdentity} from './auth/AuthService';
 
-export function attachCoop(server:EventEmitter) {
-  const room=new CoopRoom(randomUUID);
+export function attachCoop(server:EventEmitter,auth:AuthService) {
+  const room=new CoopRoom(randomUUID,Date.now,45_000,(ids,level)=>auth.recordCompletion(ids,level));
+  const identities=new Map<WebSocket,{identity:SessionIdentity;peer:Peer}>();
+  const reject=(ws:WebSocket,peer:Peer)=>{room.release(peer);peer.send({type:'auth_required',message:'Your session ended. Please sign in again.'});ws.close(4401,'Sign in required');};
+  const unsubscribe=auth.onRevoke(key=>{for(const [ws,entry] of identities)if(entry.identity.key===key)reject(ws,entry.peer);});
   const wss=new WebSocketServer({noServer:true,maxPayload:2048});
   const alive=new Map<WebSocket,boolean>();
   // Leave unrelated upgrades (including Vite HMR) to their handlers.
@@ -30,16 +34,22 @@ export function attachCoop(server:EventEmitter) {
         if(!m||m.type!=='join'){ws.close(1008,'Join required');return;}
         clearTimeout(helloTimeout);
         const token=typeof m.token==='string'&&m.token.length<=128?m.token:undefined;
-        joined=room.join(peer,token)!==null;return;
+        const identity=auth.consumeTicket(m.ticket);
+        if(!identity){reject(ws,peer);return;}
+        identities.set(ws,{identity,peer});joined=room.join(peer,identity.user.id,token)!==null;return;
+      }
+      const entry=identities.get(ws);if(!entry||!auth.isActive(entry.identity.key)){reject(ws,peer);return;}
+      if(message&&typeof message==='object'&&'type' in message&&message.type==='leave'){
+        room.release(peer);joined=false;peer.close();return;
       }
       room.receive(peer,message);
     });
-    ws.on('close',()=>{clearTimeout(helloTimeout);alive.delete(ws);room.leave(peer);});
+    ws.on('close',()=>{clearTimeout(helloTimeout);alive.delete(ws);identities.delete(ws);room.leave(peer);});
     ws.on('error',()=>{/* close event releases the seat */});
   });
   const maintenance=setInterval(()=>{
-    room.expire();
-    for(const [ws,ok] of alive){if(!ok){ws.terminate();continue;}alive.set(ws,false);ws.ping();}
+    auth.sweep();room.expire();
+    for(const [ws,ok] of alive){const entry=identities.get(ws);if(entry&&!auth.isActive(entry.identity.key)){reject(ws,entry.peer);continue;}if(!ok){ws.terminate();continue;}alive.set(ws,false);ws.ping();}
   },10_000);maintenance.unref();
-  return ()=>{clearInterval(maintenance);server.off('upgrade',onUpgrade);for(const ws of wss.clients)ws.terminate();wss.close();};
+  return ()=>{unsubscribe();clearInterval(maintenance);server.off('upgrade',onUpgrade);for(const ws of wss.clients)ws.terminate();wss.close();};
 }

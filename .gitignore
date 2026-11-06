@@ -3,3 +3,7 @@ dist/
 .vite/
 *.local
 temporal_pincer_mvp_specification.md
+.data/
+.env
+.env.*
+!.env.example

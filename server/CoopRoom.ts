@@ -4,7 +4,7 @@ import { copyBoxes, type Direction } from '../src/core/types';
 import { DIRECTIONS, parseCommand, type Player, type ServerMessage, type SessionState } from '../src/network/protocol';
 
 export interface Peer { send(message: ServerMessage): void; close(): void }
-interface Seat { token:string; peer:Peer|null; expiresAt:number }
+interface Seat { accountId:string; token:string; peer:Peer|null; expiresAt:number }
 /** A single disposable playtest room. A future party layer can own one instance per party. */
 export class CoopRoom {
   private seats: [Seat|null,Seat|null]=[null,null];
@@ -12,17 +12,19 @@ export class CoopRoom {
   private levelIndex=0;
   private pending:[Direction|null,Direction|null]=[null,null];
   private revision=0;
-  constructor(private makeToken:()=>string, private now=()=>Date.now(), readonly reconnectMs=45_000) {}
-  join(peer:Peer, token?:string): Player|null {
+  constructor(private makeToken:()=>string, private now=()=>Date.now(), readonly reconnectMs=45_000, private completed:(ids:string[],levelId:number)=>void=()=>{}) {}
+  join(peer:Peer, accountId:string, token?:string): Player|null {
     this.expire();
     let index=token?this.seats.findIndex(s=>s?.token===token):-1;
+    if(index>=0&&this.seats[index]!.accountId!==accountId){peer.send({type:'error',message:'This seat belongs to another account.'});peer.close();return null;}
+    if(index<0)index=this.seats.findIndex(s=>s?.accountId===accountId);
     if(index>=0 && this.seats[index]?.peer) {
       peer.send({type:'full',message:'This player is already connected in another tab. Use a separate tab without duplicating it.'});peer.close();return null;
     }
     if(index<0) index=this.seats.findIndex(s=>s===null);
     if(index<0){peer.send({type:'full',message:'Both player slots are occupied or reconnecting. This playtest supports two players.'});peer.close();return null;}
     const seat=this.seats[index];
-    this.seats[index]={token:seat?.token??this.makeToken(),peer,expiresAt:0};
+    this.seats[index]={accountId,token:seat?.token??this.makeToken(),peer,expiresAt:0};
     peer.send({type:'welcome',token:this.seats[index]!.token});
     this.broadcast();return (index+1) as Player;
   }
@@ -30,6 +32,12 @@ export class CoopRoom {
     const seat=this.seats.find(s=>s?.peer===peer); if(!seat)return;
     seat.peer=null;seat.expiresAt=this.now()+this.reconnectMs;
     this.pending=[null,null];this.revision++;
+    this.broadcast();
+  }
+  /** Intentional menu exit: release now rather than reserve a disconnected seat. */
+  release(peer:Peer) {
+    const index=this.seats.findIndex(s=>s?.peer===peer);if(index<0)return;
+    this.seats[index]=null;this.pending=[null,null];this.engine.reset();this.revision++;
     this.broadcast();
   }
   expire() {
@@ -48,7 +56,9 @@ export class CoopRoom {
       if(error){peer.send({type:'error',message:error});return;}
       this.pending[index]=command.direction;
       if(this.pending[0] && this.pending[1]) {
-        this.engine.executeStep(this.pending[0],this.pending[1]);this.pending=[null,null];this.revision++;
+        this.engine.executeStep(this.pending[0],this.pending[1]);
+        if(this.engine.state.status==='VICTORY')this.completed(this.seats.map(s=>s!.accountId),levels[this.levelIndex].id);
+        this.pending=[null,null];this.revision++;
       }
     } else if(command.type==='cancel') {
       this.pending[index]=null;

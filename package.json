@@ -13,6 +13,7 @@
   "dependencies": {
     "phaser": "^3.90.0",
     "tsx": "^4.23.15",
+    "viem": "^2.57.16",
     "ws": "^8.22.1"
   },
   "devDependencies": {
