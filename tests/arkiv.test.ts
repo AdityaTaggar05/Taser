@@ -240,6 +240,10 @@ function writerFixture(
           };
     return {
       status: 'success',
+      from: account.address,
+      to: '0x4400000000000000000000000000000000000044',
+      gasUsed: 300_000n,
+      effectiveGasPrice: 1_000_000_000n,
       transactionHash: keccak256(raw),
       blockNumber: 100n,
       blockHash,
@@ -373,7 +377,9 @@ it('denies campaign deletion and unfunded community cleanup before signing', asy
     expect(f.sends).toBe(1);
     vi.mocked(f.reader.getEntity).mockImplementation(original);
     vi.spyOn(f.reader, 'getBalance').mockResolvedValue(0n);
-    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow('budget');
+    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow(
+      'signer balance',
+    );
     expect(f.sends).toBe(1);
   } finally {
     f.close();
@@ -465,6 +471,50 @@ it('stops before sending when either the per-transaction or daily approved fee c
     }
   }
 });
+it('releases unused confirmed gas reservations while retaining the approved daily cap', async () => {
+  const f = writerFixture({ dailyBudget: '0.0014' });
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    const db = new DatabaseSync(f.path);
+    expect(db.prepare('SELECT maximum_cost,actual_cost FROM arkiv_writes').get()).toMatchObject({
+      maximum_cost: '1000000000000000',
+      actual_cost: '300000000000000',
+    });
+    // An older journal has no settled fee yet; authenticate its receipt on demand.
+    db.prepare('UPDATE arkiv_writes SET actual_cost=NULL').run();
+    db.close();
+    await f.archive.deleteCommunityEntity(ref.entityKey as Hex);
+    expect(f.sends).toBe(2);
+  } finally {
+    f.close();
+  }
+});
+
+it('retains historical reservations when receipts are unavailable or inconsistent', async () => {
+  for (const unavailable of [true, false]) {
+    const f = writerFixture({ dailyBudget: '0.0014' });
+    try {
+      f.receipt(true);
+      const ref = await f.archive.put(record());
+      const db = new DatabaseSync(f.path);
+      db.prepare('UPDATE arkiv_writes SET actual_cost=NULL').run();
+      db.close();
+      const readReceipt = vi.mocked(f.reader.getTransactionReceipt).getMockImplementation()!;
+      vi.mocked(f.reader.getTransactionReceipt).mockImplementation(async (args) => {
+        if (unavailable) throw new Error('RPC unavailable');
+        return { ...(await readReceipt(args)), effectiveGasPrice: 0n };
+      });
+      await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow(
+        'daily fee budget',
+      );
+      expect(f.sends).toBe(1);
+    } finally {
+      f.close();
+    }
+  }
+});
+
 it('refuses a new send when the signer balance cannot cover the maximum transaction fee', async () => {
   const f = writerFixture();
   try {
