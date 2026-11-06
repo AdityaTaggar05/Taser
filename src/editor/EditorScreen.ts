@@ -133,7 +133,7 @@ export class EditorScreen {
     this.root.hidden = true;
     this.root.innerHTML = /* HTML */ `
       <header class="creator-top">
-        <button data-editor="home" aria-label="Return to home">⌂</button>
+        <button data-editor="home" aria-label="Back">← Back</button>
         <span class="creator-wordmark">
           WELDPOINT
           <small>CHAMBER CREATOR</small>
@@ -221,13 +221,7 @@ export class EditorScreen {
             </label>
           </div>
           <div class="creator-tools" role="toolbar" aria-label="Placement tools"></div>
-          <p class="creator-note">
-            Drag objects to move them, or select a tool and click to place it. Select a box identity
-            before placing its starts and weld target. Single objects deselect after placement.
-            Click a selected tool again or press Escape to return to dragging. Wall Mode skips
-            occupied cells. Remove deletes optional items or extra box pairs; move required objects
-            with their tool.
-          </p>
+          <p class="creator-note">Drag to move. Select a tool to place.</p>
         </aside>
         <section class="creator-centre">
           <div class="creator-stage-top">
@@ -1182,13 +1176,13 @@ export class EditorScreen {
       : `${l.width} × ${l.height} · ${l.totalSteps} TURNS · WELD ${l.weldStep}`;
     this.el('.creator-stage-caption').textContent =
       this.locked && !engine
-        ? 'READ-ONLY SUBMISSION · Inspect the level or replay the recorded solution.'
+        ? 'READ-ONLY SUBMISSION'
         : this.wallMode
-          ? '🧱 WALL MODE ACTIVE · Click or drag to build/remove walls. Occupied cells are protected.'
+          ? 'WALL MODE · Drag to add or remove walls.'
           : engine
             ? `PLAYTEST ACTIVE · View: ${this.view === 'author' ? 'Convergence (Shared Grid)' : this.view === 'p1' ? 'P1 Perspective' : 'P2 Perspective'}. Input moves below or with WASD / Arrow keys.`
             : this.view === 'author'
-              ? 'AUTHOR VIEW · Drag & drop players, boxes, switches, exits. Both timelines visible here.'
+              ? 'AUTHOR VIEW'
               : `P${this.view === 'p1' ? 1 : 2} VIEW · Partner objectives, boxes and weld targets are hidden.`;
     const recorded = engine ? this.model.moves : [l.solutionP1, l.solutionP2];
     this.el('.creator-solution').textContent =

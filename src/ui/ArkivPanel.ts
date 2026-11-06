@@ -141,12 +141,6 @@ export class ArkivPanel {
       a.rel = 'noopener noreferrer';
       header.append(a);
     }
-    const description = document.createElement('p');
-    description.textContent = test
-      ? 'Simulated archive results. No live transaction or entity links.'
-      : this.feed?.storage === 'unconfigured'
-        ? 'Arkiv is not configured. No on-chain writes are available.'
-        : 'One completed P1 + P2 turn → encrypted queue → transaction → verified entity. Moves never wait for confirmation.';
     const status = document.createElement('p');
     status.className = 'arkiv-status';
     status.setAttribute('role', 'status');
@@ -169,8 +163,7 @@ export class ArkivPanel {
       this.activity(list, activity, test || this.feed?.storage !== 'arkiv');
     if (!matching.length) {
       const empty = document.createElement('li');
-      empty.textContent =
-        'No matching writes recorded yet. Complete a turn or publish a chamber to see activity.';
+      empty.textContent = 'No matching activity yet.';
       list.append(empty);
     }
     const refs = document.createElement('div');
@@ -216,7 +209,7 @@ export class ArkivPanel {
     const results = document.createElement('div');
     results.className = 'arkiv-results';
     results.append(status, list, refs);
-    this.content.replaceChildren(header, schematic, description, queries, results);
+    this.content.replaceChildren(header, schematic, queries, results);
     if (focusedQuery)
       this.content
         .querySelector<HTMLButtonElement>(`[data-query=${focusedQuery}]`)

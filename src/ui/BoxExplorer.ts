@@ -38,9 +38,11 @@ export class BoxExplorer {
       button.onclick = () =>
         this.inspect(frame.step === session.history.at(-1)?.step ? null : frame.step);
       const title = document.createElement('b');
-      title.textContent = `T${String(frame.step).padStart(2, '0')}`;
-      const coordinates = frame.boxes.map((p, i) => `B${i + 1}: (${p[0]}, ${p[1]})`).join(' · ');
-      button.setAttribute('aria-label', `Turn ${frame.step}. ${coordinates || 'No boxes'}`);
+      title.textContent = `T${String(session.player === 2 ? session.level.totalSteps - frame.step : frame.step).padStart(2, '0')}`;
+      button.setAttribute(
+        'aria-label',
+        `Review time ${session.player === 2 ? session.level.totalSteps - frame.step : frame.step}`,
+      );
       const grid = document.createElement('span');
       grid.className = 'box-mini-grid';
       grid.style.gridTemplateColumns = `repeat(${session.level.width}, 1fr)`;
@@ -55,9 +57,7 @@ export class BoxExplorer {
           }
           grid.append(cell);
         }
-      const coord = document.createElement('small');
-      coord.textContent = coordinates || 'No boxes';
-      button.append(title, grid, coord);
+      button.append(title, grid);
       history.append(button);
     }
     this.root.append(history);

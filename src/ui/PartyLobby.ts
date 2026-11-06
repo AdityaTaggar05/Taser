@@ -13,7 +13,7 @@ export class PartyLobby {
     this.root.hidden = true;
     this.root.innerHTML = /* HTML */ `
       <header class="published-header">
-        <button data-party="leave">← Leave party</button>
+        <button data-party="leave">← Back</button>
         <span>WELDPOINT / PRIVATE PARTY</span>
       </header>
       <section class="published-content">

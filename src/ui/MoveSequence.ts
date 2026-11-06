@@ -16,6 +16,8 @@ export class MoveSequence {
   private sessionId = '';
   private sequences: number[] = [];
   private selected = 0;
+  private player = 1;
+  private totalSteps = 8;
   private feed: MoveSequenceFeed | null = null;
   private visible = () => {
     if (!document.hidden && this.scope) {
@@ -58,9 +60,13 @@ export class MoveSequence {
     sequences: number[],
     selected: number,
     visible: boolean,
+    player = 1,
+    totalSteps = 8,
   ) {
     const scope = visible && user && sessionId ? JSON.stringify([user, sessionId, sequences]) : '';
     this.selected = selected;
+    this.player = player;
+    this.totalSteps = totalSteps;
     if (scope === this.scope) {
       this.highlight();
       return;
@@ -129,7 +135,7 @@ export class MoveSequence {
       button.onclick = () => this.inspect(index + 1);
       const label = document.createElement('span');
       label.className = 'move-pair-turn';
-      label.textContent = `T${index + 1}`;
+      label.textContent = `T${String(this.player === 2 ? this.totalSteps - index - 1 : index + 1).padStart(2, '0')}`;
       const cells = document.createElement('span');
       cells.className = 'move-pair-cells';
       for (const player of [1, 2]) {
@@ -185,7 +191,7 @@ export class MoveSequence {
     if (!initial) {
       initial = document.createElement('li');
       initial.className = 'move-initial';
-      initial.textContent = 'Initial state · no move pair at turn 0.';
+      initial.textContent = 'Initial state · no move pair.';
       this.list.append(initial);
     }
     initial.hidden = this.selected !== 0 || !this.sequences.length;
