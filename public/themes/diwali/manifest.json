@@ -1,0 +1,9446 @@
+{
+  "schemaVersion": 1,
+  "id": "diwali",
+  "version": "1.0.0",
+  "name": "Diwali",
+  "palette": {
+    "background": "#151b1e",
+    "floor": "#bdc3c7",
+    "wall": "#7c858c",
+    "edge": "#454d54",
+    "p1": "#815751",
+    "p2": "#65a090",
+    "weld": "#e4e7e8",
+    "ink": "#e4e7e8"
+  },
+  "presentation": {
+    "boxIdentityLabels": false
+  },
+  "sheets": {
+    "p1-idle": {
+      "file": "sheets/p1-idle.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1628982,
+      "sha256": "0cd8b206ec671958d02431e70e97d2d84d084a277d187dbe80c8313d4f2cd3cf"
+    },
+    "p1-walk": {
+      "file": "sheets/p1-walk.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1686515,
+      "sha256": "8a7fb35c94ce48e0e74862c953b813d40187b72052c29bf69c78d92982bb8791"
+    },
+    "p1-shove": {
+      "file": "sheets/p1-shove.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1658457,
+      "sha256": "244b106205d09d4fc5166608d103b8c79397b0edea1ded2d389e6f1a968a4e1c"
+    },
+    "p1-recoil": {
+      "file": "sheets/p1-recoil.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1717519,
+      "sha256": "12edbc694adea695069c8558e75d4a6787394a2a827ccb057b34105efd13e6a9"
+    },
+    "p1-hit": {
+      "file": "sheets/p1-hit.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1699866,
+      "sha256": "4a2d2ebb85e1e95aebc2571fd7389f04e5c14340a4c02a1df98f62cd526da71e"
+    },
+    "p1-death": {
+      "file": "sheets/p1-death.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1618644,
+      "sha256": "4d552651d1dd2c2b7df7c66cf43b83c41073f1fb238fd869a7c54dc8fce7370d"
+    },
+    "p1-exit": {
+      "file": "sheets/p1-exit.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1620074,
+      "sha256": "26b2334f83e370ea4b637899a6aa15094603e2fc4f957d60c98a5685dbb8d25a"
+    },
+    "p1-victory": {
+      "file": "sheets/p1-victory.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1691276,
+      "sha256": "1db9a4405c01ce79d150156ffd425acfd8052c8ce919224e185bc3d0984a6fb4"
+    },
+    "p2-idle": {
+      "file": "sheets/p2-idle.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1680394,
+      "sha256": "3ba770c2e6817c62b8232908bc6e250f9b9020cdf1eb1bd1a4c283676cc7b164"
+    },
+    "p2-walk": {
+      "file": "sheets/p2-walk.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1689693,
+      "sha256": "c4910e03fb0982452c93d6b1614c65b27f504e553dde24e7c9bdb9c453186fff"
+    },
+    "p2-shove": {
+      "file": "sheets/p2-shove.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1662265,
+      "sha256": "a377a5005b0d9534c0781535e69a1ccf3df9f7f742eaf1e6dbc6efbdd4a5cefd"
+    },
+    "p2-recoil": {
+      "file": "sheets/p2-recoil.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1715742,
+      "sha256": "6451af57cc20d08deef64e5e53244054c69ec8f9622b96e4afbcc061b1840b50"
+    },
+    "p2-hit": {
+      "file": "sheets/p2-hit.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1777849,
+      "sha256": "cf128596aac7a808a7eb01033316b51e3b7ff96ddd72edc1c75c1ddbda10d66a"
+    },
+    "p2-death": {
+      "file": "sheets/p2-death.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1665861,
+      "sha256": "e543e0f43be2ab2bc5c4e66938cb5b93174e857081af755e53776947f664fe70"
+    },
+    "p2-exit": {
+      "file": "sheets/p2-exit.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1632247,
+      "sha256": "efe95003ef11b73b33aedea86810c24d6f9e83625b2b4e2d31b7fc6ea9f7a568"
+    },
+    "p2-victory": {
+      "file": "sheets/p2-victory.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1691827,
+      "sha256": "ebfc2e1aac0fd54909b4b2cfb89f4384914fb2194ec15249c0de6de372319e7d"
+    },
+    "01-crates-and-mirrors": {
+      "file": "sheets/01-crates-and-mirrors.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 853204,
+      "sha256": "7bb809ea3155002638fe8a8510b8be5de1d05e25e45f2f257e4bf472a31091ba"
+    },
+    "02-environment-tiles": {
+      "file": "sheets/02-environment-tiles.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1151755,
+      "sha256": "9a46adc882c748ff0e69d8f1a7252d807391186d2895e532e52e5a331788330c"
+    },
+    "03-pressure-switches": {
+      "file": "sheets/03-pressure-switches.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 894781,
+      "sha256": "f9fb16a545a19802974305a0a4afc7cbe3ab17c4f541480d3ca84bcdde2aebad"
+    },
+    "04-exits": {
+      "file": "sheets/04-exits.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 1190307,
+      "sha256": "9f9ddeb39cb2a07bb6d04526f59a61ff1f7d116e26c733319dad3337abefd0f2"
+    },
+    "05-laser-equipment": {
+      "file": "sheets/05-laser-equipment.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 781550,
+      "sha256": "13496a405aab878e34f81b2a01e26c53d3b003f8501daa779f631b77bfb1cb14"
+    },
+    "06-laser-segments-and-impacts": {
+      "file": "sheets/06-laser-segments-and-impacts.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 260075,
+      "sha256": "0db52b3025bb4f00790a9bd450ef608d935952c17122f83507c8bc2749e68114"
+    },
+    "07-physical-effects": {
+      "file": "sheets/07-physical-effects.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1393484,
+      "sha256": "433d2dd8337c02b817a67c4b48e9b24fec2fcf9ace0bad1b7ebd720ca6064b80"
+    },
+    "08-resolution-effects": {
+      "file": "sheets/08-resolution-effects.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1278263,
+      "sha256": "282c76a433ea8bae327a9db82fef27ebc7145f364195acd2fc92e203fc358b2d"
+    },
+    "09-replay-indicators": {
+      "file": "sheets/09-replay-indicators.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 628066,
+      "sha256": "f339f7f6e372ae02acf837e9da0a61d6b6cb9c808c63bf2fe0dcfec4b8deae86"
+    },
+    "10-mvp-ui-icons-and-avatars": {
+      "file": "sheets/10-mvp-ui-icons-and-avatars.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 698876,
+      "sha256": "ce41cf1b9bb0737ca281e4fe1331cd6edd6695f83d289be2995c6002d2bee550"
+    },
+    "directional-model": {
+      "file": "sheets/directional-model.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 612611,
+      "sha256": "beb067c1cb432566695f3f65df73c6ec834e53cecac10d2dff1ea83f795aaee6"
+    },
+    "approved-reference": {
+      "file": "sheets/approved-reference.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 614743,
+      "sha256": "c46230a0d860a8418512892fb3c8751a0f57fccefae25314891a02512f30d1b6"
+    }
+  },
+  "sprites": {
+    "player.p1.idle.south.0": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.south.1": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.south.2": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.south.3": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.south.4": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.south.5": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.0": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.1": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.2": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.3": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.4": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.north.5": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.0": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.1": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.2": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.3": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.4": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.west.5": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.0": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.1": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.2": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.3": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.4": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.idle.east.5": {
+      "sheet": "p1-idle",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.0": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.1": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.2": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.3": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.4": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.south.5": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.0": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.1": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.2": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.3": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.4": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.north.5": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.0": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.1": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.2": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.3": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.4": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.west.5": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.0": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.1": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.2": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.3": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.4": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.walk.east.5": {
+      "sheet": "p1-walk",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.0": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.1": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.2": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.3": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.4": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.south.5": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.0": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.1": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.2": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.3": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.4": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.north.5": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.0": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.1": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.2": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.3": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.4": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.west.5": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.0": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.1": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.2": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.3": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.4": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.shove.east.5": {
+      "sheet": "p1-shove",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.0": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.1": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.2": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.3": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.4": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.south.5": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.0": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.1": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.2": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.3": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.4": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.north.5": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.0": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.1": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.2": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.3": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.4": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.west.5": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.0": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.1": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.2": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.3": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.4": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.recoil.east.5": {
+      "sheet": "p1-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.0": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.1": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.2": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.3": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.4": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.south.5": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.0": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.1": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.2": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.3": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.4": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.north.5": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.0": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.1": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.2": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.3": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.4": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.west.5": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.0": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.1": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.2": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.3": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.4": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.hit.east.5": {
+      "sheet": "p1-hit",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.0": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.1": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.2": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.3": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.4": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.south.5": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.0": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.1": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.2": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.3": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.4": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.north.5": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.0": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.1": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.2": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.3": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.4": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.west.5": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.0": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.1": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.2": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.3": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.4": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.death.east.5": {
+      "sheet": "p1-death",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.0": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.1": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.2": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.3": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.4": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.south.5": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.0": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.1": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.2": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.3": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.4": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.north.5": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.0": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.1": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.2": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.3": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.4": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.west.5": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.0": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.1": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.2": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.3": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.4": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.exit.east.5": {
+      "sheet": "p1-exit",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.0": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.1": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.2": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.3": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.4": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.south.5": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.0": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.1": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.2": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.3": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.4": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.north.5": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.0": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.1": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.2": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.3": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.4": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.west.5": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.0": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.1": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.2": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.3": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.4": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p1.victory.east.5": {
+      "sheet": "p1-victory",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.0": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.1": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.2": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.3": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.4": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.south.5": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.0": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.1": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.2": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.3": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.4": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.north.5": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.0": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.1": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.2": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.3": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.4": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.west.5": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.0": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.1": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.2": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.3": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.4": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.idle.east.5": {
+      "sheet": "p2-idle",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.0": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.1": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.2": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.3": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.4": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.south.5": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.0": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.1": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.2": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.3": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.4": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.north.5": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.0": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.1": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.2": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.3": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.4": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.west.5": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.0": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.1": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.2": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.3": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.4": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.walk.east.5": {
+      "sheet": "p2-walk",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.0": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.1": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.2": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.3": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.4": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.south.5": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.0": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.1": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.2": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.3": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.4": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.north.5": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.0": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.1": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.2": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.3": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.4": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.west.5": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.0": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.1": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.2": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.3": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.4": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.shove.east.5": {
+      "sheet": "p2-shove",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.0": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.1": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.2": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.3": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.4": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.south.5": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.0": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.1": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.2": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.3": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.4": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.north.5": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.0": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.1": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.2": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.3": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.4": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.west.5": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.0": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.1": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.2": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.3": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.4": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.recoil.east.5": {
+      "sheet": "p2-recoil",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.0": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.1": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.2": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.3": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.4": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.south.5": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.0": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.1": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.2": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.3": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.4": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.north.5": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.0": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.1": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.2": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.3": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.4": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.west.5": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.0": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.1": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.2": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.3": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.4": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.hit.east.5": {
+      "sheet": "p2-hit",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.0": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.1": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.2": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.3": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.4": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.south.5": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.0": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.1": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.2": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.3": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.4": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.north.5": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.0": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.1": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.2": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.3": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.4": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.west.5": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.0": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.1": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.2": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.3": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.4": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.death.east.5": {
+      "sheet": "p2-death",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.0": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.1": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.2": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.3": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.4": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.south.5": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.0": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.1": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.2": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.3": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.4": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.north.5": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.0": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.1": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.2": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.3": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.4": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.west.5": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.0": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.1": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.2": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.3": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.4": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.exit.east.5": {
+      "sheet": "p2-exit",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.0": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.1": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.2": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.3": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.4": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.south.5": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.0": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.1": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.2": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.3": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.4": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.north.5": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.0": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.1": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.2": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.3": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.4": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.west.5": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.0": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.1": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.2": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.3": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.4": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "player.p2.victory.east.5": {
+      "sheet": "p2-victory",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 1.18,
+        "height": 1.18,
+        "originX": 0.5,
+        "originY": 0.875
+      }
+    },
+    "crate.neutral": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 91,
+        "y": 97,
+        "w": 265,
+        "h": 277
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "crate.p1": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 534,
+        "y": 97,
+        "w": 266,
+        "h": 277
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "crate.p2": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 978,
+        "y": 97,
+        "w": 265,
+        "h": 277
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "mirror.slash.off": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 1421,
+        "y": 97,
+        "w": 266,
+        "h": 277
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "mirror.slash.on": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 91,
+        "y": 542,
+        "w": 265,
+        "h": 276
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "mirror.backslash.off": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 535,
+        "y": 542,
+        "w": 265,
+        "h": 276
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "mirror.backslash.on": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 978,
+        "y": 542,
+        "w": 266,
+        "h": 276
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.neutral.crate": {
+      "sheet": "01-crates-and-mirrors",
+      "frame": {
+        "x": 1422,
+        "y": 541,
+        "w": 268,
+        "h": 278
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "tile.floor": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 28,
+        "y": 31,
+        "w": 268,
+        "h": 269
+      },
+      "render": {
+        "width": 1,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "tile.floor.seam": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 338,
+        "y": 31,
+        "w": 268,
+        "h": 269
+      },
+      "render": {
+        "width": 1,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "tile.floor.detail": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 648,
+        "y": 31,
+        "w": 269,
+        "h": 269
+      },
+      "render": {
+        "width": 1,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "tile.ice": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 958,
+        "y": 32,
+        "w": 269,
+        "h": 267
+      },
+      "render": {
+        "width": 1,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "tile.ice.shimmer": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 28,
+        "y": 343,
+        "w": 268,
+        "h": 265
+      },
+      "render": {
+        "width": 1,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "wall.solid": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 373,
+        "y": 352,
+        "w": 199,
+        "h": 254
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.horizontal": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 646,
+        "y": 396,
+        "w": 273,
+        "h": 187
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.vertical": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 1037,
+        "y": 343,
+        "w": 115,
+        "h": 267
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.outer.ne": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 57,
+        "y": 661,
+        "w": 216,
+        "h": 247
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.outer.se": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 357,
+        "y": 661,
+        "w": 221,
+        "h": 248
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.outer.sw": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 669,
+        "y": 661,
+        "w": 221,
+        "h": 246
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.outer.nw": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 982,
+        "y": 661,
+        "w": 226,
+        "h": 246
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.inner.ne": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 49,
+        "y": 966,
+        "w": 232,
+        "h": 252
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.inner.se": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 357,
+        "y": 966,
+        "w": 225,
+        "h": 252
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.inner.sw": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 669,
+        "y": 966,
+        "w": 225,
+        "h": 252
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "wall.inner.nw": {
+      "sheet": "02-environment-tiles",
+      "frame": {
+        "x": 973,
+        "y": 966,
+        "w": 231,
+        "h": 252
+      },
+      "render": {
+        "width": 1,
+        "height": 1.2,
+        "originX": 0.5,
+        "originY": 0.67
+      }
+    },
+    "switch.neutral.up": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 62,
+        "y": 60,
+        "w": 200,
+        "h": 198
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.neutral.press1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 354,
+        "y": 61,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.neutral.press2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 646,
+        "y": 61,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.neutral.held": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 938,
+        "y": 61,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.neutral.release1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1230,
+        "y": 61,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.neutral.release2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1522,
+        "y": 61,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.up": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 62,
+        "y": 353,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.press1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 354,
+        "y": 354,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.press2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 646,
+        "y": 354,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.held": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 938,
+        "y": 354,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.release1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1230,
+        "y": 354,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p1.release2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1522,
+        "y": 354,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.up": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 62,
+        "y": 646,
+        "w": 200,
+        "h": 198
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.press1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 354,
+        "y": 647,
+        "w": 201,
+        "h": 198
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.press2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 646,
+        "y": 648,
+        "w": 200,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.held": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 938,
+        "y": 648,
+        "w": 200,
+        "h": 196
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.release1": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1230,
+        "y": 648,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "switch.p2.release2": {
+      "sheet": "03-pressure-switches",
+      "frame": {
+        "x": 1522,
+        "y": 648,
+        "w": 201,
+        "h": 197
+      },
+      "render": {
+        "width": 0.68,
+        "height": 0.68,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "exit.neutral.closed": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 39,
+        "y": 49,
+        "w": 219,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.neutral.opening1": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 335,
+        "y": 49,
+        "w": 218,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.neutral.opening2": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 629,
+        "y": 49,
+        "w": 222,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.neutral.opening3": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 926,
+        "y": 49,
+        "w": 219,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.neutral.open": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1222,
+        "y": 49,
+        "w": 218,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.neutral.entry": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1516,
+        "y": 49,
+        "w": 222,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.closed": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 38,
+        "y": 346,
+        "w": 220,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.opening1": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 334,
+        "y": 346,
+        "w": 219,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.opening2": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 630,
+        "y": 347,
+        "w": 220,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.opening3": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 926,
+        "y": 347,
+        "w": 219,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.open": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1222,
+        "y": 346,
+        "w": 219,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p1.entry": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1517,
+        "y": 347,
+        "w": 220,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.closed": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 39,
+        "y": 642,
+        "w": 219,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.opening1": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 335,
+        "y": 641,
+        "w": 218,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.opening2": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 629,
+        "y": 643,
+        "w": 221,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.opening3": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 926,
+        "y": 642,
+        "w": 219,
+        "h": 196
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.open": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1222,
+        "y": 642,
+        "w": 218,
+        "h": 197
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "exit.p2.entry": {
+      "sheet": "04-exits",
+      "frame": {
+        "x": 1517,
+        "y": 643,
+        "w": 220,
+        "h": 195
+      },
+      "render": {
+        "width": 0.96,
+        "height": 1.08,
+        "originX": 0.5,
+        "originY": 0.58
+      }
+    },
+    "laser.emitter.off.north": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 68,
+        "y": 75,
+        "w": 178,
+        "h": 201
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.off.east": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 381,
+        "y": 89,
+        "w": 191,
+        "h": 187
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.off.south": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 695,
+        "y": 89,
+        "w": 178,
+        "h": 187
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.off.west": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 994,
+        "y": 89,
+        "w": 193,
+        "h": 187
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.on.north": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 68,
+        "y": 364,
+        "w": 178,
+        "h": 199
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.on.east": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 381,
+        "y": 377,
+        "w": 191,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.on.south": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 695,
+        "y": 377,
+        "w": 178,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.emitter.on.west": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 994,
+        "y": 377,
+        "w": 193,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.off.north": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 73,
+        "y": 694,
+        "w": 168,
+        "h": 185
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.off.east": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 387,
+        "y": 694,
+        "w": 167,
+        "h": 185
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.off.south": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 701,
+        "y": 694,
+        "w": 167,
+        "h": 185
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.off.west": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 1014,
+        "y": 694,
+        "w": 168,
+        "h": 185
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.on.north": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 73,
+        "y": 1007,
+        "w": 168,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.on.east": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 386,
+        "y": 1007,
+        "w": 168,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.on.south": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 701,
+        "y": 1007,
+        "w": 167,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.receiver.on.west": {
+      "sheet": "05-laser-equipment",
+      "frame": {
+        "x": 1014,
+        "y": 1007,
+        "w": 167,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.beam.horizontal": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 15,
+        "y": 149,
+        "w": 286,
+        "h": 25
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.beam.vertical": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 459,
+        "y": 14,
+        "w": 24,
+        "h": 288
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.bend.ne": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 709,
+        "y": 14,
+        "w": 218,
+        "h": 160
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.bend.se": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 953,
+        "y": 149,
+        "w": 218,
+        "h": 153
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.bend.sw": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 15,
+        "y": 462,
+        "w": 217,
+        "h": 152
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.bend.nw": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 327,
+        "y": 330,
+        "w": 193,
+        "h": 157
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.cap.horizontal": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 641,
+        "y": 448,
+        "w": 241,
+        "h": 50
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "laser.cap.vertical": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 1074,
+        "y": 327,
+        "w": 50,
+        "h": 232
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.impact.0": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 0,
+        "y": 627,
+        "w": 314,
+        "h": 313
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.impact.1": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 314,
+        "y": 627,
+        "w": 313,
+        "h": 313
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.impact.2": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 627,
+        "y": 627,
+        "w": 313,
+        "h": 313
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.impact.3": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 940,
+        "y": 627,
+        "w": 314,
+        "h": 313
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.emission.0": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 0,
+        "y": 940,
+        "w": 314,
+        "h": 314
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.emission.1": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 314,
+        "y": 940,
+        "w": 313,
+        "h": 314
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.emission.2": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 627,
+        "y": 940,
+        "w": 313,
+        "h": 314
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.emission.3": {
+      "sheet": "06-laser-segments-and-impacts",
+      "frame": {
+        "x": 940,
+        "y": 940,
+        "w": 314,
+        "h": 314
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.0": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.1": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.2": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.3": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.4": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.shove.5": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.0": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.1": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.2": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.3": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.4": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.footsteps.5": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.0": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.1": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.2": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.3": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.4": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.iceSlide.5": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.0": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.1": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.2": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.3": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.4": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.catapult.5": {
+      "sheet": "07-physical-effects",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.0": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.1": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.2": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.3": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.4": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.laserDeath.5": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.0": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.1": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.2": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.3": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.4": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1024,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.paradox.5": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1280,
+        "y": 256,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.0": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.1": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 256,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.2": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 512,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.3": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.4": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1024,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.weld.5": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1280,
+        "y": 512,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.0": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.1": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 256,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.2": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 512,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.3": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.4": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1024,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "fx.victory.5": {
+      "sheet": "08-resolution-effects",
+      "frame": {
+        "x": 1280,
+        "y": 768,
+        "w": 256,
+        "h": 256
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.path.h": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 53,
+        "y": 148,
+        "w": 208,
+        "h": 40
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.path.v": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 450,
+        "y": 58,
+        "w": 41,
+        "h": 226
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.destination": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 697,
+        "y": 80,
+        "w": 174,
+        "h": 180
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.crate": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 991,
+        "y": 57,
+        "w": 213,
+        "h": 222
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.forward": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 68,
+        "y": 412,
+        "w": 185,
+        "h": 117
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.reverse": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 375,
+        "y": 412,
+        "w": 187,
+        "h": 117
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.clockwise": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 692,
+        "y": 380,
+        "w": 194,
+        "h": 180
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p1.counterclockwise": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 993,
+        "y": 380,
+        "w": 196,
+        "h": 180
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.path.h": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 53,
+        "y": 774,
+        "w": 208,
+        "h": 41
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.path.v": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 450,
+        "y": 684,
+        "w": 41,
+        "h": 226
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.destination": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 697,
+        "y": 706,
+        "w": 174,
+        "h": 181
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.crate": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 991,
+        "y": 684,
+        "w": 212,
+        "h": 222
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.forward": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 68,
+        "y": 1039,
+        "w": 185,
+        "h": 117
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.reverse": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 375,
+        "y": 1039,
+        "w": 187,
+        "h": 117
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.clockwise": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 693,
+        "y": 1007,
+        "w": 193,
+        "h": 180
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "replay.p2.counterclockwise": {
+      "sheet": "09-replay-indicators",
+      "frame": {
+        "x": 993,
+        "y": 1007,
+        "w": 196,
+        "h": 180
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "ui.emblem": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 48,
+        "y": 97,
+        "w": 217,
+        "h": 176
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "ui.wallet": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 363,
+        "y": 95,
+        "w": 228,
+        "h": 193
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "avatar.default": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 700,
+        "y": 55,
+        "w": 165,
+        "h": 241
+      },
+      "render": {
+        "width": 0.85,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "avatar.missing": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 989,
+        "y": 69,
+        "w": 217,
+        "h": 222
+      },
+      "render": {
+        "width": 0.85,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "avatar.demo.atlas": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 72,
+        "y": 365,
+        "w": 170,
+        "h": 248
+      },
+      "render": {
+        "width": 0.85,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "avatar.demo.nova": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 385,
+        "y": 365,
+        "w": 169,
+        "h": 248
+      },
+      "render": {
+        "width": 0.85,
+        "height": 1,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "role.p1": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 691,
+        "y": 390,
+        "w": 184,
+        "h": 192
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "role.p2": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 1005,
+        "y": 390,
+        "w": 185,
+        "h": 192
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.connecting": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 40,
+        "y": 739,
+        "w": 233,
+        "h": 104
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.waiting": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 369,
+        "y": 714,
+        "w": 211,
+        "h": 154
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.ready": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 691,
+        "y": 695,
+        "w": 184,
+        "h": 188
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.disconnected": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 967,
+        "y": 741,
+        "w": 260,
+        "h": 99
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.reconnecting": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 67,
+        "y": 1015,
+        "w": 175,
+        "h": 186
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "status.full": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 362,
+        "y": 998,
+        "w": 216,
+        "h": 208
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "notice.invalid": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 675,
+        "y": 1019,
+        "w": 215,
+        "h": 173
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    },
+    "notice.shared": {
+      "sheet": "10-mvp-ui-icons-and-avatars",
+      "frame": {
+        "x": 982,
+        "y": 1041,
+        "w": 225,
+        "h": 133
+      },
+      "render": {
+        "width": 0.84,
+        "height": 0.84,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    }
+  },
+  "animations": {
+    "player.p1.idle.south": {
+      "frames": [
+        "player.p1.idle.south.0",
+        "player.p1.idle.south.1",
+        "player.p1.idle.south.2",
+        "player.p1.idle.south.3",
+        "player.p1.idle.south.4",
+        "player.p1.idle.south.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p1.idle.north": {
+      "frames": [
+        "player.p1.idle.north.0",
+        "player.p1.idle.north.1",
+        "player.p1.idle.north.2",
+        "player.p1.idle.north.3",
+        "player.p1.idle.north.4",
+        "player.p1.idle.north.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p1.idle.west": {
+      "frames": [
+        "player.p1.idle.west.0",
+        "player.p1.idle.west.1",
+        "player.p1.idle.west.2",
+        "player.p1.idle.west.3",
+        "player.p1.idle.west.4",
+        "player.p1.idle.west.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p1.idle.east": {
+      "frames": [
+        "player.p1.idle.east.0",
+        "player.p1.idle.east.1",
+        "player.p1.idle.east.2",
+        "player.p1.idle.east.3",
+        "player.p1.idle.east.4",
+        "player.p1.idle.east.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p1.walk.south": {
+      "frames": [
+        "player.p1.walk.south.0",
+        "player.p1.walk.south.1",
+        "player.p1.walk.south.2",
+        "player.p1.walk.south.3",
+        "player.p1.walk.south.4",
+        "player.p1.walk.south.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p1.walk.north": {
+      "frames": [
+        "player.p1.walk.north.0",
+        "player.p1.walk.north.1",
+        "player.p1.walk.north.2",
+        "player.p1.walk.north.3",
+        "player.p1.walk.north.4",
+        "player.p1.walk.north.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p1.walk.west": {
+      "frames": [
+        "player.p1.walk.west.0",
+        "player.p1.walk.west.1",
+        "player.p1.walk.west.2",
+        "player.p1.walk.west.3",
+        "player.p1.walk.west.4",
+        "player.p1.walk.west.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p1.walk.east": {
+      "frames": [
+        "player.p1.walk.east.0",
+        "player.p1.walk.east.1",
+        "player.p1.walk.east.2",
+        "player.p1.walk.east.3",
+        "player.p1.walk.east.4",
+        "player.p1.walk.east.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p1.shove.south": {
+      "frames": [
+        "player.p1.shove.south.0",
+        "player.p1.shove.south.1",
+        "player.p1.shove.south.2",
+        "player.p1.shove.south.3",
+        "player.p1.shove.south.4",
+        "player.p1.shove.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.shove.north": {
+      "frames": [
+        "player.p1.shove.north.0",
+        "player.p1.shove.north.1",
+        "player.p1.shove.north.2",
+        "player.p1.shove.north.3",
+        "player.p1.shove.north.4",
+        "player.p1.shove.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.shove.west": {
+      "frames": [
+        "player.p1.shove.west.0",
+        "player.p1.shove.west.1",
+        "player.p1.shove.west.2",
+        "player.p1.shove.west.3",
+        "player.p1.shove.west.4",
+        "player.p1.shove.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.shove.east": {
+      "frames": [
+        "player.p1.shove.east.0",
+        "player.p1.shove.east.1",
+        "player.p1.shove.east.2",
+        "player.p1.shove.east.3",
+        "player.p1.shove.east.4",
+        "player.p1.shove.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.recoil.south": {
+      "frames": [
+        "player.p1.recoil.south.0",
+        "player.p1.recoil.south.1",
+        "player.p1.recoil.south.2",
+        "player.p1.recoil.south.3",
+        "player.p1.recoil.south.4",
+        "player.p1.recoil.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.recoil.north": {
+      "frames": [
+        "player.p1.recoil.north.0",
+        "player.p1.recoil.north.1",
+        "player.p1.recoil.north.2",
+        "player.p1.recoil.north.3",
+        "player.p1.recoil.north.4",
+        "player.p1.recoil.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.recoil.west": {
+      "frames": [
+        "player.p1.recoil.west.0",
+        "player.p1.recoil.west.1",
+        "player.p1.recoil.west.2",
+        "player.p1.recoil.west.3",
+        "player.p1.recoil.west.4",
+        "player.p1.recoil.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.recoil.east": {
+      "frames": [
+        "player.p1.recoil.east.0",
+        "player.p1.recoil.east.1",
+        "player.p1.recoil.east.2",
+        "player.p1.recoil.east.3",
+        "player.p1.recoil.east.4",
+        "player.p1.recoil.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.hit.south": {
+      "frames": [
+        "player.p1.hit.south.0",
+        "player.p1.hit.south.1",
+        "player.p1.hit.south.2",
+        "player.p1.hit.south.3",
+        "player.p1.hit.south.4",
+        "player.p1.hit.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.hit.north": {
+      "frames": [
+        "player.p1.hit.north.0",
+        "player.p1.hit.north.1",
+        "player.p1.hit.north.2",
+        "player.p1.hit.north.3",
+        "player.p1.hit.north.4",
+        "player.p1.hit.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.hit.west": {
+      "frames": [
+        "player.p1.hit.west.0",
+        "player.p1.hit.west.1",
+        "player.p1.hit.west.2",
+        "player.p1.hit.west.3",
+        "player.p1.hit.west.4",
+        "player.p1.hit.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.hit.east": {
+      "frames": [
+        "player.p1.hit.east.0",
+        "player.p1.hit.east.1",
+        "player.p1.hit.east.2",
+        "player.p1.hit.east.3",
+        "player.p1.hit.east.4",
+        "player.p1.hit.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p1.death.south": {
+      "frames": [
+        "player.p1.death.south.0",
+        "player.p1.death.south.1",
+        "player.p1.death.south.2",
+        "player.p1.death.south.3",
+        "player.p1.death.south.4",
+        "player.p1.death.south.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.death.north": {
+      "frames": [
+        "player.p1.death.north.0",
+        "player.p1.death.north.1",
+        "player.p1.death.north.2",
+        "player.p1.death.north.3",
+        "player.p1.death.north.4",
+        "player.p1.death.north.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.death.west": {
+      "frames": [
+        "player.p1.death.west.0",
+        "player.p1.death.west.1",
+        "player.p1.death.west.2",
+        "player.p1.death.west.3",
+        "player.p1.death.west.4",
+        "player.p1.death.west.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.death.east": {
+      "frames": [
+        "player.p1.death.east.0",
+        "player.p1.death.east.1",
+        "player.p1.death.east.2",
+        "player.p1.death.east.3",
+        "player.p1.death.east.4",
+        "player.p1.death.east.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.exit.south": {
+      "frames": [
+        "player.p1.exit.south.0",
+        "player.p1.exit.south.1",
+        "player.p1.exit.south.2",
+        "player.p1.exit.south.3",
+        "player.p1.exit.south.4",
+        "player.p1.exit.south.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.exit.north": {
+      "frames": [
+        "player.p1.exit.north.0",
+        "player.p1.exit.north.1",
+        "player.p1.exit.north.2",
+        "player.p1.exit.north.3",
+        "player.p1.exit.north.4",
+        "player.p1.exit.north.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.exit.west": {
+      "frames": [
+        "player.p1.exit.west.0",
+        "player.p1.exit.west.1",
+        "player.p1.exit.west.2",
+        "player.p1.exit.west.3",
+        "player.p1.exit.west.4",
+        "player.p1.exit.west.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.exit.east": {
+      "frames": [
+        "player.p1.exit.east.0",
+        "player.p1.exit.east.1",
+        "player.p1.exit.east.2",
+        "player.p1.exit.east.3",
+        "player.p1.exit.east.4",
+        "player.p1.exit.east.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p1.victory.south": {
+      "frames": [
+        "player.p1.victory.south.0",
+        "player.p1.victory.south.1",
+        "player.p1.victory.south.2",
+        "player.p1.victory.south.3",
+        "player.p1.victory.south.4",
+        "player.p1.victory.south.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p1.victory.north": {
+      "frames": [
+        "player.p1.victory.north.0",
+        "player.p1.victory.north.1",
+        "player.p1.victory.north.2",
+        "player.p1.victory.north.3",
+        "player.p1.victory.north.4",
+        "player.p1.victory.north.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p1.victory.west": {
+      "frames": [
+        "player.p1.victory.west.0",
+        "player.p1.victory.west.1",
+        "player.p1.victory.west.2",
+        "player.p1.victory.west.3",
+        "player.p1.victory.west.4",
+        "player.p1.victory.west.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p1.victory.east": {
+      "frames": [
+        "player.p1.victory.east.0",
+        "player.p1.victory.east.1",
+        "player.p1.victory.east.2",
+        "player.p1.victory.east.3",
+        "player.p1.victory.east.4",
+        "player.p1.victory.east.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p2.idle.south": {
+      "frames": [
+        "player.p2.idle.south.0",
+        "player.p2.idle.south.1",
+        "player.p2.idle.south.2",
+        "player.p2.idle.south.3",
+        "player.p2.idle.south.4",
+        "player.p2.idle.south.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p2.idle.north": {
+      "frames": [
+        "player.p2.idle.north.0",
+        "player.p2.idle.north.1",
+        "player.p2.idle.north.2",
+        "player.p2.idle.north.3",
+        "player.p2.idle.north.4",
+        "player.p2.idle.north.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p2.idle.west": {
+      "frames": [
+        "player.p2.idle.west.0",
+        "player.p2.idle.west.1",
+        "player.p2.idle.west.2",
+        "player.p2.idle.west.3",
+        "player.p2.idle.west.4",
+        "player.p2.idle.west.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p2.idle.east": {
+      "frames": [
+        "player.p2.idle.east.0",
+        "player.p2.idle.east.1",
+        "player.p2.idle.east.2",
+        "player.p2.idle.east.3",
+        "player.p2.idle.east.4",
+        "player.p2.idle.east.5"
+      ],
+      "fps": 6,
+      "loop": true
+    },
+    "player.p2.walk.south": {
+      "frames": [
+        "player.p2.walk.south.0",
+        "player.p2.walk.south.1",
+        "player.p2.walk.south.2",
+        "player.p2.walk.south.3",
+        "player.p2.walk.south.4",
+        "player.p2.walk.south.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p2.walk.north": {
+      "frames": [
+        "player.p2.walk.north.0",
+        "player.p2.walk.north.1",
+        "player.p2.walk.north.2",
+        "player.p2.walk.north.3",
+        "player.p2.walk.north.4",
+        "player.p2.walk.north.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p2.walk.west": {
+      "frames": [
+        "player.p2.walk.west.0",
+        "player.p2.walk.west.1",
+        "player.p2.walk.west.2",
+        "player.p2.walk.west.3",
+        "player.p2.walk.west.4",
+        "player.p2.walk.west.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p2.walk.east": {
+      "frames": [
+        "player.p2.walk.east.0",
+        "player.p2.walk.east.1",
+        "player.p2.walk.east.2",
+        "player.p2.walk.east.3",
+        "player.p2.walk.east.4",
+        "player.p2.walk.east.5"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "player.p2.shove.south": {
+      "frames": [
+        "player.p2.shove.south.0",
+        "player.p2.shove.south.1",
+        "player.p2.shove.south.2",
+        "player.p2.shove.south.3",
+        "player.p2.shove.south.4",
+        "player.p2.shove.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.shove.north": {
+      "frames": [
+        "player.p2.shove.north.0",
+        "player.p2.shove.north.1",
+        "player.p2.shove.north.2",
+        "player.p2.shove.north.3",
+        "player.p2.shove.north.4",
+        "player.p2.shove.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.shove.west": {
+      "frames": [
+        "player.p2.shove.west.0",
+        "player.p2.shove.west.1",
+        "player.p2.shove.west.2",
+        "player.p2.shove.west.3",
+        "player.p2.shove.west.4",
+        "player.p2.shove.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.shove.east": {
+      "frames": [
+        "player.p2.shove.east.0",
+        "player.p2.shove.east.1",
+        "player.p2.shove.east.2",
+        "player.p2.shove.east.3",
+        "player.p2.shove.east.4",
+        "player.p2.shove.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.recoil.south": {
+      "frames": [
+        "player.p2.recoil.south.0",
+        "player.p2.recoil.south.1",
+        "player.p2.recoil.south.2",
+        "player.p2.recoil.south.3",
+        "player.p2.recoil.south.4",
+        "player.p2.recoil.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.recoil.north": {
+      "frames": [
+        "player.p2.recoil.north.0",
+        "player.p2.recoil.north.1",
+        "player.p2.recoil.north.2",
+        "player.p2.recoil.north.3",
+        "player.p2.recoil.north.4",
+        "player.p2.recoil.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.recoil.west": {
+      "frames": [
+        "player.p2.recoil.west.0",
+        "player.p2.recoil.west.1",
+        "player.p2.recoil.west.2",
+        "player.p2.recoil.west.3",
+        "player.p2.recoil.west.4",
+        "player.p2.recoil.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.recoil.east": {
+      "frames": [
+        "player.p2.recoil.east.0",
+        "player.p2.recoil.east.1",
+        "player.p2.recoil.east.2",
+        "player.p2.recoil.east.3",
+        "player.p2.recoil.east.4",
+        "player.p2.recoil.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.hit.south": {
+      "frames": [
+        "player.p2.hit.south.0",
+        "player.p2.hit.south.1",
+        "player.p2.hit.south.2",
+        "player.p2.hit.south.3",
+        "player.p2.hit.south.4",
+        "player.p2.hit.south.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.hit.north": {
+      "frames": [
+        "player.p2.hit.north.0",
+        "player.p2.hit.north.1",
+        "player.p2.hit.north.2",
+        "player.p2.hit.north.3",
+        "player.p2.hit.north.4",
+        "player.p2.hit.north.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.hit.west": {
+      "frames": [
+        "player.p2.hit.west.0",
+        "player.p2.hit.west.1",
+        "player.p2.hit.west.2",
+        "player.p2.hit.west.3",
+        "player.p2.hit.west.4",
+        "player.p2.hit.west.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.hit.east": {
+      "frames": [
+        "player.p2.hit.east.0",
+        "player.p2.hit.east.1",
+        "player.p2.hit.east.2",
+        "player.p2.hit.east.3",
+        "player.p2.hit.east.4",
+        "player.p2.hit.east.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "player.p2.death.south": {
+      "frames": [
+        "player.p2.death.south.0",
+        "player.p2.death.south.1",
+        "player.p2.death.south.2",
+        "player.p2.death.south.3",
+        "player.p2.death.south.4",
+        "player.p2.death.south.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.death.north": {
+      "frames": [
+        "player.p2.death.north.0",
+        "player.p2.death.north.1",
+        "player.p2.death.north.2",
+        "player.p2.death.north.3",
+        "player.p2.death.north.4",
+        "player.p2.death.north.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.death.west": {
+      "frames": [
+        "player.p2.death.west.0",
+        "player.p2.death.west.1",
+        "player.p2.death.west.2",
+        "player.p2.death.west.3",
+        "player.p2.death.west.4",
+        "player.p2.death.west.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.death.east": {
+      "frames": [
+        "player.p2.death.east.0",
+        "player.p2.death.east.1",
+        "player.p2.death.east.2",
+        "player.p2.death.east.3",
+        "player.p2.death.east.4",
+        "player.p2.death.east.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.exit.south": {
+      "frames": [
+        "player.p2.exit.south.0",
+        "player.p2.exit.south.1",
+        "player.p2.exit.south.2",
+        "player.p2.exit.south.3",
+        "player.p2.exit.south.4",
+        "player.p2.exit.south.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.exit.north": {
+      "frames": [
+        "player.p2.exit.north.0",
+        "player.p2.exit.north.1",
+        "player.p2.exit.north.2",
+        "player.p2.exit.north.3",
+        "player.p2.exit.north.4",
+        "player.p2.exit.north.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.exit.west": {
+      "frames": [
+        "player.p2.exit.west.0",
+        "player.p2.exit.west.1",
+        "player.p2.exit.west.2",
+        "player.p2.exit.west.3",
+        "player.p2.exit.west.4",
+        "player.p2.exit.west.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.exit.east": {
+      "frames": [
+        "player.p2.exit.east.0",
+        "player.p2.exit.east.1",
+        "player.p2.exit.east.2",
+        "player.p2.exit.east.3",
+        "player.p2.exit.east.4",
+        "player.p2.exit.east.5"
+      ],
+      "fps": 10,
+      "loop": false
+    },
+    "player.p2.victory.south": {
+      "frames": [
+        "player.p2.victory.south.0",
+        "player.p2.victory.south.1",
+        "player.p2.victory.south.2",
+        "player.p2.victory.south.3",
+        "player.p2.victory.south.4",
+        "player.p2.victory.south.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p2.victory.north": {
+      "frames": [
+        "player.p2.victory.north.0",
+        "player.p2.victory.north.1",
+        "player.p2.victory.north.2",
+        "player.p2.victory.north.3",
+        "player.p2.victory.north.4",
+        "player.p2.victory.north.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p2.victory.west": {
+      "frames": [
+        "player.p2.victory.west.0",
+        "player.p2.victory.west.1",
+        "player.p2.victory.west.2",
+        "player.p2.victory.west.3",
+        "player.p2.victory.west.4",
+        "player.p2.victory.west.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "player.p2.victory.east": {
+      "frames": [
+        "player.p2.victory.east.0",
+        "player.p2.victory.east.1",
+        "player.p2.victory.east.2",
+        "player.p2.victory.east.3",
+        "player.p2.victory.east.4",
+        "player.p2.victory.east.5"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "fx.shove": {
+      "frames": [
+        "fx.shove.0",
+        "fx.shove.1",
+        "fx.shove.2",
+        "fx.shove.3",
+        "fx.shove.4",
+        "fx.shove.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.footsteps": {
+      "frames": [
+        "fx.footsteps.0",
+        "fx.footsteps.1",
+        "fx.footsteps.2",
+        "fx.footsteps.3",
+        "fx.footsteps.4",
+        "fx.footsteps.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.iceSlide": {
+      "frames": [
+        "fx.iceSlide.0",
+        "fx.iceSlide.1",
+        "fx.iceSlide.2",
+        "fx.iceSlide.3",
+        "fx.iceSlide.4",
+        "fx.iceSlide.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.catapult": {
+      "frames": [
+        "fx.catapult.0",
+        "fx.catapult.1",
+        "fx.catapult.2",
+        "fx.catapult.3",
+        "fx.catapult.4",
+        "fx.catapult.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.laserDeath": {
+      "frames": [
+        "fx.laserDeath.0",
+        "fx.laserDeath.1",
+        "fx.laserDeath.2",
+        "fx.laserDeath.3",
+        "fx.laserDeath.4",
+        "fx.laserDeath.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.paradox": {
+      "frames": [
+        "fx.paradox.0",
+        "fx.paradox.1",
+        "fx.paradox.2",
+        "fx.paradox.3",
+        "fx.paradox.4",
+        "fx.paradox.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.weld": {
+      "frames": [
+        "fx.weld.0",
+        "fx.weld.1",
+        "fx.weld.2",
+        "fx.weld.3",
+        "fx.weld.4",
+        "fx.weld.5"
+      ],
+      "fps": 12,
+      "loop": false,
+      "visibility": "after-success-only"
+    },
+    "fx.victory": {
+      "frames": [
+        "fx.victory.0",
+        "fx.victory.1",
+        "fx.victory.2",
+        "fx.victory.3",
+        "fx.victory.4",
+        "fx.victory.5"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.impact": {
+      "frames": [
+        "fx.impact.0",
+        "fx.impact.1",
+        "fx.impact.2",
+        "fx.impact.3"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "fx.emission": {
+      "frames": [
+        "fx.emission.0",
+        "fx.emission.1",
+        "fx.emission.2",
+        "fx.emission.3"
+      ],
+      "fps": 12,
+      "loop": false
+    }
+  }
+}

@@ -6,7 +6,7 @@ Gameplay, the title chamber, editor objects and palette, avatars, wallet and sta
 
 - Use a versioned, data-only `manifest.json`: schema version, stable pack ID, semantic version, palette, sheet hashes/dimensions, frame rectangles, render size/pivots and animation definitions. PNG paths are relative `sheets/*.png`; no scripts, HTML or arbitrary remote URLs.
 - Preserve semantic IDs such as `crate.p1`, `switch.p2.held`, `exit.p1.open`, `player.p1.walk.north` and `fx.weld`. Replace art by changing data, rather than branching renderer code by theme name.
-- Provide all four character facings and eight actions. Keep frame sizes and pivots stable within an animation; use the same footprint/anchor convention across packs. P1 has one facial eye; P2 has two. Chest identity bars are optional; costumes can omit identity lettering or bars. Colours and silhouettes must distinguish ownership at gameplay size.
+- Provide all four character facings and eight actions. Keep frame sizes and pivots stable within an animation; use the same footprint/anchor convention across packs. P1 has one facial eye; P2 has two. Chest identity bars are optional; the Diwali costumes have no identity lettering or bars. Colours and silhouettes must distinguish ownership at gameplay size.
 - Current direction: orthogonal top-down grid with visible height, modern pixel detail, light-gray neutral objects, burgundy P1 and teal P2. Use nearest-neighbour filtering. Avoid unnecessary rounding, bevels, labels and ruin decoration.
 - Keep original approved PNG bytes intact. Atlases may have different dimensions and cell grids; declare exact integer rectangles instead of assuming a universal tile size. Effect cells retain their motion margins. Use render metrics to adjust scale, not runtime image regeneration.
 - World objects sort by their ground position from back to front. Foreground walls occlude rear switches, crates and operators; same-cell layers only break ties. Floors/replay overlays remain below solid objects. Character image offsets and sprite heights must not affect sorting; moving objects update depth during their tween. Gameplay and the title chamber share `src/render/depth.ts`.
@@ -38,3 +38,21 @@ To publish a new theme version, finish Swarm verification, stop the running serv
 The owned-Bee commands (`assets:upload`, `assets:verify`) remain a backup requiring `SWARM_BEE_URL` and `SWARM_POSTAGE_BATCH_ID`, plus an optional private token. Those settings must never appear in a public pack. Keep `.env*`, `.data/`, accounts, source and private solutions out of collections.
 
 The root HTML `data-asset-source` reports `swarm` for the verified deployed pack. Public read endpoints must allow browser CORS. Keep original files available for republishing and confirm operator-funded retention before relying on it beyond the demo. Content references remain independent of read gateway choice.
+
+## Diwali pack
+
+`diwali` 1.0.0 provides both players’ complete eight-action, four-facing animation sets, festive exit states and matching kurta avatars. P1 wears burgundy with gold trim; P2 retains the green helmet and two eyes but wears a dark navy kurta. Neither costume uses chest identity bars. Exits carry warm lights and marigold trim. Neutral gameplay objects retain the approved Modern Gray art, and every semantic sprite/animation ID is preserved.
+
+Choose **Diwali** with the home settings theme control or the gameplay environment button. The choice persists across reloads and chamber entry; editor levels retain their own authored environment. Use the editor’s environment selector to author a Diwali level.
+
+`npm run assets:prepare:diwali` rebuilds both manifests without changing PNG pixels. Selected originals are in `public/themes/diwali/sheets/`; prompt history and measured frame bounds are in `output/diwali/`. Private generation drafts are excluded from Git and uploads. Publication commands:
+
+```sh
+npm run assets:public:check -- --theme diwali
+npm run assets:upload:public -- --theme diwali
+npm run assets:verify:public -- --theme diwali
+npm run arkiv:theme:quote -- --theme diwali
+npm run arkiv:theme:publish -- --theme diwali
+```
+
+The Diwali deployment and verification evidence are separate from Modern Gray, so adding or publishing it cannot overwrite the original pack’s pins.

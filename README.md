@@ -149,6 +149,7 @@ SQLite in `.data/` holds private accounts, sessions, exact-revision completion r
 
 Approved original sprite sheets are under `public/themes/modern-gray/`. The shared manifest drives Phaser gameplay/title artwork and DOM editor/interface sprites. See [theme-pack guidelines](docs/THEME_PACKS.md) for the semantic contract and adding a pack.
 
+The selectable **Diwali** pack is under `public/themes/diwali/`: complete kurta animations, matching avatars and exits decorated with lights. P2 wears navy with a green helmet and no chest identity bars. Both packs have separate verified Swarm releases and Arkiv pointers. Select Diwali in home Settings or with the gameplay environment control. Publication tools accept `-- --theme diwali`; add future packs through `src/assets/sources.ts` without changing gameplay or screens. [Diwali publication evidence](docs/themes/diwali-release.json).
 
 Use `npm run assets:public:check`, `npm run assets:upload:public` and `npm run assets:verify:public` for subsidised gateway uploads. New uploads default to the booth-recommended `https://bzz.limo`; a resumed journal preserves the service that accepted its original uploads. PNG collections stay under 8 MB. Only the original public assets and release metadata are uploaded; every byte is checked on readback before deployment changes. Owned-Bee upload commands remain available as a backup.
 

@@ -13,3 +13,9 @@
 Live references and reproducible commands: [Arkiv + Swarm evidence](../arkiv/swarm.md). Per-file hashes: [release evidence](theme-release.json). Screenshot: [Swarm gameplay](screenshots/swarm-gameplay.png).
 
 Remaining submission information: operator-supplied postage batch ID and attribution, confirmed retention/service limits, and the demo-video timestamp. These are not inferred from the content reference. Taser is verified locally; this check does not claim that its multiplayer backend has been deployed to an external host.
+
+## Diwali release
+
+The Diwali 1.0.0 release contains 28 PNGs, a manifest and a release index, all verified by exact public readback through `bzz.limo`. Its separate readonly Arkiv publication was submitted within the configured test-token budget and verified on readback. `/api/themes/diwali` returns the matching published reference and hashes. [Per-file hashes and publication proof](themes/diwali-release.json).
+
+The browser rendered both kurta-clad operators and decorated exits on the home chamber. Its active theme is `diwali`, asset source is `swarm`, artwork warnings are zero, and there are no local DOM sprite URLs. [Diwali home preview](screenshots/diwali-home.png). All 384 player animation cells passed nonempty/cell-clipping inspection. All 125 tests and the final production build passed. No original Modern Gray PNGs were changed.

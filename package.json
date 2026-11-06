@@ -14,6 +14,7 @@
     "arkiv:quote": "tsx scripts/arkiv-migrate.ts --quote",
     "arkiv:migrate": "tsx scripts/arkiv-migrate.ts --write",
     "assets:prepare": "node scripts/prepare-theme.mjs",
+    "assets:prepare:diwali": "node scripts/prepare-diwali.mjs",
     "assets:check": "node --import tsx scripts/swarm-assets.ts",
     "assets:upload": "node --import tsx scripts/swarm-assets.ts --write",
     "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify",

@@ -27,13 +27,14 @@ try{await initializeThemes();artworkStatus.textContent='Loading sprite sheets…
 
 let playing=false,editing=false,screenInitialized=false,screenUser:string|null=null,screenRoute='';
 let inspection:number|null=null,pack:EnvironmentPack=environments.foundry;
+let preferredTheme:string|null=null;
 let scene:ChamberScene|undefined,client:CoopClient|undefined;
 const audio=new GameAudio(),completed=new Set<number>();
-try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme))pack=environments[savedTheme];}catch{/* Preferences are optional. */}
+try{audio.enabled=localStorage.getItem('weldpoint:sound')!=='off';const savedTheme=localStorage.getItem('weldpoint:theme');if(savedTheme&&Object.hasOwn(environments,savedTheme)){pack=environments[savedTheme];preferredTheme=pack.id;}}catch{/* Preferences are optional. */}
 function view(){return client?.state?.level?new RemoteView(client.state.level,client.state,inspection):null;}
 function refresh(){
   hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);
-  home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
+  home.update(audio.enabled,pack.name,completed.size,levels.length,auth.user);
   applyThemeInterface(pack,auth.user,client?.status,!!client?.state?.partnerReady);
 }
 function queue(direction:Direction){
@@ -48,7 +49,7 @@ function command(type:'undo'|'reset'|'cancel'){
 }
 function level(index:number){if(client?.state)client.send({type:'level',index,revision:client.state.revision});}
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{/* Viewport still fills embedded previews. */}}
-function toggleTheme(){pack=registeredThemes[(registeredThemes.indexOf(pack)+1)%registeredThemes.length];try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();editor.refreshTheme();refresh();}
+function toggleTheme(){pack=registeredThemes[(registeredThemes.indexOf(pack)+1)%registeredThemes.length];preferredTheme=pack.id;try{localStorage.setItem('weldpoint:theme',pack.id);}catch{}scene?.redraw();editor.refreshTheme();refresh();}
 function toggleSound(){audio.enabled=!audio.enabled;try{localStorage.setItem('weldpoint:sound',audio.enabled?'on':'off');}catch{}hud.setSound(audio.enabled);refresh();}
 const hud=new Hud(levels,{solution:()=>{void revealSolution();},home:()=>{location.hash='';},level,undo:()=>command('undo'),reset:()=>command('reset'),cancel:()=>command('cancel'),queue,fullscreen,
   inspect:step=>{inspection=step===((client?.state?.history.length??0)-1)?null:step;scene?.redraw();},
@@ -97,7 +98,7 @@ function receive(previous:SessionState|null){
   if(!current.customLevelId&&last.status==='VICTORY'&&previous?.history.at(-1)?.status!=='VICTORY')void auth.refresh();
   if(current.campaign){levels=current.campaign;hud.setLevels(levels);}
   if(previous?.publicationKey!==current.publicationKey)hud.clearSolution();
-  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=current.level?.environment;if(environment&&environments[environment])pack=environments[environment];}
+  if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=preferredTheme??current.level?.environment;if(environment&&environments[environment])pack=environments[environment];}
   const old=animate?new RemoteView(previous!.level!,previous!).state:undefined;
   scene?.redraw(old,animate);refresh();
 }

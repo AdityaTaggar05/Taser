@@ -1,6 +1,10 @@
 import {describe,it,expect} from 'vitest';
 import raw from '../public/themes/modern-gray/manifest.json';
 import bootstrapManifest from '../src/assets/modern-gray.manifest.json';
+import diwali from '../public/themes/diwali/manifest.json';
+import diwaliBootstrap from '../src/assets/diwali.manifest.json';
+import {registeredThemes,environments} from '../src/assets/catalog';
+import {themeSourceFromArgs} from '../scripts/lib/theme-source';
 import {validateTheme,validateDeployment,spriteUrl,REQUIRED_ANIMATIONS} from '../src/assets/schema';
 import {prepareUpload,makeTar,uploadCollection,verifyRemote,digest,type UploadBundle} from '../scripts/lib/swarm-theme';
 import {resolve} from 'node:path';
@@ -11,6 +15,20 @@ describe('theme contract',()=>{
   it('contains every approved player sequence and gameplay/UI role',()=>{
     expect(bootstrapManifest).toEqual(raw);const pack=validateTheme(copy());expect(Object.keys(pack.sheets)).toHaveLength(28);expect(Object.keys(pack.sprites)).toHaveLength(556);
     expect(REQUIRED_ANIMATIONS).toHaveLength(74);expect(pack.presentation.boxIdentityLabels).toBe(false);expect(pack.animations['fx.weld'].visibility).toBe('after-success-only');
+  });
+  it('keeps Diwali interchangeable with the original pack and validates all published PNG bytes',async()=>{
+    expect(diwaliBootstrap).toEqual(diwali);const pack=validateTheme(diwali);
+    expect(Object.keys(pack.sprites)).toEqual(Object.keys(raw.sprites));
+    expect(pack.animations).toEqual(raw.animations);expect(pack.presentation).toEqual(raw.presentation);
+    expect(registeredThemes.map(p=>p.id)).toEqual(['modern-gray','diwali']);
+    expect(environments.foundry).toBe(environments['modern-gray']);expect(environments.diwali.id).toBe('diwali');
+    for(const id of ['p1-idle','p2-idle','04-exits','10-mvp-ui-icons-and-avatars'])expect(pack.sheets[id].sha256).not.toBe(raw.sheets[id as keyof typeof raw.sheets].sha256);
+    expect(pack.sheets['02-environment-tiles'].sha256).toBe(raw.sheets['02-environment-tiles'].sha256);
+    const upload=await prepareUpload(resolve('public/themes/diwali'));expect(upload.files).toHaveLength(29);
+    expect(splitPublicBundle(upload).every(p=>p.tar.length<=8_000_000)).toBe(true);
+    expect(themeSourceFromArgs(['--theme','diwali']).deploymentFile).toBe('src/assets/diwali.deployment.json');
+    expect(()=>themeSourceFromArgs(['--theme','../../.env.local'])).toThrow(/Unknown theme/);
+    expect(()=>themeSourceFromArgs(['--theme'])).toThrow(/Unknown theme/);
   });
   it('rejects missing roles, frame overflow, path traversal and malformed animation',()=>{
     const a=copy();delete (a.sprites as Record<string,unknown>)['exit.p1.open'];expect(()=>validateTheme(a)).toThrow(/missing/);
