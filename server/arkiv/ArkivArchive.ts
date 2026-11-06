@@ -229,7 +229,7 @@ export class ArkivArchive implements LevelArchive {
     this.db.prepare("UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?").run(ref.entityKey,ref.expiresAt,plan.operation);
     const entity=await this.entity(ref.entityKey);this.trusted(entity,isExtension(plan)?undefined:plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
     const record=await this.decode(entity);if(!isExtension(plan)&&canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
-    this.db.prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?").run(plan.operation);return ref;
+    this.db.prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?").run(plan.operation);return {...ref,expiresAt:entity.$expiresAt.toString()};
   }
   async reconcilePending(){for(const p of this.db.prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')").all() as unknown as Plan[])await this.reconcile(p);}
   private safe(error:unknown,fallback:string){return error instanceof ArchiveError?error:new ArchiveError(503,fallback);}

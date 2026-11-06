@@ -64,7 +64,7 @@ it('enforces campaign publishing and template access on authenticated server end
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
 function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   const directory=mkdtempSync(join(tmpdir(),'taser-writer-')),path=join(directory,'journal.sqlite'),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
-  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true,expiresAt=3700n;
+  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true,expiresAt=3700n;const sent=new Map<Hex,TransactionSerialized>();
   const entityKey=('0x'+'ab'.repeat(32)) as Hex,blockHash=('0x'+'cd'.repeat(32)) as Hex;
   const transport=custom({async request({method,params}){
     if(method==='eth_chainId')return '0x76edaf';
@@ -75,7 +75,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
     if(method==='eth_estimateGas')return '0x493e0';
     if(method==='arkiv_query')return {data:[],blockNumber:'0x64'};
     if(method==='eth_sendRawTransaction'){
-      sends++;raw=(params as TransactionSerialized[])[0];
+      sends++;raw=(params as TransactionSerialized[])[0];sent.set(keccak256(raw),raw);
       const db=new DatabaseSync(path);const saved=db.prepare("SELECT phase,signed,tx_hash FROM arkiv_writes WHERE phase='submitting'").get();db.close();
       expect(saved?.signed).toBe(raw);expect(saved?.tx_hash).toBe(keccak256(raw));
       throw new Error('Simulated lost response with a sensitive provider URL');
@@ -85,15 +85,15 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   const archive=new ArkivArchive({accessKey:'test-key',privateKey,encryptionKey:generateKey(),namespace:'test',databasePath:path,maxTxFee:budgets.maxTxFee??'0.005',dailyBudget:budgets.dailyBudget??'0.03'},transport);
   const reader=(archive as unknown as {reader:ReturnType<typeof import('@arkiv-network/sdk').createPublicClient>}).reader;
   vi.spyOn(reader,'getBlock').mockImplementation(async args=>({hash:args?.blockNumber===0n?'0x'+'00'.repeat(32):blockHash,gasLimit:30_000_000n,number:100n}) as never);
-  vi.spyOn(reader,'getTransactionReceipt').mockImplementation(async()=>{
-    if(!raw||!receiptAvailable)throw new Error('Receipt not available');
+  vi.spyOn(reader,'getTransactionReceipt').mockImplementation(async({hash:txHash})=>{
+    const raw=sent.get(txHash);if(!raw||!receiptAvailable)throw new Error('Receipt not available');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT operation,body FROM arkiv_writes WHERE tx_hash=?').get(keccak256(raw))!;db.close();
     const extension=String(plan.operation).startsWith('heart:');
     if(extension)expiresAt=BigInt(JSON.parse(String(plan.body)).expiresAt);
     const log=extension?{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'ExpiryExtended',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'}],[expiresAt])}:{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[3700n,1])};
     return {status:'success',transactionHash:keccak256(raw),blockNumber:100n,blockHash,logs:[{address:'0x4400000000000000000000000000000000000044',...log}]} as never;
   });
-  vi.spyOn(reader,'getTransaction').mockImplementation(async()=>{const tx=parseTransaction(raw!);return {...tx,hash:keccak256(raw!),from:account.address,input:tx.data} as never;});
+  vi.spyOn(reader,'getTransaction').mockImplementation(async({hash:txHash})=>{const serialized=sent.get(txHash)!,tx=parseTransaction(serialized);return {...tx,hash:keccak256(serialized),from:account.address,input:tx.data} as never;});
   vi.spyOn(reader,'getEntity').mockImplementation(async()=>{
     if(!readbackAvailable)throw new Error('Readback unavailable');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
@@ -226,6 +226,7 @@ it('extends from the real expiry, reconciles lost replies and deduplicates each 
     await expect(f.archive.extend(ref,'nova')).rejects.toThrow();expect(f.sends).toBe(2);
     f.receipt(true);expect((await f.archive.extend(ref,'atlas')).expiresAt).toBe('5500');expect(f.sends).toBe(2);
     expect((await f.archive.inspect(ref)).ref.expiresAt).toBe('5500');
+    expect((await f.archive.put(record())).expiresAt).toBe('5500');expect(f.sends).toBe(2);
     expect((await f.archive.extend(ref,'atlas')).expiresAt).toBe('5500');expect(f.sends).toBe(2);
     expect((await f.archive.extend(ref,'nova')).expiresAt).toBe('7300');expect(f.sends).toBe(3);
     const decoded=decodeFunctionData({abi:parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),data:parseTransaction(f.raw).data!});
@@ -250,5 +251,13 @@ it('rejects expired hearts and fee-exceeding extensions without broadcasting',as
     await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('expired');expect(f.sends).toBe(1);
     vi.mocked(f.reader.getBlockNumber).mockResolvedValue(100n);vi.spyOn(f.reader,'getBalance').mockResolvedValue(0n);
     await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('fee');expect(f.sends).toBe(1);
+  }finally{f.close();}
+});
+
+it('refuses an extension beyond Arkiv maximum lifetime before broadcast',async()=>{
+  const f=writerFixture();try{
+    f.receipt(true);const ref=await f.archive.put(record()),row=await f.reader.getEntity(ref.entityKey as Hex);
+    vi.mocked(f.reader.getEntity).mockResolvedValue({...row,$expiresAt:7_884_100n} as never);
+    await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('estimate failed');expect(f.sends).toBe(1);
   }finally{f.close();}
 });
