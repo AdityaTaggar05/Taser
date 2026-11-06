@@ -37,6 +37,7 @@ export class PublishedLevels {
       title.textContent='Choose your role';intro.textContent=mode==='coop'?'Your invited partner will take the opposite role.':'Your replay partner will play the opposite role.';
       const choices=document.createElement('div');choices.className='role-options';body.append(choices);
       for(const player of [1,2]){const a=link('',hash+'/p'+player,choices,'role-link');a.dataset.player=String(player);a.innerHTML=`<b>P${player} <span>${player===1?'→':'←'}</span></b><strong>${player===1?'Forward':'Reverse'} time</strong><small>${player===1?'Write the past. Find your way out through your partner’s history.':'Begin at the other end. Meet in the middle of time.'}</small>`;}
+      link('Chamber leaderboard ↗','#leaderboard/'+selected);
       link('← Choose another chamber','#'+mode+'/'+category);return;
     }
     if(selected&&role&&mode==='solo'){
@@ -53,7 +54,7 @@ export class PublishedLevels {
         }).catch(error=>status((error as Error).message));
       }return;
     }
-    title.textContent=category==='campaign'?'Campaign challenges':'Community challenges';intro.textContent=category==='community'?'Verified community publications, available for about 48 hours.':'Choose a campaign chamber.';
+    title.textContent=category==='campaign'?'Campaign challenges':'Community challenges';intro.textContent=category==='community'?'Verified community chambers start with 2 hours. Each operator’s heart adds 1 hour.':'Choose a campaign chamber.';
     const grid=document.createElement('div');grid.className='archive-grid';body.append(grid);
     const refresh=document.createElement('button');refresh.textContent='Refresh ↻';refresh.className='archive-refresh';refresh.onclick=()=>this.show(true,hash);body.prepend(refresh);
     status('Loading confirmed publications…');
@@ -66,7 +67,7 @@ export class PublishedLevels {
   private card(level:LevelSummary,parent:Element,href:string){
     const card=document.createElement('article');card.className='archive-card';
     for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / REV ${level.publishedRevision??level.revision}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
-    const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);parent.append(card);
+    const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';const board=document.createElement('a');board.href='#leaderboard/'+level.id;board.className='archive-play';board.textContent='Leaderboard & hearts ♡';card.append(play,board);parent.append(card);
   }
   destroy(){this.request++;this.root.remove();}
 }
