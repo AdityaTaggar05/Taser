@@ -1,4 +1,7 @@
 import {it,expect,vi} from 'vitest';
+import {createHash} from 'node:crypto';
+import {creationExpiration} from '../server/arkiv/expiration';
+import {AttemptEntities} from '../server/arkiv/schema';
 import {generateKey} from 'arkiv-encryption';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -62,9 +65,10 @@ it('enforces campaign publishing and template access on authenticated server end
 });
 
 /** Exercise real SDK encoding and local signing while simulating an RPC losing the send reply. */
-function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
+function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={},input:ArchiveRecord=record()){
   const directory=mkdtempSync(join(tmpdir(),'taser-writer-')),path=join(directory,'journal.sqlite'),privateKey=generatePrivateKey(),account=privateKeyToAccount(privateKey);
-  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true,expiresAt=3700n;const sent=new Map<Hex,TransactionSerialized>();
+  const expiry=creationExpiration(input);
+  let raw:TransactionSerialized|undefined,sends=0,receiptAvailable=false,readbackAvailable=true,expiresAt=typeof expiry.expiresAt==='bigint'&&expiry.expiresAt>0n?expiry.expiresAt:100n+expiry.minLifetime;const sent=new Map<Hex,TransactionSerialized>();
   const entityKey=('0x'+'ab'.repeat(32)) as Hex,blockHash=('0x'+'cd'.repeat(32)) as Hex;
   const transport=custom({async request({method,params}){
     if(method==='eth_chainId')return '0x76edaf';
@@ -88,9 +92,9 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
   vi.spyOn(reader,'getTransactionReceipt').mockImplementation(async({hash:txHash})=>{
     const raw=sent.get(txHash);if(!raw||!receiptAvailable)throw new Error('Receipt not available');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT operation,body FROM arkiv_writes WHERE tx_hash=?').get(keccak256(raw))!;db.close();
-    const extension=String(plan.operation).startsWith('heart:');
+    const extension=String(plan.operation).startsWith('heart:')||String(plan.operation).startsWith('retain:');
     if(extension)expiresAt=BigInt(JSON.parse(String(plan.body)).expiresAt);
-    const log=extension?{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'ExpiryExtended',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'}],[expiresAt])}:{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[3700n,1])};
+    const log=extension?{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'ExpiryExtended',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'}],[expiresAt])}:{topics:encodeEventTopics({abi:ENTITY_EVENTS_ABI,eventName:'EntityCreated',args:{entityKey,owner:account.address}}),data:encodeAbiParameters([{type:'uint64'},{type:'uint8'}],[expiresAt,1])};
     return {status:'success',transactionHash:keccak256(raw),blockNumber:100n,blockHash,logs:[{address:'0x4400000000000000000000000000000000000044',...log}]} as never;
   });
   vi.spyOn(reader,'getTransaction').mockImplementation(async({hash:txHash})=>{const serialized=sent.get(txHash!)!,tx=parseTransaction(serialized);return {...tx,hash:keccak256(serialized),from:account.address,input:tx.data} as never;});
@@ -98,7 +102,7 @@ function writerFixture(budgets:{maxTxFee?:string;dailyBudget?:string}={}){
     if(!readbackAvailable)throw new Error('Readback unavailable');
     const db=new DatabaseSync(path),plan=db.prepare('SELECT ciphertext FROM arkiv_writes LIMIT 1').get()!;db.close();
     return {$key:entityKey,$creator:account.address,$owner:account.address,$creationFlags:{readonly:true,permissionlessExtension:false},$expiresAt:expiresAt,
-      namespace:str('test'),record_id:str(record().id),revision:u64(1),category:str('community'),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
+      namespace:str('test'),record_id:str(input.id),revision:u64(input.revision),category:str(input.category),content_type:str(CONTENT_TYPE),ciphertext:bytes(plan.ciphertext as Hex)} as never;
   });
   return {archive,path,reader,get raw(){return raw!;},get sends(){return sends;},receipt:(yes:boolean)=>{receiptAvailable=yes;},readback:(yes:boolean)=>{readbackAvailable=yes;},close:()=>{archive.close();rmSync(directory,{recursive:true,force:true});}};
 }
@@ -259,5 +263,47 @@ it('refuses an extension beyond Arkiv maximum lifetime before broadcast',async()
     f.receipt(true);const ref=await f.archive.put(record()),row=await f.reader.getEntity(ref.entityKey as Hex);
     vi.mocked(f.reader.getEntity).mockResolvedValue({...row,$expiresAt:7_884_100n} as never);
     await expect(f.archive.extend(ref,'atlas')).rejects.toThrow('estimate failed');expect(f.sends).toBe(1);
+  }finally{f.close();}
+});
+
+it('encodes a fixed two-minute attempt deadline in its own schema and reconciles without another send',async()=>{
+  const matchId='11111111-1111-4111-8111-111111111111',moves=[[],[]];
+  const transcriptHash=createHash('sha256').update(canonicalJSON({previous:'',moves,outcome:'active',sequence:1})).digest('hex');
+  const input:ArchiveRecord={...record(),id:matchId+':1',category:'attempt',level:{...record().level,solutionP1:[],solutionP2:[]},attempt:{matchId,levelKey:'0x'+'cd'.repeat(32),sequence:1,previousHash:'',transcriptHash,outcome:'active',expiresAt:'160'}};
+  const f=writerFixture({},input);try{
+    await expect(f.archive.put(input)).rejects.toThrow('could not be confirmed');expect(f.sends).toBe(1);
+    f.receipt(true);const ref=await f.archive.put(input);expect(ref.schema).toBe('attempt');expect(ref.expiresAt).toBe('160');expect(f.sends).toBe(1);
+    expect(f.reader.getEntity).toHaveBeenCalledWith(ref.entityKey,AttemptEntities);expect(await f.archive.read(ref)).toEqual(input);
+    const decoded=decodeFunctionData({abi:parseAbi(['function execute((uint8 operation, bytes operationData)[] ops)']),data:parseTransaction(f.raw).data!});
+    const [create]=decodeAbiParameters(parseAbiParameters('(uint128 salt, uint64 expiresAt, uint64 minLifetime, uint8 creationFlags, (bytes32 name, uint8 typeId, bytes value)[] attributes)'),decoded.args![0][0].operationData);
+    expect(create.minLifetime).toBe(0n);expect(create.expiresAt).toBe(160n);expect(create.creationFlags).toBe(1);
+    await expect(f.archive.retain(ref,'1000')).rejects.toThrow('winning');expect(f.sends).toBe(1);
+  }finally{f.close();}
+});
+
+it('reconciles an expired attempt receipt without rebroadcasting or blocking later writes',async()=>{
+  const matchId='11111111-1111-4111-8111-111111111111',moves=[[],[]];
+  const transcriptHash=createHash('sha256').update(canonicalJSON({previous:'',moves,outcome:'active',sequence:1})).digest('hex');
+  const input:ArchiveRecord={...record(),id:matchId+':1',category:'attempt',level:{...record().level,solutionP1:[],solutionP2:[]},attempt:{matchId,levelKey:'0x'+'cd'.repeat(32),sequence:1,previousHash:'',transcriptHash,outcome:'active',expiresAt:'160'}};
+  const f=writerFixture({},input);try{
+    await expect(f.archive.put(input)).rejects.toThrow('could not be confirmed');expect(f.sends).toBe(1);
+    vi.spyOn(f.reader,'getBlockNumber').mockResolvedValue(200n);f.receipt(true);
+    await expect(f.archive.reconcilePending()).resolves.toBeUndefined();
+    const db=new DatabaseSync(f.path);expect(db.prepare('SELECT phase FROM arkiv_writes').get()!.phase).toBe('expired');db.close();
+    await expect(f.archive.put(input)).rejects.toThrow('expired');expect(f.sends).toBe(1);
+    await expect(f.archive.reconcilePending()).resolves.toBeUndefined();
+  }finally{f.close();}
+});
+
+it('bounds winning-attempt extensions by the parent level and deduplicates their signed transaction',async()=>{
+  const matchId='11111111-1111-4111-8111-111111111111',level=record().level,moves=[level.solutionP1,level.solutionP2];
+  const transcriptHash=createHash('sha256').update(canonicalJSON({previous:'',moves,outcome:'won',sequence:1})).digest('hex');
+  const input:ArchiveRecord={...record(),id:matchId+':1',category:'attempt',level,attempt:{matchId,levelKey:'0x'+'cd'.repeat(32),sequence:1,previousHash:'',transcriptHash,outcome:'won',expiresAt:'160'}};
+  const f=writerFixture({},input);try{
+    f.receipt(true);const ref=await f.archive.put(input),inspect=f.archive.inspect.bind(f.archive);
+    vi.spyOn(f.archive,'inspect').mockImplementation(async value=>value.entityKey===input.attempt!.levelKey?{record:record(),ref:{entityKey:value.entityKey,expiresAt:'2000',txHash:''}}:inspect(value));
+    await expect(f.archive.retain(ref,'2500')).rejects.toThrow('cannot exceed');expect(f.sends).toBe(1);
+    const extended=await f.archive.retain(ref,'1200');expect(extended.schema).toBe('attempt');expect(extended.expiresAt).toBe('1200');expect(f.sends).toBe(2);
+    expect(await f.archive.retain(ref,'1200')).toEqual(extended);expect(f.sends).toBe(2);
   }finally{f.close();}
 });

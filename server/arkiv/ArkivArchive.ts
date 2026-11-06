@@ -9,19 +9,19 @@ import {key,u64} from '@arkiv-network/sdk/schema';
 import {custom,http,hexToBytes,bytesToHex,keccak256,parseEther,parseTransaction,recoverTransactionAddress,decodeEventLog,MethodNotFoundRpcError,type Hex,type LocalAccount,type TransactionSerialized,type Transport} from 'viem';
 import {getGasPrice} from 'viem/actions';
 import {privateKeyToAccount} from 'viem/accounts';
-import {LevelEntities} from './schema';
+import {LevelEntities,AttemptEntities} from './schema';
 import {LevelCipher,CONTENT_TYPE} from './LevelCipher';
 import {ArchiveError,type LevelArchive,type ArchiveRecord,type ArchiveRef,type ArchivedLevel} from './archive';
 import {canonicalJSON} from './canonical';
 import {creationExpiration,HEART_EXTENSION} from './expiration';
 
-interface ExtensionIntent {entityKey:Hex;expiresAt:string}
-const isExtension=(plan:Plan)=>plan.operation.startsWith('heart:');
+interface ExtensionIntent {schema?:'attempt';entityKey:Hex;expiresAt:string}
+const isExtension=(plan:Plan)=>plan.operation.startsWith('heart:')||plan.operation.startsWith('retain:');
 const NATIVE='0x4400000000000000000000000000000000000044';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 interface Plan {
   operation:string; input_hash:string; body:string; salt:string; ciphertext:string;
-  phase:'prepared'|'submitting'|'receipt_confirmed'|'verified'|'reverted';
+  phase:'prepared'|'submitting'|'receipt_confirmed'|'verified'|'reverted'|'expired';
   signed:string|null; tx_hash:string|null; entity_key:string|null; expires_at:string|null;
   nonce:number|null; calldata:string|null; gas:string|null; gas_price:string|null;
   maximum_cost:string|null; day:string|null; genesis:string;
@@ -71,15 +71,15 @@ export class ArkivArchive implements LevelArchive {
   private trusted(row:Awaited<ReturnType<typeof this.entity>>,expected?:Plan){
     if(row.$owner.toLowerCase()!==this.signer.toLowerCase()||row.$creator.toLowerCase()!==this.signer.toLowerCase()||!row.$creationFlags.readonly||row.$creationFlags.permissionlessExtension||
       row.namespace.value!==this.options.namespace||row.content_type.value!==CONTENT_TYPE||
-      !['draft','community','campaign','run'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
+      !['draft','community','campaign','run','attempt'].includes(row.category.value)||row.revision.value<1n||row.revision.value>BigInt(Number.MAX_SAFE_INTEGER)||
       (expected&&row.ciphertext.value.toLowerCase()!==expected.ciphertext.toLowerCase()))throw new ArchiveError(503,'Untrusted Arkiv level publication.');
   }
-  private async entity(entityKey:string){const row=await this.reader.getEntity(entityKey as Hex,LevelEntities);if(row.$key.toLowerCase()!==entityKey.toLowerCase())throw new ArchiveError(503,'Arkiv returned a different entity identity.');return row;}
+  private async entity(entityKey:string,attempt=false){const row=await this.reader.getEntity(entityKey as Hex,attempt?AttemptEntities:LevelEntities);if(row.$key.toLowerCase()!==entityKey.toLowerCase())throw new ArchiveError(503,'Arkiv returned a different entity identity.');return row;}
   private async decode(row:Awaited<ReturnType<typeof this.entity>>){this.trusted(row);return this.cipher.decrypt(hexToBytes(row.ciphertext.value),{id:row.record_id.value,revision:Number(row.revision.value),category:row.category.value});}
   async head(){try{await this.identity();return await this.reader.getBlockNumber({cacheTime:0});}catch(error){throw this.safe(error,'Arkiv availability could not be checked.');}}
-  async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
+  async read(ref:ArchiveRef):Promise<ArchiveRecord>{try{await this.identity();return await this.decode(await this.entity(ref.entityKey,ref.schema==='attempt'));}catch(error){throw this.safe(error,'Arkiv level could not be read. It may be expired or unavailable.');}}
   async inspect(ref:ArchiveRef):Promise<ArchivedLevel>{
-    try{await this.identity();const row=await this.entity(ref.entityKey),record=await this.decode(row);
+    try{await this.identity();const row=await this.entity(ref.entityKey,ref.schema==='attempt'),record=await this.decode(row);
       if(row.$expiresAt<=await this.reader.getBlockNumber({cacheTime:0}))throw new ArchiveError(410,'This publication has expired.');
       return {record,ref:{...ref,expiresAt:row.$expiresAt.toString()}};
     }catch(error){throw this.safe(error,'Arkiv publication could not be checked. It may be expired or unavailable.');}
@@ -107,22 +107,42 @@ export class ArkivArchive implements LevelArchive {
       }catch(error){throw this.safe(error,'Arkiv heart could not be confirmed. Retry this same heart to reconcile it.');}
     });this.queue=task.catch(()=>{});return task;
   }
+  retain(ref:ArchiveRef,expiresAt:string):Promise<ArchiveRef>{
+    const task=this.queue.then(async()=>{
+      try{
+        const operation=`retain:${ref.entityKey.toLowerCase()}:${expiresAt}`;let plan=this.plan(operation);
+        if(!plan){
+          await this.reconcilePending();const live=await this.inspect(ref);
+          if(live.record.category!=='attempt'||live.record.attempt?.outcome!=='won')throw new ArchiveError(400,'Only verified winning attempts can be retained.');
+          if(BigInt(expiresAt)<=BigInt(live.ref.expiresAt))return live.ref;
+          const parent=await this.inspect({entityKey:live.record.attempt.levelKey,expiresAt:'0',txHash:''});
+          if(!['campaign','community'].includes(parent.record.category)||BigInt(expiresAt)>BigInt(parent.ref.expiresAt))throw new ArchiveError(400,'Replay retention cannot exceed its published level.');
+          const body=JSON.stringify({schema:'attempt',entityKey:ref.entityKey as Hex,expiresAt} satisfies ExtensionIntent),genesis=await this.identity();
+          this.db.prepare("INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,'0','','prepared',?)").run(operation,hash(body),body,genesis);plan=this.plan(operation)!;
+        }
+        if(plan.phase==='verified')return {schema:'attempt' as const,entityKey:plan.entity_key!,txHash:plan.tx_hash!,expiresAt:plan.expires_at!};
+        return plan.phase==='prepared'?await this.submit(plan):await this.reconcile(plan);
+      }catch(error){throw this.safe(error,'Winning attempt retention is pending.');}
+    });this.queue=task.catch(()=>{});return task;
+  }
   private invoke(wallet:WalletArkivClient,plan:Plan,params?:TxParams){
     if(isExtension(plan)){const intent=JSON.parse(plan.body) as ExtensionIntent;return wallet.extendEntity({entityKey:intent.entityKey,expiration:ExpirationTime.atBlock(BigInt(intent.expiresAt))},params);}
-    return wallet.createEntity(LevelEntities,this.values(plan),this.optionsFor(plan),params);
+    return wallet.createEntity((JSON.parse(plan.body) as ArchiveRecord).category==='attempt'?AttemptEntities:LevelEntities,this.values(plan),this.optionsFor(plan),params);
   }
-  async list():Promise<ArchivedLevel[]>{
+  list(){return this.scan(false);}
+  listAttempts(){return this.scan(true);}
+  private async scan(attempts:boolean):Promise<ArchivedLevel[]>{
     try{
       await this.identity();const found:ArchivedLevel[]=[];let last:Hex|undefined;
-      const scope=and(eq('namespace',this.options.namespace),or(eq('category','draft'),eq('category','community'),eq('category','campaign'),eq('category','run')));
+      const scope=and(eq('namespace',this.options.namespace),attempts?eq('category','attempt'):or(eq('category','draft'),eq('category','community'),eq('category','campaign'),eq('category','run')));
       // Limit discovery to the level and replay categories this release understands.
       // Bounded current-state traversal, not a historical snapshot. Fail on incomplete scans.
       for(let page=0;page<100;page++){
-        const query=this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
+        const query=this.reader.select('*').from(attempts?AttemptEntities:LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
           .where(last?and(scope,gt('$key',key(last))):scope).orderBy(asc('$key')).limit(100);
         const result=await query.fetch();
         for(const row of result.entities){
-          const record=await this.decode(row);found.push({record,ref:{entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
+          const record=await this.decode(row);found.push({record,ref:{...(attempts?{schema:'attempt' as const}:{}),entityKey:row.$key,expiresAt:row.$expiresAt.toString(),txHash:''}});
         }
         if(result.entities.length<100)return found;
         const next=result.entities.at(-1)!.$key;if(last&&next<=last)throw new Error();last=next;
@@ -173,12 +193,14 @@ export class ArkivArchive implements LevelArchive {
   private async write(record:ArchiveRecord):Promise<ArchiveRef>{
     try{
       await this.identity();let plan=await this.prepare(record);
+      if(plan.phase==='expired')throw new ArchiveError(410,'Attempt record expired. No replacement transaction was sent.');
       if(plan.phase!=='prepared')return await this.reconcile(plan);
+      if(record.category==='attempt'&&BigInt(record.attempt!.expiresAt!)<=await this.reader.getBlockNumber({cacheTime:0})){this.db.prepare("UPDATE arkiv_writes SET phase='expired' WHERE operation=?").run(plan.operation);throw new ArchiveError(410,'Attempt record expired before submission.');}
       await this.reconcilePending();
-      const prior=await this.reader.select('*').from(LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
+      const prior=await this.reader.select('*').from(record.category==='attempt'?AttemptEntities:LevelEntities,{onMismatch:'throw'}).createdBy(this.account.address)
         .where(and(eq('namespace',this.options.namespace),eq('record_id',record.id),eq('revision',u64(record.revision)),eq('category',record.category))).limit(2).fetch();
       if(prior.entities.length>1)throw new ArchiveError(409,'Duplicate archive revisions require reconciliation.');
-      if(prior.entities.length===1){const row=prior.entities[0],existing=await this.decode(row);if(canonicalJSON(existing)!==canonicalJSON(record))throw new ArchiveError(409,'The remote archive revision has different content.');return {entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()};}
+      if(prior.entities.length===1){const row=prior.entities[0],existing=await this.decode(row);if(canonicalJSON(existing)!==canonicalJSON(record))throw new ArchiveError(409,'The remote archive revision has different content.');return {...(record.category==='attempt'?{schema:'attempt' as const}:{}),entityKey:row.$key,txHash:'',expiresAt:row.$expiresAt.toString()};}
       return await this.submit(plan);
     }catch(error){throw this.safe(error,'Arkiv write could not be confirmed. Check the durable journal; do not submit another copy.');}
   }
@@ -225,13 +247,19 @@ export class ArkivArchive implements LevelArchive {
     const events=receipt.logs.filter(log=>log.address.toLowerCase()===NATIVE.toLowerCase()).flatMap(log=>{try{const event=decodeEventLog({abi:ENTITY_EVENTS_ABI,data:log.data,topics:log.topics});if(event.eventName!=='EntityCreated'&&event.eventName!=='ExpiryExtended')return [];return (isExtension(plan)?event.eventName==='ExpiryExtended':event.eventName==='EntityCreated')?[event.args]:[];}catch{return [];}});
     if(events.length!==1||events[0].owner.toLowerCase()!==this.signer.toLowerCase())throw new Error();
     if(isExtension(plan)){const intent=JSON.parse(plan.body) as ExtensionIntent;if(events[0].entityKey.toLowerCase()!==intent.entityKey.toLowerCase()||events[0].expiresAt!==BigInt(intent.expiresAt))throw new Error();}
-    const ref={entityKey:events[0].entityKey,txHash,expiresAt:events[0].expiresAt.toString()};
+    const body=JSON.parse(plan.body) as ArchiveRecord&ExtensionIntent;
+    const ref:ArchiveRef={...((isExtension(plan)?body.schema==='attempt':body.category==='attempt')?{schema:'attempt' as const}:{}),entityKey:events[0].entityKey,txHash,expiresAt:events[0].expiresAt.toString()};
     this.db.prepare("UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at=? WHERE operation=?").run(ref.entityKey,ref.expiresAt,plan.operation);
-    const entity=await this.entity(ref.entityKey);this.trusted(entity,isExtension(plan)?undefined:plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
+    if(ref.schema==='attempt'&&BigInt(ref.expiresAt)<=await this.reader.getBlockNumber({cacheTime:0})){
+      // Canonical receipt confirms the original write, but expired data cannot pass readback.
+      // Mark it expired, never archived, and release the signing queue without another send.
+      this.db.prepare("UPDATE arkiv_writes SET phase='expired' WHERE operation=?").run(plan.operation);throw new ArchiveError(410,'Attempt expired before encrypted readback.');
+    }
+    const entity=await this.entity(ref.entityKey,ref.schema==='attempt');this.trusted(entity,isExtension(plan)?undefined:plan);if(entity.$expiresAt<BigInt(ref.expiresAt))throw new Error();
     const record=await this.decode(entity);if(!isExtension(plan)&&canonicalJSON(record)!==canonicalJSON(JSON.parse(plan.body)))throw new Error();
     this.db.prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?").run(plan.operation);return {...ref,expiresAt:entity.$expiresAt.toString()};
   }
-  async reconcilePending(){for(const p of this.db.prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')").all() as unknown as Plan[])await this.reconcile(p);}
+  async reconcilePending(){for(const p of this.db.prepare("SELECT * FROM arkiv_writes WHERE phase IN ('submitting','receipt_confirmed')").all() as unknown as Plan[]){try{await this.reconcile(p);}catch(error){if(!(error instanceof ArchiveError&&error.status===410))throw error;}}}
   private safe(error:unknown,fallback:string){return error instanceof ArchiveError?error:new ArchiveError(503,fallback);}
   close(){this.db.close();try{if(readFileSync(this.lockPath,'utf8')===String(process.pid))unlinkSync(this.lockPath);}catch{}}
 }

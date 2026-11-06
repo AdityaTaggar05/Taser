@@ -3,3 +3,6 @@ export const LevelEntities=defineSchema('weldpoint_levels_v1',{
   namespace:str().indexed(),record_id:str().indexed(),revision:u64().indexed(),
   category:str().indexed(),content_type:str(),ciphertext:bytes(),
 });
+
+// Keep transient gameplay data outside the published-level catalog.
+export const AttemptEntities=defineSchema('weldpoint_attempts_v1',{...LevelEntities.columns});
