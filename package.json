@@ -12,7 +12,11 @@
     "arkiv:setup": "node scripts/arkiv-setup.mjs",
     "arkiv:check": "node scripts/arkiv-check.mjs",
     "arkiv:quote": "tsx scripts/arkiv-migrate.ts --quote",
-    "arkiv:migrate": "tsx scripts/arkiv-migrate.ts --write"
+    "arkiv:migrate": "tsx scripts/arkiv-migrate.ts --write",
+    "assets:prepare": "node scripts/prepare-theme.mjs",
+    "assets:check": "node --import tsx scripts/swarm-assets.ts",
+    "assets:upload": "node --import tsx scripts/swarm-assets.ts --write",
+    "assets:verify": "node --import tsx scripts/swarm-assets.ts --verify"
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",

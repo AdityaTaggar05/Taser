@@ -6,3 +6,5 @@ export interface LevelCatalog {campaign:CampaignSummary[];canPublishCampaign:boo
 export interface ReferenceSolution {name:string;solutionP1:import('../core/types').Direction[];solutionP2:import('../core/types').Direction[]}
 export type EditorTool='floor'|'wall'|'ice'|'p1'|'p2'|'box1'|'box2'|'weld'|'switch1'|'switch2'|'exit1'|'exit2'|'midpoint'|'laser'|'receiver'|'erase';
 export type EditorView='author'|'p1'|'p2';
+
+export interface RunSummary {id:string;name:string;role:1|2;turns:number;mode:'solo'|'coop';createdAt:number;entityKey:string;expiresAt:string}

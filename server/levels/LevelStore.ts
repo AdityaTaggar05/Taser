@@ -1,7 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync} from 'node:fs';
 import {dirname} from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {cleanDraft} from '../../src/core/levelValidation';
 import {verifySolution} from '../../src/editor/solution';
 import type {LevelConfig} from '../../src/core/types';
@@ -13,6 +13,7 @@ interface Row {id:string;owner_id:string;owner_name:string;draft:string;revision
 export interface PublishedSnapshot {level:LevelConfig;revision:number;ref?:ArchiveRef;id?:string;slot?:number}
 /** SQLite is a private projection and write-recovery cache. Arkiv confirms every saved revision. */
 export class LevelStore {
+  private closed=false;private observedHead=0n;private availabilityAt=0;
   private db:DatabaseSync;private queue:Promise<unknown>=Promise.resolve();
   get storage(){return this.archive.mode;}
   constructor(path:string,readonly archive:LevelArchive=new UnconfiguredArchive()){
@@ -20,6 +21,7 @@ export class LevelStore {
       CREATE TABLE IF NOT EXISTS custom_levels(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,owner_name TEXT NOT NULL,draft TEXT NOT NULL,revision INTEGER NOT NULL,published TEXT,published_revision INTEGER,updated_at INTEGER NOT NULL,archived_revision INTEGER);
       CREATE INDEX IF NOT EXISTS custom_levels_owner ON custom_levels(owner_id);
       CREATE TABLE IF NOT EXISTS level_publications(entity_key TEXT PRIMARY KEY,record_id TEXT NOT NULL,revision INTEGER NOT NULL,category TEXT NOT NULL,record TEXT NOT NULL,ref TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS game_runs(id TEXT PRIMARY KEY,record TEXT NOT NULL,ref TEXT,status TEXT NOT NULL DEFAULT 'pending',error TEXT);
       CREATE TABLE IF NOT EXISTS level_wins(account_id TEXT NOT NULL,entity_key TEXT NOT NULL,PRIMARY KEY(account_id,entity_key));`);
     if(!(this.db.prepare('PRAGMA table_info(custom_levels)').all()).some(r=>r.name==='archived_revision'))this.db.exec('ALTER TABLE custom_levels ADD COLUMN archived_revision INTEGER');
   }
@@ -30,6 +32,7 @@ export class LevelStore {
   community():LevelSummary[]{return this.latest('community').sort((a,b)=>b.record.updatedAt-a.record.updatedAt).slice(0,100).map(({record:r})=>({id:r.id,name:r.level.name,subtitle:r.level.subtitle,ownerName:r.ownerName,revision:r.revision,publishedRevision:r.revision,updatedAt:r.updatedAt,width:r.level.width,height:r.level.height,totalSteps:r.level.totalSteps}));}
   get(ownerId:string,id:string):StoredLevel {const row=this.row(id);if(!row||row.owner_id!==ownerId)throw new LevelError(404,'Draft not found in your account.');return {...this.summary(row),level:JSON.parse(row.draft)};}
   private project({record:r,ref}:ArchivedLevel){
+    if(r.category==='run'){this.db.prepare("INSERT INTO game_runs(id,record,ref,status) VALUES(?,?,?,'confirmed') ON CONFLICT(id) DO UPDATE SET ref=excluded.ref,status='confirmed',error=NULL").run(r.id,JSON.stringify(r),JSON.stringify(ref));return;}
     this.db.prepare('INSERT OR REPLACE INTO level_publications(entity_key,record_id,revision,category,record,ref) VALUES(?,?,?,?,?,?)').run(ref.entityKey,r.id,r.revision,r.category,JSON.stringify(r),JSON.stringify(ref));
     if(r.category==='campaign')return;
     const prior=this.row(r.id);
@@ -83,10 +86,10 @@ export class LevelStore {
     if(row.archived_revision!==revision)throw new LevelError(409,'This draft has not been confirmed on Arkiv. Reload it and save before publishing.');
     const prior=this.campaign().find(c=>c.id===id),slot=prior?.slot??Math.max(0,...this.campaign().map(c=>c.slot))+1;
     const record:ArchiveRecord={id,revision,category:target,ownerId,ownerName:draft.ownerName,updatedAt:row.updated_at,
-      ...(target==='campaign'?{campaignSlot:slot}:{}),level:{...draft.level,...(target==='campaign'?{id:slot}:{})}};
+      ...(target==='campaign'?{campaignSlot:slot}:{lifetimeDays:2 as const}),level:{...draft.level,...(target==='campaign'?{id:slot}:{})}};
     const ref=await this.archive.put(record);this.project({record,ref});return {...this.get(ownerId,id),publication:{...ref,category:target}};
   });}
-  private latest(category:'community'|'campaign',id?:string){const rows=this.db.prepare('SELECT record,ref FROM level_publications WHERE category=?'+(id?' AND record_id=?':'')+' ORDER BY revision DESC').all(...(id?[category,id]:[category]));const seen=new Set<string>();return rows.flatMap(row=>{const record=JSON.parse(String(row.record)) as ArchiveRecord;if(seen.has(record.id))return [];seen.add(record.id);return [{record,ref:JSON.parse(String(row.ref)) as ArchiveRef}];});}
+  private latest(category:'community'|'campaign',id?:string){const rows=this.db.prepare('SELECT record,ref FROM level_publications WHERE category=?'+(id?' AND record_id=?':'')+' ORDER BY revision DESC').all(...(id?[category,id]:[category]));const seen=new Set<string>();return rows.flatMap(row=>{const record=JSON.parse(String(row.record)) as ArchiveRecord;if(seen.has(record.id))return [];seen.add(record.id);const ref=JSON.parse(String(row.ref)) as ArchiveRef;if(BigInt(ref.expiresAt)<=this.observedHead)return [];return [{record,ref}];});}
   campaign():CampaignSummary[]{return this.latest('campaign').map(({record:r,ref})=>({id:r.id,name:r.level.name,subtitle:r.level.subtitle,ownerName:r.ownerName,revision:r.revision,publishedRevision:r.revision,updatedAt:r.updatedAt,width:r.level.width,height:r.level.height,totalSteps:r.level.totalSteps,slot:r.campaignSlot!,entityKey:ref.entityKey})).sort((a,b)=>a.slot-b.slot);}
   campaignSnapshots():PublishedSnapshot[]{return this.campaign().map(c=>{const entry=this.latest('campaign',c.id)[0];return {level:structuredClone(entry.record.level),revision:c.revision,id:c.id,slot:c.slot,ref:entry.ref};});}
   published(id:string):PublishedSnapshot|null {const entry=this.latest('community',id)[0];return entry?{level:structuredClone(entry.record.level),revision:entry.record.revision,ref:entry.ref,id}:null;}
@@ -100,5 +103,41 @@ export class LevelStore {
     const r=await this.archive.read(JSON.parse(String(row.ref)));return {name:r.level.name,solutionP1:r.level.solutionP1,solutionP2:r.level.solutionP2};
   }
   async template(accountId:string,id:string,admin:boolean){const entry=this.latest('campaign',id)[0];if(!entry)throw new LevelError(404,'Campaign chamber unavailable.');if(!admin&&!this.canReveal(accountId,entry.ref.entityKey))throw new LevelError(403,'Complete this campaign revision before using it as an editable template.');return (await this.archive.read(entry.ref)).level;}
-  close(){this.db.close();this.archive.close();}
+  async refreshAvailability(){if(Date.now()-this.availabilityAt<10_000)return;this.observedHead=await this.archive.head?.()??0n;this.availabilityAt=Date.now();}
+  runs(levelId:string,role:1|2){
+    const snapshot=this.forPlay(levelId);if(!snapshot?.ref)throw new LevelError(404,'Published chamber unavailable.');
+    return this.db.prepare("SELECT id,record,ref FROM game_runs WHERE status='confirmed' ORDER BY rowid DESC").all().flatMap(row=>{
+      const record=JSON.parse(String(row.record)) as ArchiveRecord,ref=JSON.parse(String(row.ref)) as ArchiveRef;
+      if(record.run?.levelKey!==snapshot.ref!.entityKey||record.run.role!==role||BigInt(ref.expiresAt)<=this.observedHead)return [];
+      return [{id:String(row.id),name:record.ownerName,role,turns:record.level.solutionP1.length,mode:record.run.mode,createdAt:record.updatedAt,entityKey:ref.entityKey,expiresAt:ref.expiresAt}];
+    }).slice(0,100);
+  }
+  async echo(snapshot:PublishedSnapshot,role:1|2,runId?:string){
+    await this.validateSnapshot(snapshot);
+    if(!runId)return {moves:structuredClone((role===1?snapshot.level.solutionP1:snapshot.level.solutionP2).slice(0,verifySolution(snapshot.level).step)),name:'Creator solution',source:'creator'};
+    const row=this.db.prepare("SELECT record,ref FROM game_runs WHERE id=? AND status='confirmed'").get(runId);
+    if(!row)throw new LevelError(404,'Player run unavailable or not confirmed.');
+    const cached=JSON.parse(String(row.record)) as ArchiveRecord,r=await this.archive.read(JSON.parse(String(row.ref)));
+    if(canonicalJSON(r)!==canonicalJSON(cached)||r.category!=='run'||r.run?.levelKey!==snapshot.ref?.entityKey||r.run?.role!==role)throw new LevelError(409,'This replay does not match the selected role and level revision.');
+    return {moves:structuredClone(role===1?r.level.solutionP1:r.level.solutionP2),name:r.ownerName,source:r.id};
+  }
+  /** Only server-simulated winners call this; the witness is independently replayed before enqueueing. */
+  captureRun(snapshot:PublishedSnapshot,user:{id:string;displayName:string},role:1|2,moves:[import('../../src/core/types').Direction[],import('../../src/core/types').Direction[]],mode:'coop'|'solo',source:string){
+    if(!snapshot.ref)throw new LevelError(503,'Run has no published revision.');
+    const level={...structuredClone(snapshot.level),solutionP1:[...moves[0]],solutionP2:[...moves[1]]};
+    if(!verifySolution(level).valid)throw new LevelError(422,'Only winning runs can be archived.');
+    const id=createHash('sha256').update(JSON.stringify([snapshot.ref.entityKey,user.id,role,moves[role-1],Math.floor(Date.now()/172_800_000)])).digest('hex');
+    const record:ArchiveRecord={id,revision:1,category:'run',ownerId:user.id,ownerName:user.displayName,updatedAt:Date.now(),lifetimeDays:2,level,run:{levelKey:snapshot.ref.entityKey,role,mode,source}};
+    this.db.prepare("INSERT OR IGNORE INTO game_runs(id,record,status) VALUES(?,?,'pending')").run(id,JSON.stringify(record));
+    return this.publishRun(id);
+  }
+  private publishRun(id:string){return this.serial(async()=>{
+    const row=this.db.prepare('SELECT record,ref,status FROM game_runs WHERE id=?').get(id);if(!row)return;
+    if(row.status==='confirmed')return 'confirmed' as const;
+    try{const record=JSON.parse(String(row.record)) as ArchiveRecord;const ref=await this.archive.put(record);if(!this.closed)this.project({record,ref});return 'confirmed' as const;}
+    catch(error){if(!this.closed)this.db.prepare("UPDATE game_runs SET error=? WHERE id=?").run(error instanceof ArchiveError?error.message:'Arkiv run publication is pending.',id);return 'pending' as const;}
+  });}
+  async flushRuns(){for(const row of this.db.prepare("SELECT id FROM game_runs WHERE status='pending' ORDER BY rowid LIMIT 4").all()){if(this.closed)return;const status=await this.publishRun(String(row.id));if(status!=='confirmed')break;}}
+  async drain(){await this.queue;}
+  close(){this.closed=true;this.db.close();this.archive.close();}
 }

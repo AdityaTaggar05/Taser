@@ -3,98 +3,106 @@ import {authFixture} from './authFixture';
 import {once} from 'node:events';
 import {WebSocket} from 'ws';
 import {attachCoop} from '../server/socket';
-import type {ServerMessage,SessionState} from '../src/network/protocol';
-it('joins two real sockets, synchronizes a turn and resumes a disconnected seat',async()=>{
-  const f=await authFixture(),server=f.server,close=attachCoop(server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
-  const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
-  const port=(server.address() as {port:number}).port;
-  async function connect(account:typeof atlas,token?:string){
-    const ws=new WebSocket(`ws://127.0.0.1:${port}/co-op`);clients.push(ws);
-    const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));
-    await once(ws,'open');ws.send(JSON.stringify({type:'join',token,ticket:await account.ticket(),player:account===atlas?1:2}));
-    await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);
-    return {ws,messages,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};
+import type {JoinIntent,ServerMessage,SessionState} from '../src/network/protocol';
+import {levels} from '../server/data/campaign';
+async function fixture(){
+  const f=await authFixture(),stop=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
+  const a=f.browser(),b=f.browser();await a.login();await b.login('nova');const catalog=(await a.request('levels/catalog')).data.campaign;
+  async function connect(account:typeof a,intent:unknown,ticket?:string){
+    const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');
+    ws.send(JSON.stringify({type:'join',ticket:ticket??await account.ticket(),intent}));await expect.poll(()=>messages.some(m=>['state','full','auth_required'].includes(m.type))).toBe(true);
+    return {ws,messages,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!,send:(m:unknown)=>ws.send(JSON.stringify(m))};
   }
-  try{
-    const a=await connect(atlas),b=await connect(nova);
-    await expect.poll(()=>a.state().partnerConnected).toBe(true);
-    expect(a.state().player).toBe(1);expect(b.state().player).toBe(2);
-    a.ws.send(JSON.stringify({type:'move',direction:'U',revision:a.state().revision}));
-    await expect.poll(()=>b.state().partnerReady).toBe(true);
-    b.ws.send(JSON.stringify({type:'move',direction:'D',revision:b.state().revision}));
-    await expect.poll(()=>a.state().history.at(-1)!.step).toBe(1);await expect.poll(()=>b.state().history.at(-1)!.step).toBe(1);
-    const token=b.messages.find(m=>m.type==='welcome')! as {type:'welcome';token:string};
-    b.ws.close();await once(b.ws,'close');await expect.poll(()=>a.state().partnerConnected).toBe(false);
-    const restored=await connect(nova,token.token);expect(restored.state().player).toBe(2);expect(restored.state().history.at(-1)!.step).toBe(1);
-    restored.ws.send(JSON.stringify({type:'leave'}));await once(restored.ws,'close');
-    await expect.poll(()=>a.state().partnerConnected).toBe(false);
-    const replacement=await connect(nova);expect(replacement.state().player).toBe(2);expect(replacement.state().history.at(-1)!.step).toBe(0);
-  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+  return {...f,a,b,catalog,connect,close:async()=>{clients.forEach(ws=>ws.terminate());stop();await f.levels.drain();await f.close();}};
+}
+function create(levelId:string,player:1|2,mode:'coop'|'solo'='coop',runId?:string):JoinIntent{return {kind:'create',mode,levelId,player,...(runId?{runId}:{})};}
+it('creates a P2-hosted private party, requires ready/host start, synchronizes and resumes',async()=>{
+  const f=await fixture();try{
+    const host=await f.connect(f.a,create(f.catalog[0].id,2)),code=host.state().party!.code;
+    expect(host.state().party?.started).toBe(false);expect(host.state().player).toBe(2);
+    host.send({type:'move',direction:'D',revision:host.state().revision});await expect.poll(()=>host.messages.at(-1)?.type).toBe('error');expect(host.state().history).toHaveLength(1);
+    const guest=await f.connect(f.b,{kind:'invite',code});expect(guest.state().player).toBe(1);
+    guest.send({type:'start'});await expect.poll(()=>guest.messages.at(-1)).toMatchObject({type:'error',message:expect.stringContaining('Only the host')});
+    host.send({type:'start'});await expect.poll(()=>host.messages.at(-1)).toMatchObject({type:'error',message:expect.stringContaining('Ready')});
+    host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await expect.poll(()=>host.state().party!.members.every(m=>m.ready)).toBe(true);
+    host.send({type:'start'});await expect.poll(()=>guest.state().party!.started).toBe(true);
+    guest.send({type:'move',direction:'U',revision:guest.state().revision});await expect.poll(()=>host.state().partnerReady).toBe(true);
+    host.send({type:'move',direction:'D',revision:host.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(1);
+    const id=host.state().party!.id;host.ws.close();await once(host.ws,'close');await expect.poll(()=>guest.state().partnerConnected).toBe(false);
+    const resumed=await f.connect(f.a,{kind:'resume',id});expect(resumed.state().player).toBe(2);expect(resumed.state().history.at(-1)?.step).toBe(1);
+    expect(resumed.state().level?.solutionP1).toEqual([]);expect(resumed.state().level?.initialBoxesP1).toEqual([]);
+    guest.send({type:'leave'});await expect.poll(()=>resumed.state().party!.members.length).toBe(1);expect(resumed.state().party!.started).toBe(false);
+    const replacement=await f.connect(f.b,{kind:'invite',code});expect(replacement.state().player).toBe(1);expect(replacement.state().history.at(-1)?.step).toBe(0);
+  }finally{await f.close();}
+},15_000);
+it('isolates simultaneous solo sessions and keeps solo wins from unlocking progress or references',async()=>{
+  const f=await fixture();try{
+    const a=await f.connect(f.a,create(f.catalog[0].id,1,'solo')),b=await f.connect(f.b,create(f.catalog[1].id,2,'solo'));
+    expect(a.state().party!.id).not.toBe(b.state().party!.id);expect(a.state().partnerConnected).toBe(true);expect(a.state().mode).toBe('solo');
+    a.send({type:'move',direction:'R',revision:a.state().revision});await expect.poll(()=>a.messages.at(-1)?.type).toBe('error');expect(a.state().history).toHaveLength(1);
+    a.send({type:'move',direction:'U',revision:a.state().revision});await expect.poll(()=>a.state().history.at(-1)?.step).toBe(1);expect(b.state().history).toHaveLength(1);
+    a.send({type:'undo',revision:a.state().revision});await expect.poll(()=>a.state().history.at(-1)?.step).toBe(0);
+    for(const direction of levels[0].solutionP1){const step=a.state().history.at(-1)!.step;a.send({type:'move',direction,revision:a.state().revision});await expect.poll(()=>a.state().history.at(-1)?.step).toBe(step+1);}
+    expect(a.state().history.at(-1)?.status).toBe('VICTORY');await expect.poll(()=>a.state().runPublication).toBe('confirmed');
+    expect((await f.a.request('session')).data.user.completed).toEqual([]);expect((await f.a.request('levels/solution/'+f.catalog[0].entityKey)).status).toBe(403);expect(a.state().solutionAvailable).toBe(false);
+    const runs=(await f.b.request('levels/runs/'+f.catalog[0].id+'/1')).data.runs;expect(runs).toHaveLength(1);expect(runs[0].name).toBe('Atlas');expect(runs[0]).not.toHaveProperty('moves');expect(runs[0]).not.toHaveProperty('level');
+    expect((await f.b.request('levels/runs/'+f.catalog[0].id+'/2')).data.runs).toEqual([]);
+    b.send({type:'leave'});await once(b.ws,'close');
+    const replay=await f.connect(f.b,create(f.catalog[0].id,2,'solo',runs[0].id));expect(replay.state().echoName).toBe('Atlas');
+    for(const direction of levels[0].solutionP2){const step=replay.state().history.at(-1)!.step;replay.send({type:'move',direction,revision:replay.state().revision});await expect.poll(()=>replay.state().history.at(-1)?.step).toBe(step+1);}
+    await expect.poll(()=>replay.state().runPublication).toBe('confirmed');expect(replay.state().history.at(-1)?.status).toBe('VICTORY');
+    expect((await f.b.request('levels/runs/'+f.catalog[0].id+'/1')).data.runs).toHaveLength(1);expect((await f.b.request('levels/runs/'+f.catalog[0].id+'/2')).data.runs).toHaveLength(1);
+  }finally{await f.close();}
+},20_000);
+it('unlocks exact-revision references for co-op wins and archives both human roles',async()=>{
+  const f=await fixture();try{
+    const host=await f.connect(f.a,create(f.catalog[0].id,1)),guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});
+    host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await expect.poll(()=>host.state().party!.members.every(m=>m.ready)).toBe(true);host.send({type:'start'});await expect.poll(()=>guest.state().party!.started).toBe(true);
+    for(let k=0;k<levels[0].solutionP1.length;k++){host.send({type:'move',direction:levels[0].solutionP1[k],revision:host.state().revision});guest.send({type:'move',direction:levels[0].solutionP2[k],revision:guest.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(k+1);await expect.poll(()=>guest.state().history.at(-1)?.step).toBe(k+1);}
+    await expect.poll(()=>host.state().runPublication).toBe('confirmed');await expect.poll(()=>guest.state().runPublication).toBe('confirmed');
+    expect(host.state().solutionAvailable).toBe(true);expect(guest.state().solutionAvailable).toBe(true);expect((await f.b.request('session')).data.user.completed).toContain(1);
+    expect((await f.b.request('levels/solution/'+f.catalog[0].entityKey)).data.solutionP2).toEqual(levels[0].solutionP2);
+    expect((await f.a.request('levels/runs/'+f.catalog[0].id+'/1')).data.runs).toHaveLength(1);expect((await f.a.request('levels/runs/'+f.catalog[0].id+'/2')).data.runs).toHaveLength(1);
+  }finally{await f.close();}
+},15_000);
+it('rejects bad invitations, forged roles, unauthorized resumes and duplicate sessions; logout closes parties',async()=>{
+  const f=await fixture();try{
+    for(const intent of [{kind:'invite',code:'bad'},create(f.catalog[0].id,3 as 1),{kind:'resume',id:'missing'},null]){const bad=await f.connect(f.a,intent);expect(bad.messages.some(m=>m.type==='state')).toBe(false);}
+    const host=await f.connect(f.a,create(f.catalog[0].id,1));
+    const intruder=await f.connect(f.b,{kind:'resume',id:host.state().party!.id});expect(intruder.messages.some(m=>m.type==='state')).toBe(false);
+    const duplicate=await f.connect(f.a,create(f.catalog[0].id,2,'solo'));expect(duplicate.messages.some(m=>m.type==='state')).toBe(false);
+    const guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});await f.a.request('logout',{});await expect.poll(()=>host.ws.readyState).toBe(WebSocket.CLOSED);await expect.poll(()=>guest.ws.readyState).toBe(WebSocket.CLOSED);
+    expect(host.messages.some(m=>m.type==='auth_required')).toBe(true);
+  }finally{await f.close();}
+},15_000);
+it('rejects unauthenticated and reused socket tickets',async()=>{
+  const f=await fixture();try{
+    const intent=create(f.catalog[0].id,1),bad=await f.connect(f.a,intent,'invalid');expect(bad.messages.some(m=>m.type==='auth_required')).toBe(true);
+    const ticket=await f.a.ticket();await f.connect(f.a,intent,ticket);const replay=await f.connect(f.b,intent,ticket);expect(replay.messages.some(m=>m.type==='auth_required')).toBe(true);
+  }finally{await f.close();}
 },10_000);
-it('rejects unauthenticated joins and reused tickets, and closes live play on logout',async()=>{
-  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
-  async function socket(ticket?:string){
-    const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',raw=>messages.push(JSON.parse(raw.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket,player:1}));return {ws,messages};
-  }
-  try{
-    const anonymous=await socket();await expect.poll(()=>anonymous.messages.some(m=>m.type==='auth_required')).toBe(true);await expect.poll(()=>anonymous.ws.readyState).toBe(WebSocket.CLOSED);
-    const account=f.browser();await account.login();const ticket=await account.ticket(),signed=await socket(ticket);await expect.poll(()=>signed.messages.some(m=>m.type==='state')).toBe(true);
-    const replay=await socket(ticket);await expect.poll(()=>replay.messages.some(m=>m.type==='auth_required')).toBe(true);
-    await account.request('logout',{});await expect.poll(()=>signed.ws.readyState).toBe(WebSocket.CLOSED);expect(signed.messages.some(m=>m.type==='auth_required')).toBe(true);
-    await account.login('nova');const next=await socket(await account.ticket());await expect.poll(()=>next.messages.some(m=>m.type==='state')).toBe(true);expect((next.messages.find(m=>m.type==='state') as SessionState).player).toBe(1);
-  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
-},10_000);
-it('loads a server-published custom level over real authenticated sockets without exposing its witness',async()=>{
-  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
-  try{
-    const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
-    const {levels}=await import('../server/data/campaign');const created=await atlas.request('levels',{level:levels[0]});const id=created.data.id;expect((await atlas.request(`levels/${id}/publish`,{revision:1})).status).toBe(200);
-    async function connect(account:typeof atlas){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:id,player:account===atlas?2:1}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
-    const a=await connect(nova),b=await connect(atlas);await expect.poll(()=>a.state().partnerConnected).toBe(true);expect(a.state().player).toBe(1);expect(b.state().player).toBe(2);expect(a.state().customLevelId).toBe(id);expect(a.state().level?.solutionP1).toEqual([]);expect(a.state().level?.solutionP2).toEqual([]);expect(a.state().level?.initialBoxesP2).toEqual([]);expect(b.state().level?.switchesP1).toEqual([]);
-    a.ws.send(JSON.stringify({type:'move',direction:'U',revision:a.state().revision}));b.ws.send(JSON.stringify({type:'move',direction:'D',revision:b.state().revision}));await expect.poll(()=>a.state().history.at(-1)?.step).toBe(1);
-  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
-},10_000);
-it('keeps campaign witnesses private until both accounts actually win the published revision',async()=>{
-  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
-  try{
-    const {levels}=await import('../server/data/campaign');
-    const a=f.browser(),b=f.browser();await a.login();await b.login('nova');
-    const campaign=(await b.request('levels/catalog')).data.campaign[0];
-    const novaId=(await b.request('session')).data.user.id;
-    // Numeric completion from the old release does not authorize a different encrypted publication.
-    f.auth.recordCompletion([novaId],1);
-    expect((await b.request(`levels/solution/${campaign.entityKey}`)).status).toBe(403);
-    async function connect(account:typeof a){const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:campaign.id,player:account===a?1:2}));await expect.poll(()=>messages.some(m=>m.type==='state')).toBe(true);return {ws,state:()=>messages.filter((m):m is SessionState=>m.type==='state').at(-1)!};}
-    const p1=await connect(a),p2=await connect(b);await expect.poll(()=>p1.state().partnerConnected).toBe(true);
-    expect(p1.state().level?.solutionP1).toEqual([]);expect(p1.state().level?.initialBoxesP2).toEqual([]);expect(p2.state().level?.switchesP1).toEqual([]);expect(p1.state().solutionAvailable).toBe(false);expect(p1.state().levelIndex).toBe(0);
-    for(let k=0;k<levels[0].totalSteps;k++){
-      const revision=p1.state().revision;p1.ws.send(JSON.stringify({type:'move',direction:levels[0].solutionP1[k],revision}));p2.ws.send(JSON.stringify({type:'move',direction:levels[0].solutionP2[k],revision}));
-      await expect.poll(()=>p1.state().history.at(-1)?.step).toBe(k+1);await expect.poll(()=>p2.state().history.at(-1)?.step).toBe(k+1);
-    }
-    expect(p2.state().history.at(-1)?.status).toBe('VICTORY');expect(p1.state().solutionAvailable).toBe(true);expect(p2.state().solutionAvailable).toBe(true);
-    expect((await b.request(`levels/solution/${campaign.entityKey}`)).data.solutionP2).toEqual(levels[0].solutionP2);
-    expect((await b.request(`levels/campaign/${campaign.id}/template`)).status).toBe(200);
-  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+it('pins a community party to its publication and rejects wrong revision or wrong role replays',async()=>{
+  const f=await fixture();try{
+    const draft=(await f.a.request('levels',{level:levels[0]})).data;await f.a.request(`levels/${draft.id}/publish`,{revision:1});const snapshot=f.levels.forPlay(draft.id)!;
+    await f.levels.captureRun(snapshot,{id:'other',displayName:'Other'},1,[levels[0].solutionP1,levels[0].solutionP2],'coop','live');const run=f.levels.runs(draft.id,1)[0];
+    const wrongRole=await f.connect(f.a,create(draft.id,1,'solo',run.id));expect(wrongRole.messages.some(m=>m.type==='state')).toBe(false);
+    const next=(await f.a.request(`levels/${draft.id}`,{level:{...levels[0],name:'Revision 2'},revision:1})).data;await f.a.request(`levels/${draft.id}/publish`,{revision:next.revision});
+    expect(f.levels.runs(draft.id,1)).toEqual([]);const stale=await f.connect(f.a,create(draft.id,2,'solo',run.id));expect(stale.messages.some(m=>m.type==='state')).toBe(false);
+  }finally{await f.close();}
 },10_000);
 
-it('requires explicit roles for game sockets and never substitutes an occupied role',async()=>{
-  const f=await authFixture(),close=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
-  try{
-    const atlas=f.browser(),nova=f.browser();await atlas.login();await nova.login('nova');
-    const id=(await atlas.request('levels/catalog')).data.campaign[0].id;
-    async function connect(account:typeof atlas,player?:unknown,customLevelId:string|null=id){
-      const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];
-      ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');
-      ws.send(JSON.stringify({type:'join',ticket:await account.ticket(),customLevelId:customLevelId??undefined,player}));
-      await expect.poll(()=>messages.some(m=>m.type==='state'||m.type==='full')).toBe(true);return {ws,messages};
-    }
-    for(const invalid of [undefined,0,3,'2',{},true]){
-      const bad=await connect(atlas,invalid);expect(bad.messages.some(m=>m.type==='state')).toBe(false);await expect.poll(()=>bad.ws.readyState).toBe(WebSocket.CLOSED);
-    }
-    const missingRole=await connect(atlas,undefined,null);expect(missingRole.messages.some(m=>m.type==='state')).toBe(false);
-    const badLink=await connect(atlas,1,'missing');expect(badLink.messages.some(m=>m.type==='state')).toBe(false);
-    const p2=await connect(atlas,2);expect(p2.messages.find(m=>m.type==='state')).toMatchObject({player:2});
-    const collision=await connect(nova,2);expect(collision.messages.find(m=>m.type==='full')).toMatchObject({message:expect.stringContaining('P2 is occupied')});expect(collision.messages.some(m=>m.type==='state')).toBe(false);
-    const p1=await connect(nova,1);expect(p1.messages.find(m=>m.type==='state')).toMatchObject({player:1,partnerConnected:true});
-  }finally{for(const ws of clients)ws.terminate();close();await f.close();}
+it('locks the opposite starting projection per player over real sockets and restores it on reset',async()=>{
+  const f=await fixture();try{
+    const host=await f.connect(f.a,create(f.catalog[0].id,2)),guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});
+    expect(host.state().study).toBeUndefined();expect(guest.state().study).toBeUndefined();
+    host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await expect.poll(()=>host.state().party!.members.every(m=>m.ready)).toBe(true);host.send({type:'start'});
+    await expect.poll(()=>host.state().study?.player).toBe(1);await expect.poll(()=>guest.state().study?.player).toBe(2);
+    const attempt=host.state().study!.attempt;
+    host.send({type:'move',direction:'D',revision:host.state().revision});await expect.poll(()=>host.state().pendingMove).toBe('D');expect(host.state().study).toBeUndefined();expect(guest.state().study).toBeDefined();
+    host.send({type:'cancel',revision:host.state().revision});await expect.poll(()=>host.state().pendingMove).toBeNull();expect(host.state().study).toBeUndefined();
+    host.send({type:'move',direction:'D',revision:host.state().revision});guest.send({type:'move',direction:'U',revision:guest.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(1);await expect.poll(()=>guest.state().study).toBeUndefined();
+    expect(host.state().level?.initialBoxesP1).toEqual([]);expect(guest.state().level?.initialBoxesP2).toEqual([]);
+    host.send({type:'undo',revision:host.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(0);expect(host.state().study).toBeUndefined();
+    host.send({type:'reset',revision:host.state().revision});await expect.poll(()=>host.state().study?.attempt).toBeGreaterThan(attempt);await expect.poll(()=>guest.state().study?.attempt).toBe(host.state().study!.attempt);
+  }finally{await f.close();}
 },10_000);

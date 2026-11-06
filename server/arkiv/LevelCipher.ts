@@ -15,14 +15,16 @@ export class LevelCipher {
       const r=envelope.record as ArchiveRecord;
       if(envelope.format!==1||envelope.chainId!==7794095||envelope.namespace!==this.namespace||
         !r||r.id!==expected.id||r.revision!==expected.revision||r.category!==expected.category||
-        !['draft','community','campaign'].includes(r.category)||!Number.isSafeInteger(r.revision)||r.revision<1||
+        !['draft','community','campaign','run'].includes(r.category)||!Number.isSafeInteger(r.revision)||r.revision<1||
         typeof r.ownerId!=='string'||r.ownerId.length>128||typeof r.ownerName!=='string'||r.ownerName.length>128||
         !Number.isSafeInteger(r.updatedAt)||r.updatedAt<0||
         (r.category==='campaign'&&(!Number.isSafeInteger(r.campaignSlot)||r.campaignSlot!<1)))throw new Error();
+      if(r.lifetimeDays!==undefined&&r.lifetimeDays!==2)throw new Error();
+      if(r.category==='run'&&(!r.run||!/^0x[a-fA-F0-9]{64}$/.test(r.run.levelKey)||![1,2].includes(r.run.role)||!['coop','solo'].includes(r.run.mode)||typeof r.run.source!=='string'||r.run.source.length>128||r.lifetimeDays!==2))throw new Error();
       const level=cleanDraft(r.level);
       if(r.category!=='draft'&&!verifySolution(level).valid)throw new Error();
       return {id:r.id,revision:r.revision,category:r.category,ownerId:r.ownerId,ownerName:r.ownerName,updatedAt:r.updatedAt,
-        ...(r.category==='campaign'?{campaignSlot:r.campaignSlot}:{}),level};
+        ...(r.category==='campaign'?{campaignSlot:r.campaignSlot}:{}),...(r.lifetimeDays?{lifetimeDays:r.lifetimeDays}:{}),...(r.category==='run'?{run:r.run}:{}),level};
     }catch{throw new ArchiveError(503,'Encrypted level failed authentication or validation.');}
   }
 }

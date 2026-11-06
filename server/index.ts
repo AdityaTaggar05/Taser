@@ -24,4 +24,4 @@ const server=createServer((req,res)=>{
 });
 const close=attachCoop(server,auth,undefined,levels);
 server.listen(Number(process.env.PORT??5173),'0.0.0.0',()=>console.log(`WeldPoint co-op listening on port ${process.env.PORT??5173}`));
-for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{close();server.close(()=>{levels.close();auth.close();process.exit(0);});});
+for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{close();server.close(()=>{void levels.drain().finally(()=>{levels.close();auth.close();process.exit(0);});});});
