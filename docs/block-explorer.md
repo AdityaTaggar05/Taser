@@ -69,3 +69,18 @@ The authenticated `GET /levels/moves/:sessionId?sequences=1,2` endpoint accepts 
 Polling happens immediately when the active sequence changes and every three seconds thereafter, with no overlapping requests. Route, account and sequence changes abort outstanding requests; generation checks discard late replies. Hidden tabs stop querying until visible again. Query failures mark displayed data stale and retry; they never initiate writes. `CoopRoom` supplies only active sequence IDs, trimming on undo and clearing on reset, lobby return and level changes; immutable historical move records remain intact.
 
 Verification adds real SDK query-encoding/provenance tests, participant/session isolation, bounded request validation, missing-entity handling and active-sequence undo/reset tests. Chromium checks with the explicit in-memory HTTP/WebSocket fixture cover paired arrows, three-second polling without new moves, undo/reset, query outage/recovery, mobile containment and polling cleanup. These checks do not claim live Rabdi availability. CRE is not part of this change.
+
+## Party startup feedback and latency
+
+Party creation no longer waits for all theme artwork before contacting the game server. Lobby creation and authenticated Arkiv checks can finish while sprites load; gameplay inputs stay disabled until the board artwork is ready. Solo startup validates its level once through replay loading rather than fetching the same entity twice. Concurrent availability requests share one in-flight head check while retaining the existing ten-second freshness window and normal failure behavior.
+
+The server sends loading stages before checking availability, reading the level/replay and creating the party. The lobby immediately displays these stages with elapsed seconds and a reduced-motion-aware loading indicator. Blockchain stages explicitly describe reads, not transactions. A bounded 60-second server join deadline replaces the previous mismatch with a 20-second client timeout; a failed or timed-out join shows a retry button. Disconnecting during an outstanding read prevents that abandoned request from creating a party. Loading timers are cleared on success, failure and navigation.
+
+`tests/party-loading.test.ts` and the session tests cover slow joins beyond twenty seconds, loading-stage propagation, elapsed time, timeout/retry cleanup, shared head checks, failed-check recovery, single-read solo startup and cancelled creation. The production browser check below deliberately holds all PNG requests, delays archive reads, verifies that the lobby still opens, and checks failure/retry plus navigation away during loading:
+
+```sh
+# With the in-memory browser fixture running and Playwright available:
+node scripts/browser/party-loading.mjs
+```
+
+Validation for this follow-up: all 159 automated tests and the production build passed. Chromium passed the delayed-read/artwork checks, failed-read retry, cancellation and re-creation at 390 × 844 with no page errors. The delays and failures in this fixture are simulated. This check does not measure production RPC latency or verify a live-chain transaction.

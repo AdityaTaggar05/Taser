@@ -9,13 +9,17 @@ import {attachCoop} from '../../server/socket.ts';
 import {levels} from '../../server/data/campaign.ts';
 // Isolated browser fixture: never loads .env.local or creates an Arkiv signer.
 const auth=new AuthService({databasePath:':memory:',demoEnabled:true});
-const archive=new MemoryArchive(),put=archive.put.bind(archive);let fail=false,queryFail=false;
+const archive=new MemoryArchive(),put=archive.put.bind(archive);let fail=false,queryFail=false,joinSlow=false,joinFail=false;
+const read=archive.read.bind(archive);archive.read=async ref=>{if(joinSlow)await new Promise(r=>setTimeout(r,3000));if(joinFail)throw new Error('test chamber unavailable');return read(ref);};
 const queryMoves=archive.queryMoves.bind(archive);archive.queryMoves=async records=>{if(queryFail)throw new Error('test query offline');return queryMoves(records);};
 archive.put=async record=>{if(record.category==='move'){await new Promise(r=>setTimeout(r,150));if(fail)throw new Error('test offline');}return put(record);};
 const store=new LevelStore(':memory:',archive);await store.seed(levels);
 const snapshot=store.campaignSnapshots()[0];await store.captureRun(snapshot,{id:'fixture',displayName:'Fixture echo'},2,[levels[0].solutionP1,levels[0].solutionP2],'coop','live');
 const api=applicationApi(auth,store),root=resolve('dist');
 const server=createServer((req,res)=>{
+ if(req.url==='/__test/join-slow'){joinSlow=true;joinFail=false;res.end('ok');return;}
+ if(req.url==='/__test/join-fail'){joinFail=true;joinSlow=false;res.end('ok');return;}
+ if(req.url==='/__test/join-recover'){joinFail=false;joinSlow=false;res.end('ok');return;}
  if(req.url==='/__test/query-fail'){queryFail=true;res.end('ok');return;}
  if(req.url==='/__test/query-recover'){queryFail=false;res.end('ok');return;}
  if(req.url==='/__test/fail'){fail=true;res.end('ok');return;}
