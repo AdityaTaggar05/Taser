@@ -54,7 +54,7 @@ async function run(){
     const signer=privateKeyToAccount((values.CRE_ETH_PRIVATE_KEY??env.CRE_ETH_PRIVATE_KEY??parseEnv(readFileSync(file,'utf8')).CRE_ETH_PRIVATE_KEY) as Hex).address;console.log('CRE Sepolia signer:',signer);console.log('Secrets saved locally. Configure the remaining values from .env.example; no transaction sent.');return;
   }
   if(action==='check'){
-    console.log('CRE mode:',env.CRE_MODE??'unconfigured');console.log('CLI:',spawnSync(env.CRE_BIN??'cre',['--version'],{encoding:'utf8'}).status===0?'installed':'install CRE CLI and run cre login');
+    console.log('CRE mode:',env.CRE_MODE??'unconfigured');console.log('CLI:',spawnSync(env.CRE_BIN??'cre',['version'],{encoding:'utf8'}).status===0?'installed':'install CRE CLI and run cre login');
     console.log('API token:',(env.CRE_API_TOKEN?.length??0)>=32?'configured':'missing');console.log('Registry:',env.CRE_REGISTRY_ADDRESS??'not configured');
     if(env.CRE_ETH_PRIVATE_KEY)console.log('Signer:',privateKeyToAccount(env.CRE_ETH_PRIVATE_KEY as Hex).address);return;
   }
