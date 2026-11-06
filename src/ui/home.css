@@ -1,4 +1,7 @@
 #home {
+  --home-header-height: clamp(58px, 11dvh, 96px);
+  --home-footer-height: clamp(36px, 8dvh, 66px);
+  --home-content-gap: clamp(10px, 2dvh, 20px);
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -11,7 +14,7 @@
   top: 0;
   left: 48px;
   right: 48px;
-  height: 96px;
+  height: var(--home-header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -58,10 +61,16 @@
 .home-content {
   position: absolute;
   left: clamp(40px, 7vw, 124px);
-  top: 50%;
-  transform: translateY(-46%);
+  top: calc(var(--home-header-height) + var(--home-content-gap));
+  bottom: calc(var(--home-footer-height) + var(--home-content-gap));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 430px;
   max-width: 43vw;
+}
+#home .home-content > * {
+  flex-shrink: 0;
 }
 .home-kicker {
   display: flex;
@@ -78,11 +87,11 @@
   box-shadow: 0 0 15px #75ddd050;
 }
 #home-title {
-  font-size: clamp(68px, 8.2vw, 132px);
+  font-size: clamp(64px, min(7.5vw, 12dvh), 132px);
   line-height: 0.86;
   letter-spacing: -7px;
   font-weight: 800;
-  margin: 26px 0 0;
+  margin: clamp(12px, 2.2dvh, 26px) 0 0;
   color: #e4e7d7;
 }
 #home-title > span {
@@ -93,20 +102,20 @@
   color: #f0ac65;
 }
 .home-tagline {
-  font-size: clamp(20px, 2.1vw, 30px);
+  font-size: clamp(18px, min(2.1vw, 3.4dvh), 30px);
   font-weight: 400;
   line-height: 1.2;
   letter-spacing: -0.7px;
-  margin: 25px 0 0;
+  margin: clamp(12px, 2dvh, 25px) 0 0;
   color: #d4ddd0;
 }
 .home-description {
-  font: 11px/1.8 monospace;
+  font: 11px/1.6 monospace;
   color: #91a298;
-  margin: 15px 0 0;
+  margin: clamp(8px, 1.5dvh, 15px) 0 0;
 }
 .home-menu {
-  margin-top: 30px;
+  margin-top: clamp(12px, 2.2dvh, 30px);
   max-width: 350px;
 }
 .home-play {
@@ -145,13 +154,13 @@
 .home-secondary {
   display: flex;
   gap: 20px;
-  margin-top: 15px;
+  margin-top: 6px;
 }
 .home-secondary button {
   flex: 1;
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 8px 0;
   border: 0;
   border-bottom: 1px solid #4a60544f;
   background: transparent;
@@ -171,7 +180,7 @@
   font: 8px monospace;
   color: #80998a;
   letter-spacing: 1px;
-  margin-top: 19px;
+  margin: 10px 0 0;
 }
 .home-art-label {
   position: absolute;
@@ -198,7 +207,7 @@
 .home-footer {
   position: absolute;
   bottom: 0;
-  height: 66px;
+  height: var(--home-footer-height);
   left: 48px;
   right: 48px;
   border-top: 1px solid #7b958d24;
@@ -211,15 +220,20 @@
   color: #82958f;
 }
 .home-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  max-height: 44px;
   border: 0;
   background: transparent;
   font: 20px monospace;
+  line-height: 1;
   padding: 8px;
 }
 .home-footer button span {
   font-size: 8px;
   vertical-align: 3px;
-  margin-left: 7px;
   letter-spacing: 1px;
 }
 .home-dialog {
@@ -336,9 +350,6 @@
   margin-top: 30px;
 }
 @media (min-height: 950px) {
-  .home-content {
-    transform: translateY(-44%);
-  }
   .home-menu {
     margin-top: 40px;
   }
@@ -350,7 +361,6 @@
   .home-top {
     left: 28px;
     right: 28px;
-    height: 78px;
   }
   .home-content {
     left: 6vw;
@@ -382,7 +392,6 @@
   .home-top {
     left: 22px;
     right: 22px;
-    height: 72px;
   }
   .home-brand {
     font-size: 10px;
@@ -409,20 +418,18 @@
     left: 8vw;
     max-width: none;
     width: 80vw;
-    top: 49%;
-    transform: translateY(-43%);
   }
   #home-title {
-    font-size: clamp(76px, 16vw, 112px);
+    font-size: clamp(64px, min(16vw, 12dvh), 112px);
     letter-spacing: -6px;
-    margin-top: 21px;
+    margin-top: clamp(12px, 2dvh, 21px);
   }
   .home-kicker {
     font-size: 8px;
   }
   .home-tagline {
-    font-size: 23px;
-    margin-top: 23px;
+    font-size: clamp(18px, 3.2dvh, 23px);
+    margin-top: 12px;
   }
   .home-description {
     font-size: 10px;
@@ -441,7 +448,6 @@
   .home-footer {
     left: 22px;
     right: 22px;
-    height: 58px;
     gap: 12px;
     font-size: 7px;
     letter-spacing: 0.5px;
@@ -459,125 +465,85 @@
     font-size: 29px;
   }
 }
-@media (max-height: 800px) and (min-width: 701px) {
-  #home-title {
-    font-size: clamp(76px, 7.2vw, 100px);
-    margin-top: 20px;
-  }
-  .home-tagline {
-    margin-top: 18px;
-  }
-  .home-description {
-    margin-top: 12px;
-  }
+/* Keep the complete menu inside the space between the header and footer. */
+#home .home-mode-buttons .home-play {
+  padding: clamp(10px, 1.6dvh, 16px) 14px;
+}
+#home .home-browse {
+  min-height: 36px;
+  padding: clamp(6px, 1.1dvh, 12px) 0;
+}
+@media (max-height: 800px) {
   .home-menu {
-    margin-top: 24px;
-  }
-  .home-play {
-    padding: 15px 20px;
-  }
-  .home-session-note {
-    margin-top: 12px;
+    margin-top: 16px;
   }
 }
-@media (max-height: 700px) and (min-width: 701px) {
-  .home-top {
-    height: 64px;
-  }
-  .home-footer {
-    height: 46px;
-  }
-  .home-content {
-    top: 48%;
-    transform: translateY(-42%);
-  }
+@media (max-height: 700px) {
   #home-title {
-    font-size: 76px;
+    font-size: 64px;
     letter-spacing: -5px;
-    margin-top: 16px;
-  }
-  .home-tagline {
-    font-size: 20px;
-    margin-top: 16px;
-  }
-  .home-description {
-    font-size: 10px;
-    margin-top: 10px;
-  }
-  .home-menu {
-    margin-top: 20px;
-  }
-  .home-play {
-    padding: 12px 17px;
-    font-size: 19px;
-  }
-  .home-secondary {
-    margin-top: 6px;
-  }
-  .home-session-note {
     margin-top: 12px;
-  }
-}
-@media (max-height: 650px) and (max-width: 700px) {
-  .home-content {
-    top: 75px;
-    transform: none;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 28px;
-    align-items: start;
-    width: 86vw;
-    left: 7vw;
-  }
-  .home-kicker {
-    grid-column: 1/-1;
   }
   .home-description {
     display: none;
   }
-  #home-title {
-    font-size: 66px;
-    letter-spacing: -4px;
-    margin-top: 10px;
+  .home-menu {
+    margin-top: 12px;
   }
+}
+@media (max-height: 700px) and (max-width: 700px) {
+  #home-title {
+    font-size: 56px;
+  }
+  #home .home-mode-buttons {
+    gap: 8px;
+  }
+  #home .home-mode-buttons .home-play {
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 17px;
+  }
+  #home .home-mode-buttons .play-arrow {
+    font-size: 18px;
+  }
+  .home-secondary {
+    gap: 12px;
+  }
+  .home-secondary button {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .home-session-note {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+}
+@media (max-height: 520px) and (min-width: 701px) {
+  .home-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: center;
+    column-gap: 40px;
+    width: calc(100% - 12vw);
+    max-width: 900px;
+  }
+  .home-kicker,
+  #home-title,
   .home-tagline {
     grid-column: 1;
-    margin: 0;
-    font-size: 18px;
   }
   .home-menu {
     grid-column: 2;
-    grid-row: 2/4;
-    margin-top: 10px;
-  }
-  .home-play {
-    font-size: 17px;
-    padding: 12px;
-  }
-  .home-play small {
-    font-size: 6px;
-    letter-spacing: 0.6px;
-  }
-  .home-play .play-arrow {
-    font-size: 24px;
-  }
-  .home-secondary {
-    display: grid;
-    gap: 0;
-    margin-top: 4px;
+    grid-row: 1 / 5;
+    margin: 0;
   }
   .home-session-note {
-    grid-column: 2;
-    grid-row: 4;
-    font-size: 6px;
-    line-height: 1.6;
-    margin-top: 0;
+    grid-column: 1;
+    font-size: 7px;
+    line-height: 1.5;
   }
-  .home-footer {
-    height: 36px;
-  }
-  .home-top {
-    height: 58px;
+  .home-art-label {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

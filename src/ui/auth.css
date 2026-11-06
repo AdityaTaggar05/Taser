@@ -4,17 +4,21 @@
   z-index: 20;
   color: #e4e7d7;
   background: linear-gradient(90deg, #10191cfa 0%, #10191cf2 38%, #10191c50 78%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: clamp(16px, 3dvh, 28px) clamp(24px, 3.75vw, 48px);
   overflow: auto;
 }
 .signin-brand {
-  position: absolute;
-  left: 48px;
-  top: 24px;
+  justify-self: start;
 }
 .signin-panel {
   width: 410px;
   max-width: calc(100% - 48px);
-  margin: 130px 0 90px clamp(24px, 7vw, 124px);
+  margin: 0 0 0 max(0px, calc(clamp(24px, 7vw, 124px) - clamp(24px, 3.75vw, 48px)));
+  align-self: center;
 }
 .signin-panel h1 {
   font-size: clamp(36px, 4vw, 58px);
@@ -85,13 +89,15 @@
   overflow-wrap: anywhere;
 }
 .signin-footer {
-  position: absolute;
-  left: 48px;
-  top: calc(100% - 38px);
+  margin: 0;
   font: 8px monospace;
   letter-spacing: 2px;
   color: #82958f;
   pointer-events: none;
+}
+.signin-status:empty {
+  min-height: 0;
+  margin: 0;
 }
 .home-account {
   border: 0;
@@ -130,42 +136,34 @@ body[data-screen='signin'] #hud {
   #signin {
     background: #10191cdd;
   }
-  .signin-brand {
-    left: 24px;
-    top: 20px;
-  }
   .signin-panel {
-    margin: 110px auto 70px;
-  }
-  .signin-footer {
-    left: 24px;
-    position: static;
-    margin: 0 24px 24px;
-  }
-  .signin-panel h1 {
-    font-size: 42px;
-  }
-}
-@media (max-height: 800px) and (min-width: 701px) {
-  .signin-panel {
-    margin-top: 85px;
-    margin-bottom: 24px;
+    margin: 0 auto;
+    max-width: 100%;
   }
   .signin-panel h1 {
     font-size: 38px;
-    margin: 20px 0 14px;
+  }
+}
+@media (max-height: 800px) {
+  .signin-panel h1 {
+    font-size: 36px;
+    margin: 16px 0 12px;
   }
   .signin-intro {
-    margin-bottom: 18px;
-  }
-  .signin-divider {
-    padding-top: 14px;
-  }
-  .signin-wallet-note {
     margin-bottom: 16px;
   }
+  .signin-divider {
+    padding-top: 12px;
+    margin-bottom: 10px;
+  }
+  .signin-wallet-note {
+    margin-bottom: 14px;
+  }
+  .demo-choices {
+    margin-bottom: 10px;
+  }
   .demo-form label {
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .demo-form input {
     padding: 8px 12px;
@@ -173,8 +171,72 @@ body[data-screen='signin'] #hud {
   .demo-form .home-dialog-primary {
     margin-top: 12px;
   }
-  .signin-footer {
-    position: static;
-    margin: 0 48px 20px;
+}
+@media (max-height: 650px) and (min-width: 701px) {
+  .signin-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 32px;
+    width: 820px;
+    max-width: 100%;
+    margin: 0;
+  }
+  .signin-panel > .home-kicker,
+  .signin-panel h1,
+  .signin-intro,
+  .signin-wallet,
+  .signin-wallet-note,
+  .signin-status,
+  .signin-retry {
+    grid-column: 1;
+  }
+  .demo-form {
+    grid-column: 2;
+    grid-row: 1 / 7;
+    align-self: center;
+  }
+  .signin-panel h1 {
+    font-size: 30px;
+    margin: 10px 0;
+  }
+  .signin-intro {
+    margin: 0 0 10px;
+  }
+  .signin-wallet {
+    padding: 10px 14px;
+  }
+  .signin-wallet-note {
+    margin-bottom: 0;
+  }
+}
+@media (max-height: 700px) and (max-width: 700px) {
+  .signin-panel h1 {
+    font-size: 28px;
+    margin: 8px 0;
+  }
+  .signin-intro {
+    font-size: 10px;
+    line-height: 1.6;
+    margin: 0 0 10px;
+  }
+  .signin-wallet {
+    padding: 8px 14px;
+    font-size: 16px;
+  }
+  .signin-wallet small {
+    margin-bottom: 6px;
+  }
+  .signin-wallet-note {
+    margin: 8px 0 10px;
+  }
+  .signin-divider {
+    padding-top: 8px;
+    margin-bottom: 8px;
+  }
+  .demo-choices button {
+    padding: 6px 10px;
+  }
+  .demo-form label {
+    margin: 6px 0 5px;
   }
 }
