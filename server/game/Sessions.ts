@@ -1,3 +1,4 @@
+import {isLive} from '../../src/core/types';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {CoopRoom,type Peer} from '../CoopRoom';
 import type {AuthService} from '../auth/AuthService';
@@ -5,8 +6,8 @@ import {LevelError,type LevelStore,type PublishedSnapshot} from '../levels/Level
 import type {PlayerProfile} from '../../src/auth/types';
 import type {JoinIntent,Player,PlayMode,ServerMessage} from '../../src/network/protocol';
 import {INVITE_ALPHABET,INVITE_LENGTH,normalizeInviteCode} from '../../src/network/invite';
-interface Member {user:PlayerProfile;role:Player;peer:Peer|null;bridge:Peer;ready:boolean;publicationVersion?:number;disconnectedAt?:number;runPublication?:'pending'|'confirmed'}
-interface Session {id:string;code:string;mode:PlayMode;host:string;room:CoopRoom;snapshot:PublishedSnapshot;members:Map<string,Member>;started:boolean;echoName?:string;touched:number}
+interface Member {user:PlayerProfile;role:Player;peer:Peer|null;bridge:Peer;ready:boolean;broadcast?:boolean;publicationVersion?:number;disconnectedAt?:number;runPublication?:'pending'|'confirmed'}
+interface Session {id:string;code:string;mode:PlayMode;host:string;room:CoopRoom;snapshot:PublishedSnapshot;members:Map<string,Member>;started:boolean;market?:string;lastLease?:number;echoName?:string;touched:number}
 /** Authenticated private sessions. Invite codes grant a seat, never puzzle data or an account. */
 export class Sessions {
   private sessions=new Map<string,Session>();private peers=new Map<Peer,{session:Session;member:Member}>();
@@ -57,7 +58,7 @@ export class Sessions {
       member={user,role:role!,peer:null,ready:false,bridge:null!};const current=member;
       member.bridge={send:(message:ServerMessage)=>{
         if(message.type==='state')current.peer?.send({...message,campaign:this.store.campaign(),mode:selected.mode,echoName:selected.echoName,runPublication:current.runPublication,customLevelId:selected.snapshot.slot?undefined:selected.snapshot.id,
-          party:{id:selected.id,code:selected.code,host:current.user.id===selected.host,started:selected.started,members:[...selected.members.values()].map(m=>({name:m.user.displayName,player:m.role,ready:m.ready,connected:!!m.peer}))}});
+          party:{publicMatchId:selected.market,id:selected.id,code:selected.code,host:current.user.id===selected.host,started:selected.started,members:[...selected.members.values()].map(m=>({name:m.user.displayName,player:m.role,ready:m.ready,connected:!!m.peer,broadcast:!!m.broadcast}))}});
         else if(message.type==='welcome')current.peer?.send({...message,sessionId:selected.id});else current.peer?.send(message);
       },close:()=>current.peer?.close()};selected.members.set(user.id,member);
     }
@@ -69,10 +70,19 @@ export class Sessions {
   private checkAccount(id:string){if([...this.sessions.values()].some(s=>s.members.has(id)))throw new LevelError(409,'Your account already has a session. Resume it or leave it before starting another.');}
   receive(peer:Peer,value:unknown){
     const entry=this.peers.get(peer);if(!entry)return;const {session:s,member:m}=entry;s.touched=Date.now();
-    const command=value as {type?:unknown;ready?:unknown;revision?:unknown};
+    const command=value as {type?:unknown;ready?:unknown;revision?:unknown;enabled?:unknown};
+    if(command?.type==='broadcast'){
+      if(s.mode!=='coop'||s.started||typeof command.enabled!=='boolean'){peer.send({type:'error',message:'Change public broadcasting in the co-op lobby.'});return;}
+      if(m.broadcast===command.enabled)return;
+      this.cancelMarket(s);m.broadcast=command.enabled;m.ready=false;
+      if(s.members.size===2&&[...s.members.values()].every(member=>member.broadcast)){
+        s.market=this.store.betting.create(s.snapshot,[...s.members.values()].map(member=>({id:member.user.id,name:member.user.displayName})),s.room.observe());s.lastLease=Date.now();
+      }
+      s.room.notify();return;
+    }
     if(command?.type==='lobby'){
       if(s.mode!=='coop'||!s.started||!s.room.returnToLobby(command.revision)){peer.send({type:'error',message:'Return to the party after this attempt ends. If the timeline changed, try again.'});return;}
-      s.started=false;for(const member of s.members.values())member.ready=false;s.room.notify();return;
+      s.market=undefined;s.started=false;for(const member of s.members.values()){member.ready=false;member.broadcast=false;}s.room.notify();return;
     }
     if(command?.type==='ready'){
       if(s.started||typeof command.ready!=='boolean')return;m.ready=command.ready;s.room.notify();return;
@@ -81,22 +91,49 @@ export class Sessions {
       if(s.host!==m.user.id){peer.send({type:'error',message:'Only the host can start the party.'});return;}
       if(s.started)return;
       if(s.members.size!==2||![...s.members.values()].every(m=>m.peer&&m.ready)){peer.send({type:'error',message:'Both operators must be connected and Ready.'});return;}
+      if(s.market){try{this.store.betting.lock(s.market);}catch{peer.send({type:'error',message:'The prediction window expired. Disable and re-enable public broadcasting before starting.'});return;}}
       s.started=true;s.room.startStudy();s.room.notify();return;
     }
     if(!s.started){peer.send({type:'error',message:'Wait for both operators to ready up and the host to start.'});return;}
-    s.room.receive(m.bridge,value);
+    if(s.market){
+      const status=this.store.betting.status(s.market);
+      if(status!=='locked'){peer.send({type:'error',message:'This public attempt is settled. Return to the party to try again.'});return;}
+      if(command.type==='undo'){peer.send({type:'error',message:'Public prediction matches do not allow undo. Reset ends this attempt as a loss.'});return;}
+      if(command.type==='reset'){
+        if(command.revision!==s.room.observe().revision){peer.send({type:'error',message:'The timeline changed. Try again.'});return;}
+        s.room.forfeit();this.store.betting.record(s.market,s.room.observe(),'lost');this.store.betting.settle(s.market,'fail');return;
+      }
+    }
+    const before=s.room.observe();s.room.receive(m.bridge,value);const after=s.room.observe();
+    if(s.market&&(after.state.step!==before.state.step||after.state.status!==before.state.status)){
+      const outcome=after.state.status==='VICTORY'?'won':isLive(after.state.status)?'active':'lost';
+      this.store.betting.record(s.market,after,outcome);s.lastLease=Date.now();
+      if(outcome!=='active')this.store.betting.settle(s.market,outcome==='won'?'escape':'fail');
+    }
   }
   disconnect(peer:Peer,intentional=false){
     const entry=this.peers.get(peer);if(!entry)return;this.peers.delete(peer);const {session:s,member:m}=entry;m.peer=null;m.ready=false;m.disconnectedAt=Date.now();s.touched=Date.now();
     if(intentional){
+      this.cancelMarket(s);
       if(s.host===m.user.id||s.mode==='solo'){this.end(s,'The host left. This session has ended.');return;}
       s.room.release(m.bridge);s.members.delete(m.user.id);s.started=false;for(const member of s.members.values())member.ready=false;s.room.notify();
     }else{s.room.leave(m.bridge);if(!s.started)for(const member of s.members.values())member.ready=false;s.room.notify();}
   }
-  private end(s:Session,message:string){this.sessions.delete(s.id);for(const m of s.members.values())if(m.peer){const peer=m.peer;this.peers.delete(peer);peer.send({type:'full',message});peer.close();m.peer=null;}}
-  sweep(){for(const s of [...this.sessions.values()]){
+  private cancelMarket(s:Session){
+    if(!s.market)return;const status=this.store.betting.status(s.market);
+    if(status==='open'||status==='locked'){this.store.betting.record(s.market,s.room.observe(),'lost');this.store.betting.settle(s.market,'void');}
+    s.market=undefined;
+  }
+  private end(s:Session,message:string){this.cancelMarket(s);this.sessions.delete(s.id);for(const m of s.members.values())if(m.peer){const peer=m.peer;this.peers.delete(peer);peer.send({type:'full',message});peer.close();m.peer=null;}}
+  sweep(){this.store.betting.sweep();for(const s of [...this.sessions.values()]){
+    if(s.market){
+      const status=this.store.betting.status(s.market);
+      if(status==='void'){this.end(s,'The public attempt timed out. Predictions were refunded.');continue;}
+      if(status==='locked'&&Date.now()-(s.lastLease??0)>45_000){this.store.betting.record(s.market,s.room.observe(),'active');s.lastLease=Date.now();}
+    }
     const expired=[...s.members.values()].filter(m=>!m.peer&&m.disconnectedAt!==undefined&&Date.now()-m.disconnectedAt>45_000);
     if(expired.some(m=>m.user.id===s.host)){this.end(s,'The host disconnected and the party expired.');continue;}
+    if(expired.length)this.cancelMarket(s);
     s.room.expire();
     for(const member of expired){s.members.delete(member.user.id);s.started=false;for(const m of s.members.values())m.ready=false;s.room.notify();}
   }}

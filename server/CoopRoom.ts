@@ -25,6 +25,8 @@ export class CoopRoom {
     if(!campaign.length)throw new Error('No campaign chambers are published. Run npm run arkiv:migrate.');
     this.publication=campaign[0];this.engine=new GameEngine(this.publication.level);
   }
+  observe(){return {level:structuredClone(this.engine.level),state:structuredClone(this.engine.state),moves:structuredClone(this.inputs),revision:this.revision};}
+  forfeit(){this.engine.state.status='OUT_OF_TIME';this.engine.state.message='This public attempt has ended. Return to the party to try again.';this.pending=[null,null];this.revision++;this.broadcast();}
   startStudy(){this.studyEnabled=true;this.studyAttempt++;this.studyLocked=[false,false];this.revision++;}
   private clearStudy(){this.studyEnabled=false;}
   get empty(){return !this.seats.some(Boolean);}

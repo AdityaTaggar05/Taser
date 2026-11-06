@@ -26,4 +26,4 @@ export function parseCommand(value: unknown): ClientCommand | null {
 }
 export type PlayMode='coop'|'solo';
 export type JoinIntent={kind:'create';mode:PlayMode;levelId:string;player:Player;runId?:string}|{kind:'invite';code:string}|{kind:'resume';id:string};
-export interface PartyState {id:string;code:string;host:boolean;started:boolean;members:Array<{name:string;player:Player;ready:boolean;connected:boolean}>}
+export interface PartyState {id:string;code:string;host:boolean;started:boolean;publicMatchId?:string;members:Array<{name:string;player:Player;ready:boolean;connected:boolean;broadcast?:boolean}>}
