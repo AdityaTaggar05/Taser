@@ -1,13 +1,12 @@
 import Phaser from 'phaser';
 import { environments, semantic, type ThemePack } from '../assets/catalog';
 import { spriteUrl, type AssetRole } from '../assets/schema';
-import { artworkSheetKey } from '../assets/ArtworkLoader';
+import { artworkKey, artworkSheetKey } from '../assets/ArtworkLoader';
 export { environments };
 export type { AssetRole };
 export type EnvironmentPack = ThemePack;
 export const sheetKey = artworkSheetKey;
-export const animationKey = (pack: ThemePack, id: string) =>
-  `${pack.id}@${pack.manifest.version}:${id}`;
+export const animationKey = (pack: ThemePack, id: string) => `${artworkKey(pack)}:${id}`;
 /** Abort both the remote read and image decoding when a theme attempt ends. */
 export async function loadEnvironmentSheet(
   scene: Phaser.Scene,

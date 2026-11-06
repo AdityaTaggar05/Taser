@@ -1,6 +1,7 @@
 import type { ThemePack } from './catalog';
 
-export const artworkKey = (pack: ThemePack) => `${pack.id}@${pack.manifest.version}`;
+export const artworkKey = (pack: ThemePack) =>
+  `${pack.id}@${pack.manifest.version}:${pack.deployment.reference ? 'swarm' : 'local'}`;
 export const artworkSheetKey = (pack: ThemePack, id: string) => `${artworkKey(pack)}:${id}`;
 
 interface ArtworkTarget {
@@ -17,7 +18,7 @@ export class ArtworkLoader {
   constructor(
     private target: ArtworkTarget,
     private progress: (pack: ThemePack, loaded: number, total: number) => void,
-    private timeoutMs = 45_000,
+    private timeoutMs: number | ((pack: ThemePack) => number) = 45_000,
   ) {}
 
   isReady(pack: ThemePack) {
@@ -49,7 +50,7 @@ export class ArtworkLoader {
     });
     const timer = setTimeout(
       () => controller.abort(new Error('Artwork loading timed out. Please retry.')),
-      this.timeoutMs,
+      typeof this.timeoutMs === 'number' ? this.timeoutMs : this.timeoutMs(pack),
     );
     try {
       this.progress(pack, loaded, ids.length);

@@ -125,7 +125,7 @@ The server enforces account identity, party membership, roles and simulation rul
 
 ## Replace artwork / add environments
 
-Theme packs use versioned manifests and original sprite sheets from a verified Swarm release, selected through the public Arkiv theme pointer. Register packs in `src/assets/sources.ts` and follow [the theme pack contract](docs/THEME_PACKS.md). The active pack loads on demand, with bounded concurrency, progress and a retry action after a 45-second timeout. Party creation proceeds during artwork loading; movement waits for the active pack to be ready. Missing remote artwork remains an error. Set the optional `environment` ID in level data to choose its default pack; presentation never changes simulation rules.
+Theme packs use versioned manifests and original sprite sheets from a verified Swarm release, selected through the public Arkiv theme pointer. Register packs in `src/assets/sources.ts` and follow [the theme pack contract](docs/THEME_PACKS.md). The active pack loads on demand with bounded concurrency and progress. Slow or failed remote metadata/sprites fall back after eight seconds per stage to the complete local Modern Gray pack. Local fallback uses matching frames and original PNGs; settings identify it as Local. Reload retries Swarm. Party creation proceeds during artwork loading; movement waits for the effective pack to be ready. Set the optional `environment` ID in level data to choose its default pack; presentation never changes simulation rules.
 
 ## Custom chamber creator
 

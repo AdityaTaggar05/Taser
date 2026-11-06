@@ -1,7 +1,17 @@
 import type { ThemePack } from './catalog';
 import { validateTheme, validateRelease, type Deployment } from './schema';
-export async function publicBytes(url: string, max: number, fetcher: typeof fetch = fetch) {
-  const response = await fetcher(url, { signal: AbortSignal.timeout(60_000), redirect: 'error' });
+export async function publicBytes(
+  url: string,
+  max: number,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+) {
+  const response = await fetcher(url, {
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(60_000)])
+      : AbortSignal.timeout(60_000),
+    redirect: 'error',
+  });
   if (!response.ok || !response.body) throw new Error('Artwork read failed');
   const reader = response.body.getReader(),
     chunks: Uint8Array[] = [];
@@ -32,7 +42,11 @@ export async function sha256Hex(data: Uint8Array) {
   ).join('');
 }
 /** A deployed Arkiv entity selects the release; Swarm supplies the manifest and all PNGs. */
-export async function loadPublishedTheme(pack: ThemePack, fetcher: typeof fetch = fetch) {
+export async function loadPublishedTheme(
+  pack: ThemePack,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+) {
   const d = pack.deployment;
   if (!d.reference) return { manifest: pack.manifest, deployment: d };
   if (!d.releaseSha256) {
@@ -43,7 +57,7 @@ export async function loadPublishedTheme(pack: ThemePack, fetcher: typeof fetch 
     releaseHash = d.releaseSha256,
     manifestHash = d.manifestSha256;
   if (d.arkiv) {
-    const bytes = await publicBytes('/api/themes/' + pack.id, 4096, fetcher),
+    const bytes = await publicBytes('/api/themes/' + pack.id, 4096, fetcher, signal),
       p = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     if (
       p.entityKey !== d.arkiv.entityKey ||
@@ -61,7 +75,12 @@ export async function loadPublishedTheme(pack: ThemePack, fetcher: typeof fetch 
     manifestHash = p.manifestSha256;
   }
   const base = d.gateway.replace(/\/$/, ''),
-    releaseBytes = await publicBytes(`${base}/bzz/${reference}/release.json`, 100_000, fetcher);
+    releaseBytes = await publicBytes(
+      `${base}/bzz/${reference}/release.json`,
+      100_000,
+      fetcher,
+      signal,
+    );
   if ((await sha256Hex(releaseBytes)) !== releaseHash)
     throw new Error('Theme release integrity mismatch');
   const release = validateRelease(
@@ -73,6 +92,7 @@ export async function loadPublishedTheme(pack: ThemePack, fetcher: typeof fetch 
     `${base}/bzz/${release.manifest.reference}/manifest.json`,
     release.manifest.bytes,
     fetcher,
+    signal,
   );
   if (
     manifestBytes.length !== release.manifest.bytes ||

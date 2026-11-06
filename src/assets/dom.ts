@@ -1,9 +1,8 @@
 import { resolveSprite, type ThemePack } from './catalog';
 /** Same manifest and source rectangles as Phaser. No standalone icon paths in UI code. */
 export function applySprite(element: HTMLElement, pack: ThemePack, id: string) {
-  const { sprite, url } = resolveSprite(pack, id),
-    r = sprite.frame,
-    sheet = pack.manifest.sheets[sprite.sheet];
+  const { sprite, url, sheet } = resolveSprite(pack, id),
+    r = sprite.frame;
   element.dataset.sprite = id;
   element.classList.add('theme-sprite');
   element.style.backgroundImage = `url("${url}")`;

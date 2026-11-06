@@ -12,7 +12,7 @@ import {
   type StepSnapshot,
 } from '../core/types';
 import { environments, type EnvironmentPack, type AssetRole } from '../render/environment';
-import { registeredThemes } from '../assets/catalog';
+import { registeredThemes, availableTheme } from '../assets/catalog';
 import { applySprite, spriteElement } from '../assets/dom';
 import type { PlayerProfile } from '../auth/types';
 import { verificationLabel } from '../certification/model';
@@ -362,7 +362,7 @@ export class EditorScreen {
   private environment(): EnvironmentPack {
     const id = this.model.level.environment ?? 'foundry';
     const pack = Object.hasOwn(environments, id) ? environments[id] : environments.foundry;
-    return pack;
+    return availableTheme(pack);
   }
 
   private findItemAt(pos: Coord): FoundItem | null {

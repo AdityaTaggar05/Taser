@@ -30,7 +30,14 @@ import { SignInScreen } from './ui/SignInScreen';
 import { EditorScreen } from './editor/EditorScreen';
 import { LevelClient } from './editor/LevelClient';
 import type { GameEngine } from './core/engine';
-import { registeredThemes, initializeThemes } from './assets/catalog';
+import {
+  registeredThemes,
+  initializeThemes,
+  availableTheme,
+  useLocalFallback,
+  localDefaultTheme,
+  REMOTE_ARTWORK_TIMEOUT_MS,
+} from './assets/catalog';
 import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
@@ -114,7 +121,14 @@ function refresh() {
     inspection ?? client?.state?.history.at(-1)?.step ?? 0,
     playing && !inLobby,
   );
-  home.update(audio.enabled, pack.name, completed.size, levels.length, auth.user);
+  const displayedTheme = availableTheme(pack);
+  home.update(
+    audio.enabled,
+    displayedTheme.name + (displayedTheme === localDefaultTheme ? ' · Local' : ''),
+    completed.size,
+    levels.length,
+    auth.user,
+  );
   applyThemeInterface(pack, auth.user, client?.status, !!client?.state?.partnerReady);
 }
 function queue(direction: Direction) {
@@ -438,7 +452,7 @@ class ChamberScene extends Phaser.Scene {
   private activeEnvironment() {
     const id =
       editing && playtestEngine ? (playtestEngine.level.environment ?? 'foundry') : undefined;
-    return id && Object.hasOwn(environments, id) ? environments[id] : pack;
+    return availableTheme(id && Object.hasOwn(environments, id) ? environments[id] : pack);
   }
 
   get artworkReady() {
@@ -446,6 +460,8 @@ class ChamberScene extends Phaser.Scene {
   }
 
   prepareArtwork(environment: EnvironmentPack): Promise<void> {
+    const available = availableTheme(environment);
+    if (available !== environment) return this.prepareArtwork(available);
     const key = artworkKey(environment);
     const existing = this.artworkRequests.get(key);
     if (existing) {
@@ -455,7 +471,17 @@ class ChamberScene extends Phaser.Scene {
     }
     const request = this.artwork.ensure(environment).then(
       () => this.redraw(),
-      (error) => {
+      async (error) => {
+        if (environment.deployment.reference) {
+          const fallback = useLocalFallback(environment);
+          artworkStatus.setAttribute('role', 'status');
+          artworkStatus.textContent =
+            'Swarm artwork is slow or unavailable. Loading local Modern Gray artwork…';
+          editor.refreshTheme();
+          refresh();
+          await this.prepareArtwork(fallback);
+          return;
+        }
         this.artworkErrors.add(key);
         console.error('Theme artwork failed', error);
         if (this.activeEnvironment() === environment) this.showArtworkError(environment);
@@ -496,6 +522,7 @@ class ChamberScene extends Phaser.Scene {
         artworkStatus.textContent = `Loading ${environment.name} artwork… ${loaded}/${total}`;
         document.body.append(artworkStatus);
       },
+      (environment) => (environment.deployment.reference ? REMOTE_ARTWORK_TIMEOUT_MS : 45_000),
     );
     this.scale.on('resize', () => this.redraw());
     this.redraw();
@@ -504,7 +531,9 @@ class ChamberScene extends Phaser.Scene {
   redrawPlaytest(previous?: StepSnapshot, animate = false) {
     if (!playtestEngine) return;
     const id = playtestEngine.level.environment ?? 'foundry';
-    const environment = Object.hasOwn(environments, id) ? environments[id] : environments.foundry;
+    const environment = availableTheme(
+      Object.hasOwn(environments, id) ? environments[id] : environments.foundry,
+    );
     this.title?.clear();
     this.cameras.main.setBackgroundColor(environment.palette.background);
     const stage = editor.root.querySelector('.creator-stage');
@@ -538,9 +567,10 @@ class ChamberScene extends Phaser.Scene {
       void this.prepareArtwork(this.activeEnvironment()).catch(() => {});
       return;
     }
+    const environment = this.activeEnvironment();
     artworkStatus.remove();
-    this.cameras.main.setBackgroundColor(pack.palette.background);
-    document.body.dataset.environment = pack.id;
+    this.cameras.main.setBackgroundColor(environment.palette.background);
+    document.body.dataset.environment = environment.id;
     if (editing) {
       if (playtestEngine) {
         this.redrawPlaytest(previous, animate);
@@ -554,7 +584,7 @@ class ChamberScene extends Phaser.Scene {
     if (!playing || client?.state?.party?.started === false) {
       this.board?.destroy();
       this.board = undefined;
-      this.title?.draw(this.scale.width, this.scale.height, pack);
+      this.title?.draw(this.scale.width, this.scale.height, environment);
       refresh();
       return;
     }
@@ -574,12 +604,12 @@ class ChamberScene extends Phaser.Scene {
       this.board.render(
         study ? new OtherPerspectiveView(study.level) : current,
         { x: side, y: top, width: width - side * 2, height: Math.max(130, bottom - top) },
-        pack,
+        environment,
         study ? undefined : previous,
         !study && animate,
       );
     }
-    document.body.dataset.environment = pack.id;
+    document.body.dataset.environment = environment.id;
     refresh();
   }
 }
