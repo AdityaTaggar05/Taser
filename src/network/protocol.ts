@@ -6,6 +6,7 @@ export interface PlayerFrame {
 }
 export interface SessionState {
   type: 'state'; mode?:PlayMode;party?:PartyState;echoName?:string;runPublication?:'pending'|'confirmed'; player: Player; revision: number; levelIndex: number;
+  preview?:{endsAt:number;serverNow:number;level:LevelConfig};
   customLevelId?:string;customRevision?:number;level?:LevelConfig;
   campaign?:import('../editor/types').CampaignSummary[];publicationKey?:string;solutionAvailable?:boolean;
   history: PlayerFrame[]; nextBoxes: Coord[] | null; shove: number | null;

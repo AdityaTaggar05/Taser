@@ -4,9 +4,9 @@ import type {Peer,PublishedLevelLoader} from './CoopRoom';
 import type {AuthService,SessionIdentity} from './auth/AuthService';
 import {LevelError,type LevelStore} from './levels/LevelStore';
 import {Sessions} from './game/Sessions';
-export function attachCoop(server:EventEmitter,auth:AuthService,_legacyLoader?:PublishedLevelLoader,store?:LevelStore){
+export function attachCoop(server:EventEmitter,auth:AuthService,_legacyLoader?:PublishedLevelLoader,store?:LevelStore,previewMs=10_000){
   if(!store)throw new Error('Game sessions require a published level store.');
-  const sessions=new Sessions(auth,store),wss=new WebSocketServer({noServer:true,maxPayload:2048});let closing=false,flushing=false;
+  const sessions=new Sessions(auth,store,previewMs),wss=new WebSocketServer({noServer:true,maxPayload:2048});let closing=false,flushing=false;
   const identities=new Map<WebSocket,{identity:SessionIdentity;peer:Peer}>(),alive=new Map<WebSocket,boolean>();
   const reject=(ws:WebSocket,peer:Peer)=>{sessions.disconnect(peer,true);peer.send({type:'auth_required',message:'Your session ended. Please sign in again.'});ws.close(4401,'Sign in required');};
   const unsubscribe=auth.onRevoke(key=>{for(const [ws,e] of identities)if(e.identity.key===key)reject(ws,e.peer);});

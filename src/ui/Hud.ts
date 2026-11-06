@@ -47,13 +47,15 @@ export class Hud {
   clearSolution(){this.hintOpen=false;this.root.querySelector('#hint')!.replaceChildren();this.root.querySelector('#hint')!.setAttribute('hidden','');}
   showSolution(solution:ReferenceSolution){const hint=this.root.querySelector('#hint')!;hint.replaceChildren();const title=document.createElement('b');title.textContent=`REFERENCE · ${solution.name}`;hint.append(title);for(const [i,moves] of [solution.solutionP1,solution.solutionP2].entries()){const row=document.createElement('span');row.textContent=`P${i+1} ${moves.map(m=>arrows[m]).join(' ')}`;hint.append(row);}const close=document.createElement('button');close.textContent='Close';close.onclick=()=>this.clearSolution();hint.append(close);this.hintOpen=true;hint.removeAttribute('hidden');}
   toggleHelp(force?:boolean){this.helpOpen=force??!this.helpOpen;this.root.querySelector('#help')!.toggleAttribute('hidden',!this.helpOpen);if(this.helpOpen)this.root.querySelector<HTMLButtonElement>('[data-action="close-help"]')!.focus();}
-  render(view:RemoteView|null,session:SessionState|null,status:ConnectionStatus,notice:string|null,completed:Set<number>){
-    const connected=status==='connected', paired=connected&&!!session?.partnerConnected;
+  render(view:RemoteView|null,session:SessionState|null,status:ConnectionStatus,notice:string|null,completed:Set<number>,previewSeconds=0){
+    const connected=status==='connected',preview=!!session?.preview,paired=connected&&!!session?.partnerConnected&&!preview;
     if(session)this.player=session.player;
     const text=status==='full'?(notice??'Both player slots are occupied.'):!connected?(status==='connecting'?'Connecting to the shared chamber…':'Connection lost. Reconnecting…'):!paired?`You are P${this.player}. Waiting for your partner. Open this chamber from Published levels and choose P${this.player===1?2:1}.`:`You are P${this.player} · ${this.player===1?'FORWARD':'REVERSE'} · PARTNER CONNECTED`;
     this.root.querySelector<HTMLElement>('.levels')!.hidden=!!session?.party;
     this.root.querySelector('.edition')!.textContent=session?.mode==='solo'?'TEMPORAL PINCER / SOLO':'TEMPORAL PINCER / CO-OP';
-    this.set('connection',session?.mode==='solo'&&connected?`SOLO · P${this.player} · REPLAY: ${session.echoName??'Creator solution'}`:text);this.root.querySelector('#connection')!.classList.toggle('paired',paired);
+    this.root.querySelector('#connection')!.classList.toggle('initial-preview',previewSeconds>0);
+    this.root.querySelector<HTMLButtonElement>('[data-action=help]')!.disabled=preview;
+    this.set('connection',previewSeconds>0?`INITIAL OVERLAY · Study both timelines · ${previewSeconds}s`:session?.mode==='solo'&&connected?`SOLO · P${this.player} · REPLAY: ${session.echoName??'Creator solution'}`:text);this.root.querySelector('#connection')!.classList.toggle('paired',paired);
     document.body.dataset.player=String(this.player);
     this.set('operator-label',session?`P${this.player} · YOU`:status==='full'?'NO SLOT':'CONNECTING');this.root.querySelector('#operator')!.className=`operator p${this.player}`;
     this.root.querySelectorAll<HTMLButtonElement>('[data-level]').forEach((b,i)=>{b.disabled=!paired;b.classList.toggle('active',i===(session?.levelIndex??0));b.classList.toggle('completed',completed.has(this.levels[i].slot));});
@@ -64,7 +66,7 @@ export class Hud {
     this.root.querySelector('#cancel')!.toggleAttribute('hidden',!pending);this.root.querySelector<HTMLButtonElement>('#cancel')!.disabled=!paired;
     this.set('peer-status',session?.mode==='solo'?'REPLAY READY':!paired?'PARTNER OFFLINE':session?.partnerReady?'PARTNER READY':'PARTNER CHOOSING');
     this.root.querySelector('#peer-status')!.classList.toggle('ready',paired&&!!session?.partnerReady);
-    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled=!session?.solutionAvailable;
+    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled=preview||!session?.solutionAvailable;
     this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.title=session?.solutionAvailable?'View the verified reference route':'Complete this revision to unlock its reference route';
     if(!view||!session){this.root.querySelector('#outcome')!.setAttribute('hidden','');return;}
     const s=view.state,l=view.level;
@@ -73,13 +75,13 @@ export class Hud {
     this.root.querySelector<HTMLElement>('#timeline')!.style.overflowX=l.totalSteps>12?'auto':'';
     this.set('help-write',`WRITE · Turns 1–${l.weldStep}`);this.set('help-weld',`WELD · Turn ${l.weldStep}`);this.set('help-replay',`REPLAY · Turns ${l.weldStep+1}–${l.totalSteps}`);
     this.set('turn',String(s.step).padStart(2,'0'));this.set('turn-total',`/ ${String(l.totalSteps).padStart(2,'0')}`);
-    this.set('phase-name',s.step<l.weldStep?'WRITING HISTORY':s.status==='WELD_SUCCESS'?'CAUSALITY WELDED':'LOCKED REPLAY');
-    this.set('phase-detail',s.step<l.weldStep?`CONVERGE AT TURN ${l.weldStep}`:`EXIT TOGETHER BY TURN ${l.totalSteps}`);
+    this.set('phase-name',previewSeconds>0?'INITIAL CONFIGURATION':s.step<l.weldStep?'WRITING HISTORY':s.status==='WELD_SUCCESS'?'CAUSALITY WELDED':'LOCKED REPLAY');
+    this.set('phase-detail',previewSeconds>0?'MOVES LOCKED UNTIL COUNTDOWN ENDS':s.step<l.weldStep?`CONVERGE AT TURN ${l.weldStep}`:`EXIT TOGETHER BY TURN ${l.totalSteps}`);
     this.root.querySelector('#phase-led')!.className=s.status==='WELD_SUCCESS'?'welded':'';
     const publication=s.status==='VICTORY'?(session.runPublication==='confirmed'?' Your winning run is published.':session.runPublication==='pending'?' Your run is saved; Arkiv publication pending.':''):'';
-    this.set('message',notice??s.message+publication);
+    this.set('message',previewSeconds>0?'Remember both starting layouts. Your own perspective returns when the countdown ends.':notice??s.message+publication);
     this.root.querySelector('#preview-banner')!.toggleAttribute('hidden',view.inspecting===null);
-    this.root.querySelector('#timeline')!.innerHTML=Array.from({length:l.totalSteps+1},(_,k)=>`<button data-step="${k}" ${k>=session.history.length?'disabled':''} class="${k===s.step?'current ':''}${k===l.weldStep?'weld ':''}${k<s.step?'past':''}" aria-label="Review turn ${k}"><i></i><span>${k===l.weldStep?'WELD':k}</span></button>`).join('');
+    this.root.querySelector('#timeline')!.innerHTML=Array.from({length:l.totalSteps+1},(_,k)=>`<button data-step="${k}" ${preview||k>=session.history.length?'disabled':''} class="${k===s.step?'current ':''}${k===l.weldStep?'weld ':''}${k<s.step?'past':''}" aria-label="Review turn ${k}"><i></i><span>${k===l.weldStep?'WELD':k}</span></button>`).join('');
     const terminal=!isLive(s.status)&&view.inspecting===null,victory=s.status==='VICTORY';
     const outcome=this.root.querySelector('#outcome')!;outcome.toggleAttribute('hidden',!terminal);outcome.classList.toggle('victory',victory);
     if(terminal){this.set('outcome-kicker',victory?'TRANSMISSION COMPLETE':'TIMELINE INTERRUPTED');this.set('outcome-title',victory?'Timeline secured.':s.status==='PARADOX_WELD'?'Causality fractured.':s.status==='LASER_DEATH'?'Signal lost.':s.status==='OUT_OF_TIME'?'Out of time.':'History obstructed.');this.set('outcome-message',s.message+publication+(session.mode==='solo'?' Solo practice does not unlock campaign progress or reference solutions.':''));this.root.querySelector('#outcome-actions')!.innerHTML=`${!victory?`<button data-action="undo" ${paired?'':'disabled'}>↶ Undo turn</button>`:''}<button class="primary" data-action="reset" ${paired?'':'disabled'}>Try again</button><button data-action="party" ${session.mode==='coop'&&!connected?'disabled':''}>${session.mode==='coop'?'Go to party':'Back to solo'}</button>`;}

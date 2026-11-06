@@ -10,7 +10,7 @@ import {levels} from '../server/data/campaign';
 class TestPeer implements Peer {messages:ServerMessage[]=[];closed=false;send(m:ServerMessage){this.messages.push(structuredClone(m));}close(){this.closed=true;}get state(){return this.messages.filter((m):m is SessionState=>m.type==='state').at(-1)!;}}
 const user=(id:string):PlayerProfile=>({id,displayName:id,walletAddress:null,ensName:null,kind:'demo',completed:[]});
 it('keeps separate live parties isolated and expires disconnected guest/host memberships',async()=>{
-  const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store),id=store.campaign()[0].id;
+  const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store,0),id=store.campaign()[0].id;
   const a=new TestPeer(),b=new TestPeer(),c=new TestPeer(),d=new TestPeer();
   try{
     await hub.join(a,user('a'),{kind:'create',mode:'coop',levelId:id,player:1});await hub.join(b,user('b'),{kind:'invite',code:a.state.party!.code});
@@ -23,7 +23,7 @@ it('keeps separate live parties isolated and expires disconnected guest/host mem
   }finally{vi.restoreAllMocks();hub.close();await store.drain();store.close();auth.close();}
 });
 it('returns a finished attempt to the same party, clears readiness and rejects premature or stale requests',async()=>{
-  const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store),id=store.campaign()[0].id;
+  const auth=new AuthService({databasePath:':memory:',demoEnabled:true}),store=new LevelStore(':memory:',new MemoryArchive());await store.seed(levels);const hub=new Sessions(auth,store,0),id=store.campaign()[0].id;
   const host=new TestPeer(),guest=new TestPeer();vi.spyOn(auth,'recordCompletion').mockImplementation(()=>{});
   try{
     await hub.join(host,user('host'),{kind:'create',mode:'coop',levelId:id,player:2});await hub.join(guest,user('guest'),{kind:'invite',code:host.state.party!.code});

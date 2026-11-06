@@ -2,6 +2,7 @@ import type {ClientCommand,ServerMessage,SessionState,JoinIntent} from './protoc
 export type ConnectionStatus='connecting'|'connected'|'reconnecting'|'full';
 export class CoopClient {
   state:SessionState|null=null;status:ConnectionStatus='connecting';notice:string|null=null;
+  private previewDeadline=0;
   private socket:WebSocket|null=null;private retry:ReturnType<typeof setTimeout>|undefined;private stopped=false;private token:string|null=null;
   constructor(private changed:(previous:SessionState|null)=>void,private getTicket:()=>Promise<string>,private authRequired:()=>void,private intent:JoinIntent,private sessionCreated:(id:string)=>void=()=>{}){
     if(intent.kind==='resume')try{this.token=sessionStorage.getItem('weldpoint:seat:'+intent.id);}catch{}void this.connect();
@@ -17,14 +18,16 @@ export class CoopClient {
       if(m.type==='welcome'){
         this.token=m.token;if(m.sessionId){this.intent={kind:'resume',id:m.sessionId};try{sessionStorage.setItem('weldpoint:seat:'+m.sessionId,m.token);}catch{}this.sessionCreated(m.sessionId);}
       }else if(m.type==='auth_required'){clearTimeout(handshake);this.destroy();this.authRequired();}
-      else if(m.type==='state'){clearTimeout(handshake);const previous=this.state;this.state=m;this.status='connected';this.notice=null;this.changed(previous);}
+      else if(m.type==='state'){clearTimeout(handshake);this.previewDeadline=m.preview?performance.now()+Math.max(0,m.preview.endsAt-m.preview.serverNow):0;const previous=this.state;this.state=m;this.status='connected';this.notice=null;this.changed(previous);}
       else if(m.type==='full'){clearTimeout(handshake);this.status='full';this.notice=m.message;this.changed(this.state);}
       else if(m.type==='error'){this.notice=m.message;this.changed(this.state);}
     };
     ws.onclose=event=>{clearTimeout(handshake);if(this.stopped||this.socket!==ws)return;if(event.code===4401){this.destroy();this.authRequired();return;}if(this.status==='full'){this.changed(this.state);return;}this.status='reconnecting';this.changed(this.state);this.retry=setTimeout(()=>void this.connect(),1500);};
     ws.onerror=()=>{};
   }
-  get playable(){return this.status==='connected'&&!!this.state?.partnerConnected&&this.state.party?.started!==false;}
+  get previewSeconds(){return Math.ceil(Math.max(0,this.previewDeadline-performance.now())/1000);}
+  get initialPreview(){return this.previewSeconds>0?this.state?.preview:undefined;}
+  get playable(){return !this.state?.preview&&this.status==='connected'&&!!this.state?.partnerConnected&&this.state.party?.started!==false;}
   send(command:ClientCommand){if(!this.playable)return false;return this.transmit(command);}
   party(command:{type:'ready';ready:boolean}|{type:'start'}|{type:'lobby';revision:number}){return this.transmit(command);}
   private transmit(value:unknown){if(this.socket?.readyState!==WebSocket.OPEN)return false;this.socket.send(JSON.stringify(value));return true;}

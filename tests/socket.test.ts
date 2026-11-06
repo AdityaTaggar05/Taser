@@ -5,8 +5,8 @@ import {WebSocket} from 'ws';
 import {attachCoop} from '../server/socket';
 import type {JoinIntent,ServerMessage,SessionState} from '../src/network/protocol';
 import {levels} from '../server/data/campaign';
-async function fixture(){
-  const f=await authFixture(),stop=attachCoop(f.server,f.auth,undefined,f.levels),clients:WebSocket[]=[];
+async function fixture(previewMs=0){
+  const f=await authFixture(),stop=attachCoop(f.server,f.auth,undefined,f.levels,previewMs),clients:WebSocket[]=[];
   const a=f.browser(),b=f.browser();await a.login();await b.login('nova');const catalog=(await a.request('levels/catalog')).data.campaign;
   async function connect(account:typeof a,intent:unknown,ticket?:string){
     const ws=new WebSocket(f.origin.replace('http:','ws:')+'/co-op');clients.push(ws);const messages:ServerMessage[]=[];ws.on('message',data=>messages.push(JSON.parse(data.toString())));await once(ws,'open');
@@ -88,5 +88,18 @@ it('pins a community party to its publication and rejects wrong revision or wron
     const wrongRole=await f.connect(f.a,create(draft.id,1,'solo',run.id));expect(wrongRole.messages.some(m=>m.type==='state')).toBe(false);
     const next=(await f.a.request(`levels/${draft.id}`,{level:{...levels[0],name:'Revision 2'},revision:1})).data;await f.a.request(`levels/${draft.id}/publish`,{revision:next.revision});
     expect(f.levels.runs(draft.id,1)).toEqual([]);const stale=await f.connect(f.a,create(draft.id,2,'solo',run.id));expect(stale.messages.some(m=>m.type==='state')).toBe(false);
+  }finally{await f.close();}
+},10_000);
+
+it('broadcasts preview expiry over real sockets and rejects early turn selections',async()=>{
+  const f=await fixture(400);try{
+    const host=await f.connect(f.a,create(f.catalog[0].id,1)),guest=await f.connect(f.b,{kind:'invite',code:host.state().party!.code});
+    host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await expect.poll(()=>host.state().party!.members.every(m=>m.ready)).toBe(true);host.send({type:'start'});
+    await expect.poll(()=>host.messages.some(m=>m.type==='state'&&!!m.preview)).toBe(true);
+    host.send({type:'move',direction:'U',revision:host.state().revision});await expect.poll(()=>host.messages.some(m=>m.type==='error'&&m.message.includes('countdown'))).toBe(true);
+    expect(host.state().history.at(-1)?.step).toBe(0);expect(host.state().pendingMove).toBeNull();
+    await expect.poll(()=>host.state().party!.started&&!host.state().preview).toBe(true);await expect.poll(()=>guest.state().party!.started&&!guest.state().preview).toBe(true);
+    expect(host.state().level?.initialBoxesP2).toEqual([]);expect(guest.state().level?.initialBoxesP1).toEqual([]);
+    host.send({type:'move',direction:'U',revision:host.state().revision});guest.send({type:'move',direction:'D',revision:guest.state().revision});await expect.poll(()=>host.state().history.at(-1)?.step).toBe(1);
   }finally{await f.close();}
 },10_000);

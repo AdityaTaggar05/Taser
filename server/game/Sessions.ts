@@ -10,7 +10,7 @@ interface Session {id:string;code:string;mode:PlayMode;host:string;room:CoopRoom
 export class Sessions {
   private sessions=new Map<string,Session>();private peers=new Map<Peer,{session:Session;member:Member}>();
   private creating=new Set<string>();private closed=false;
-  constructor(private auth:AuthService,private store:LevelStore){}
+  constructor(private auth:AuthService,private store:LevelStore,private previewMs=10_000){}
   async join(peer:Peer,user:PlayerProfile,value:unknown,token?:string){
     if(!value||typeof value!=='object')throw new LevelError(400,'Choose Solo, create a party, or enter an invite code.');
     const intent=value as JoinIntent;
@@ -29,7 +29,7 @@ export class Sessions {
         const members=new Map<string,Member>();
         const room=new CoopRoom(randomUUID,()=>Date.now(),45_000,ids=>{if(snapshot.slot)this.auth.recordCompletion(ids,snapshot.slot);},undefined,[snapshot],
           (ids,key)=>this.store.recordWin(ids,key),(id,key)=>this.store.canReveal(id,key),{
-            fixedLevel:true,solo:echo?{player:intent.player,moves:echo.moves}:undefined,
+            previewMs:this.previewMs,fixedLevel:true,solo:echo?{player:intent.player,moves:echo.moves}:undefined,
             win:(publication,humans,moves)=>{
               for(const human of humans){const member=members.get(human.id);if(!member)continue;member.runPublication='pending';const version=(member.publicationVersion??0)+1;member.publicationVersion=version;
                 void this.store.captureRun(publication,member.user,human.role,moves,intent.mode,echo?.source??'live').then(status=>{if(this.closed||member.publicationVersion!==version)return;member.runPublication=status??'pending';room.notify();}).catch(()=>{if(!this.closed)room.notify();});
@@ -61,6 +61,7 @@ export class Sessions {
       },close:()=>current.peer?.close()};selected.members.set(user.id,member);
     }
     member.disconnectedAt=undefined;member.peer=peer;this.peers.set(peer,{session:selected,member});selected.touched=Date.now();
+    if(intent.kind==='create'&&selected.mode==='solo')selected.room.startPreview();
     if(!selected.room.join(member.bridge,user.id,token,undefined,member.role)){member.peer=null;member.disconnectedAt=Date.now();this.peers.delete(peer);throw new LevelError(409,'Could not resume the reserved role.');}
     return true;
   }
@@ -79,7 +80,7 @@ export class Sessions {
       if(s.host!==m.user.id){peer.send({type:'error',message:'Only the host can start the party.'});return;}
       if(s.started)return;
       if(s.members.size!==2||![...s.members.values()].every(m=>m.peer&&m.ready)){peer.send({type:'error',message:'Both operators must be connected and Ready.'});return;}
-      s.started=true;s.room.notify();return;
+      s.started=true;s.room.startPreview();s.room.notify();return;
     }
     if(!s.started){peer.send({type:'error',message:'Wait for both operators to ready up and the host to start.'});return;}
     s.room.receive(m.bridge,value);
@@ -91,7 +92,7 @@ export class Sessions {
       s.room.release(m.bridge);s.members.delete(m.user.id);s.started=false;for(const member of s.members.values())member.ready=false;s.room.notify();
     }else{s.room.leave(m.bridge);if(!s.started)for(const member of s.members.values())member.ready=false;s.room.notify();}
   }
-  private end(s:Session,message:string){this.sessions.delete(s.id);for(const m of s.members.values())if(m.peer){const peer=m.peer;this.peers.delete(peer);peer.send({type:'full',message});peer.close();m.peer=null;}}
+  private end(s:Session,message:string){s.room.dispose();this.sessions.delete(s.id);for(const m of s.members.values())if(m.peer){const peer=m.peer;this.peers.delete(peer);peer.send({type:'full',message});peer.close();m.peer=null;}}
   sweep(){for(const s of [...this.sessions.values()]){
     const expired=[...s.members.values()].filter(m=>!m.peer&&m.disconnectedAt!==undefined&&Date.now()-m.disconnectedAt>45_000);
     if(expired.some(m=>m.user.id===s.host)){this.end(s,'The host disconnected and the party expired.');continue;}

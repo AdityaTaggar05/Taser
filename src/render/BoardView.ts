@@ -27,7 +27,7 @@ export class BoardView {
     this.frame.lineStyle(1,p.edge,0.55).lineBetween(rect.x+rect.width,rect.y+8,rect.x+rect.width,rect.y+rect.height-8);
     const accent = this.index === 0 ? p.p1 : this.index === 1 ? p.p2 : p.weld;
     g.fillStyle(accent).fillRect(rect.x+20,rect.y+20,5,5);
-    this.text(rect.x+80,rect.y+23,this.index===0?'01 / FORWARD':this.index===1?'02 / REVERSE':rect.width<300?'03 / OVERLAY':'03 / CONVERGENCE',rect.width<240?9:11,Phaser.Display.Color.IntegerToColor(accent).rgba).setOrigin(0,0.5).setX(rect.x+34);
+    this.text(rect.x+80,rect.y+23,this.index===0?'01 / FORWARD':this.index===1?'02 / REVERSE':rect.width<300?'INITIAL OVERLAY':'INITIAL CONFIGURATION',rect.width<240?9:11,Phaser.Display.Color.IntegerToColor(accent).rgba).setOrigin(0,0.5).setX(rect.x+34);
     this.text(rect.x+rect.width-21,rect.y+23,this.index===2?(rect.width<300?'': 'SHARED GRID'):`t = ${this.index===0?s.step:l.totalSteps-s.step}`,12,'#c9d6ce').setOrigin(1,0.5);
     for (let x=1;x<=l.width;x++) for (let y=1;y<=l.height;y++) {
       const coord: Coord=[x,y], [cx,cy]=this.at(coord);
@@ -45,7 +45,7 @@ export class BoardView {
       const switches = player===1 ? l.switchesP1 : l.switchesP2;
       const color=player===1?p.p1:p.p2;
       for(const coord of switches) {
-        const [x,y]=this.at(coord); const held=hasCoord(boxes,coord);
+        const [x,y]=this.at(coord); const held=hasCoord(player===1?s.boxesP1:s.boxesP2,coord);
         g.fillStyle(color,held?0.3:0.08).fillRoundedRect(x-t*.31,y-t*.31,t*.62,t*.62,3);
         g.lineStyle(2,color,held?0.9:0.40).strokeRoundedRect(x-t*.26,y-t*.26,t*.52,t*.52,2);
         this.text(x,y,`S${player}`,t*.15,Phaser.Display.Color.IntegerToColor(color).rgba);
@@ -58,9 +58,11 @@ export class BoardView {
       this.text(x,y,`E${player}`,t*.18,open?'#f1f7df':'#9baba2');
     }
     if(l.laserEmitter) {
-      const laser=computeLaserTiles(boxes,l), [ex,ey]=this.at(l.laserEmitter.pos);
-      g.lineStyle(7,0xff695d,0.13); this.laserSegments(laser);
-      g.lineStyle(2,0xff8d77,0.95); this.laserSegments(laser);
+      const [ex,ey]=this.at(l.laserEmitter.pos);
+      for(const player of (this.index===2?[1,2]:[this.index+1])){
+        const own=player===1?s.boxesP1:s.boxesP2,laser=computeLaserTiles(own,l),color=this.index===2?(player===1?p.p1:p.p2):0xff8d77;
+        g.lineStyle(7,color,0.13);this.laserSegments(laser);g.lineStyle(2,color,0.9);this.laserSegments(laser);
+      }
       g.fillStyle(0x71534b).fillRect(ex-t*.32,ey-t*.32,t*.64,t*.64);
       this.text(ex,ey,({D:'▼',U:'▲',L:'◀',R:'▶',W:'·'})[l.laserEmitter.dir],t*.30,'#ffb59b');
     }
@@ -77,17 +79,18 @@ export class BoardView {
     };
     if(this.index===2) { drawTrajectory(1,p.p1);drawTrajectory(2,p.p2); }
     else drawTrajectory(this.index===0?1:2,accent);
-    const drawBoxes=(coords:Coord[],color:number,old:Coord[]|undefined,alpha=1)=>coords.forEach((coord,i)=>{
+    const drawBoxes=(coords:Coord[],color:number,old:Coord[]|undefined,alpha=1,offset=0,label=false)=>coords.forEach((coord,i)=>{
       const [x,y]=this.at(coord); const image=this.keep(this.scene.add.image(x,y,textureKey(pack,l.hasMirrorBox?'mirror':'box')).setDisplaySize(t*.87,t*.87).setAlpha(alpha).setDepth(1));
       g.lineStyle(2,color,alpha*.85).strokeRect(x-t*.31,y-t*.33,t*.62,t*.62);
       if(animate&&old&&!sameCoord(old[i],coord)) {const [px,py]=this.at(old[i]);image.setPosition(px,py);this.scene.tweens.add({targets:image,x,y,duration:210,ease:'Cubic.Out'});}
-      if(coords.length>1)this.text(x,y,String.fromCharCode(65+i),t*.18,'#e9ebd2').setAlpha(alpha);
+      if(coords.length>1||label)this.text(x,y,String.fromCharCode(65+i+offset),t*.18,'#e9ebd2').setAlpha(alpha);
     });
-    if(this.index===2) {drawBoxes(s.boxesP1,p.p1,previous?.boxesP1,.88);s.boxesP2.forEach((c,i)=>{if(!sameCoord(c,s.boxesP1[i]))drawBoxes([c],p.p2,previous?[previous.boxesP2[i]]:undefined,.4);});}
+    if(this.index===2) {drawBoxes(s.boxesP1,p.p1,previous?.boxesP1,.88);s.boxesP2.forEach((c,i)=>{if(!sameCoord(c,s.boxesP1[i]))drawBoxes([c],p.p2,previous?[previous.boxesP2[i]]:undefined,.72,i,s.boxesP2.length>1);else{const [x,y]=this.at(c);g.lineStyle(2,p.p2,.9).strokeRect(x-t*.24,y-t*.25,t*.48,t*.5);}});}
     else drawBoxes(boxes,accent,this.index===0?previous?.boxesP1:previous?.boxesP2);
     const drawPlayer=(player:1|2,alpha=1)=>{
       const pos=player===1?s.p1Pos:s.p2Pos,[x,y]=this.at(pos);
-      const image=this.keep(this.scene.add.image(x,y,textureKey(pack,player===1?'p1':'p2')).setDisplaySize(t*.88,t*.88).setAlpha(alpha).setDepth(2));
+      const shared=this.index===2&&sameCoord(s.p1Pos,s.p2Pos),size=shared?0.62:0.88,offset=shared?(player===1?-.18:.18)*t:0;
+      const image=this.keep(this.scene.add.image(x+offset,y,textureKey(pack,player===1?'p1':'p2')).setDisplaySize(t*size,t*size).setAlpha(alpha).setDepth(2));
       const old=player===1?previous?.p1Pos:previous?.p2Pos;
       if(animate&&old) {
         const [px,py]=this.at(old);
@@ -103,7 +106,7 @@ export class BoardView {
       }
     };
     if(this.index===2){drawPlayer(1,.75);drawPlayer(2,.75);}else drawPlayer(this.index===0?1:2);
-    this.text(rect.x+rect.width/2,rect.y+rect.height-17,this.index===0?'P1  ·  WASD / ARROWS  ·  SPACE TO WAIT':this.index===1?'P2  ·  WASD / ARROWS  ·  SPACE TO WAIT':s.step<l.weldStep?(rect.width<300?'MATCH BOXES AT TURN 4':'MATCH BOX IDENTITIES AT THE WELD'):(rect.width<300?'DOTTED = NEXT BOX POSITION':'DOTTED LINE = NEXT BOX POSITION'),rect.width<240?8:10);
+    this.text(rect.x+rect.width/2,rect.y+rect.height-17,this.index===0?'P1  ·  WASD / ARROWS  ·  SPACE TO WAIT':this.index===1?'P2  ·  WASD / ARROWS  ·  SPACE TO WAIT':'P1 + P2 · INITIAL POSITIONS ONLY',rect.width<240?8:10);
   }
   destroy(){this.objects.forEach(o=>o.destroy());this.graphics.destroy();this.frame.destroy();}
   private laserSegments(tiles: Coord[]) { for(let i=1;i<tiles.length;i++){const [x,y]=this.at(tiles[i-1]),[nx,ny]=this.at(tiles[i]);this.graphics.lineBetween(x,y,nx,ny);} }

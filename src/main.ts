@@ -15,6 +15,7 @@ import {PublishedLevels} from './ui/PublishedLevels';
 import { TitleBackdrop } from './render/TitleBackdrop';
 import { CoopClient } from './network/CoopClient';
 import { RemoteView } from './network/RemoteView';
+import {InitialPreviewView} from './network/InitialPreviewView';
 import type { SessionState } from './network/protocol';
 import {AuthClient} from './auth/AuthClient';
 import {SignInScreen} from './ui/SignInScreen';
@@ -31,7 +32,7 @@ function view(){return client?.state?.level?new RemoteView(client.state.level,cl
 function refresh(){
   const inLobby=playing&&(client?.state?.party?!client.state.party.started:connectingParty);
   hud.root.hidden=!playing||inLobby;lobby.render(inLobby,client?.state??null,client?.status??'connecting',client?.notice??null);
-  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed);
+  hud.render(view(),client?.state??null,client?.status??'connecting',client?.notice??null,completed,client?.previewSeconds??0);
   home.update(audio.enabled,pack.id,completed.size,levels.length,auth.user);
 }
 function queue(direction:Direction){
@@ -97,7 +98,7 @@ function receive(previous:SessionState|null){
   if(previous?.publicationKey!==current.publicationKey)hud.clearSolution();
   if(!previous||previous.levelIndex!==current.levelIndex||previous.customLevelId!==current.customLevelId){const environment=current.level?.environment;if(environment&&environments[environment])pack=environments[environment];}
   const old=animate?new RemoteView(previous!.level!,previous!).state:undefined;
-  scene?.redraw(old,animate);refresh();
+  refresh();scene?.redraw(old,animate);
 }
 class ChamberScene extends Phaser.Scene {
   private board:BoardView|undefined;
@@ -112,16 +113,19 @@ class ChamberScene extends Phaser.Scene {
     this.title?.clear();
     const current=view();
     if(current){
-      const index=(current.session.player-1) as 0|1;
+      const preview=client?.initialPreview;
+      const index=preview?2:(current.session.player-1) as 0|1;
       if(!this.board||this.board.index!==index){this.board?.destroy();this.board=new BoardView(this,index);}
       const width=this.scale.width,top=document.querySelector('.mission')!.getBoundingClientRect().bottom+48;
       const bottom=document.querySelector('.console')!.getBoundingClientRect().top-10,side=width<700?8:24;
-      this.board.render(current,{x:side,y:top,width:width-side*2,height:Math.max(130,bottom-top)},pack,previous,animate);
+      this.board.render(preview?new InitialPreviewView(preview.level):current,{x:side,y:top,width:width-side*2,height:Math.max(130,bottom-top)},pack,preview?undefined:previous,!preview&&animate);
     }
     document.body.dataset.environment=pack.id;refresh();
   }
 }
 const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',backgroundColor:'#10191c',antialias:true,scale:{mode:Phaser.Scale.RESIZE,width:window.innerWidth,height:window.innerHeight},scene:[ChamberScene],render:{roundPixels:true},audio:{noAudio:true}});
+let showingPreview=false;
+const previewClock=setInterval(()=>{const visible=!!client?.initialPreview;if(visible!==showingPreview){showingPreview=visible;scene?.redraw();}else if(visible)refresh();},100);
 syncScreen();void auth.refresh();
 window.addEventListener('hashchange',syncScreen);
 window.addEventListener('keydown',e=>{
@@ -135,8 +139,8 @@ window.addEventListener('keydown',e=>{
   }
   if(!lobby.root.hidden){if(e.code==='KeyF'){e.preventDefault();void fullscreen();}return;}
   if(e.code==='Escape'){hud.toggleHelp(false);inspection=null;scene?.redraw();return;}
-  if(e.code==='KeyH'){e.preventDefault();if(!e.repeat)hud.toggleHelp();return;}
-  if(hud.helpOpen)return;
+  if(e.code==='KeyH'&&!client?.state?.preview){e.preventDefault();if(!e.repeat)hud.toggleHelp();return;}
+  if(hud.helpOpen||client?.state?.preview)return;
   if(target.tagName==='BUTTON'&&(e.code==='Enter'||e.code==='Space'))return;
   if(KEY_MOVES[e.code]){e.preventDefault();if(!e.repeat)queue(KEY_MOVES[e.code][1]);return;}
   if(e.repeat)return;
@@ -148,5 +152,5 @@ window.addEventListener('keydown',e=>{
 // Keep the queued move when switching tabs; it is already acknowledged by the server.
 window.addEventListener('pagehide',()=>{client?.destroy();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-if(import.meta.hot)import.meta.hot.dispose(()=>{client?.destroy();auth.destroy();editor.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
+if(import.meta.hot)import.meta.hot.dispose(()=>{clearInterval(previewClock);client?.destroy();auth.destroy();editor.destroy();library.destroy();lobby.destroy();home.root.remove();signin.root.remove();hud.root.remove();game.destroy(true);});
 refresh();
