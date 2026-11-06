@@ -1,0 +1,8 @@
+staging-settings:
+  user-workflow:
+    workflow-name: taser-level-certification
+    deployment-registry: private
+  workflow-artifacts:
+    workflow-path: ./main.ts
+    config-path: ../../.data/cre/config.json
+    secrets-path: ./secrets.yaml

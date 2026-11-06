@@ -1,0 +1,24 @@
+# Dependencies, builds and local/private data.
+node_modules/
+dist/
+.vite/
+.data/
+.env
+.env.*
+*.local
+*.wasm
+.cre_build_tmp.*
+
+# Installed third-party guidance and generated dependency locks.
+.agents/
+skills-lock.json
+package-lock.json
+**/bun.lock
+
+# Generated artwork, manifests and deployment metadata.
+public/
+src/assets/*.json
+
+# Documentation is maintained independently of source formatting.
+**/*.md
+temporal_pincer_mvp_specification.md
