@@ -13,6 +13,7 @@
     "arkiv:check": "node scripts/arkiv-check.mjs",
     "arkiv:quote": "tsx scripts/arkiv-migrate.ts --quote",
     "arkiv:migrate": "tsx scripts/arkiv-migrate.ts --write",
+    "arkiv:community": "tsx scripts/arkiv-community.ts",
     "assets:prepare": "node scripts/prepare-theme.mjs",
     "assets:check": "node --import tsx scripts/swarm-assets.ts",
     "assets:upload": "node --import tsx scripts/swarm-assets.ts --write",

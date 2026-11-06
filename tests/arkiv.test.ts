@@ -21,7 +21,7 @@ import {
 } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { str, u64, bytes } from '@arkiv-network/sdk/schema';
-import { ENTITY_EVENTS_ABI } from '@arkiv-network/sdk';
+import { ENTITY_EVENTS_ABI, NoEntityFoundError } from '@arkiv-network/sdk';
 import { LevelCipher, CONTENT_TYPE } from '../server/arkiv/LevelCipher';
 import { ArkivArchive } from '../server/arkiv/ArkivArchive';
 import { MemoryArchive, type ArchiveRecord, type ArchiveRef } from '../server/arkiv/archive';
@@ -138,6 +138,7 @@ function writerFixture(
     sends = 0,
     receiptAvailable = false,
     readbackAvailable = true,
+    deleted = false,
     expiresAt = 3700n;
   const sent = new Map<Hex, TransactionSerialized>();
   const queries: unknown[] = [];
@@ -208,24 +209,35 @@ function writerFixture(
         .get(keccak256(raw))!;
     db.close();
     const extension = String(plan.operation).startsWith('heart:');
+    const deletion = String(plan.operation).startsWith('delete-community:');
+    if (deletion) deleted = true;
     if (extension) expiresAt = BigInt(JSON.parse(String(plan.body)).expiresAt);
-    const log = extension
+    const log = deletion
       ? {
           topics: encodeEventTopics({
             abi: ENTITY_EVENTS_ABI,
-            eventName: 'ExpiryExtended',
+            eventName: 'EntityDeleted',
             args: { entityKey, owner: account.address },
           }),
-          data: encodeAbiParameters([{ type: 'uint64' }], [expiresAt]),
+          data: '0x' as Hex,
         }
-      : {
-          topics: encodeEventTopics({
-            abi: ENTITY_EVENTS_ABI,
-            eventName: 'EntityCreated',
-            args: { entityKey, owner: account.address },
-          }),
-          data: encodeAbiParameters([{ type: 'uint64' }, { type: 'uint8' }], [3700n, 1]),
-        };
+      : extension
+        ? {
+            topics: encodeEventTopics({
+              abi: ENTITY_EVENTS_ABI,
+              eventName: 'ExpiryExtended',
+              args: { entityKey, owner: account.address },
+            }),
+            data: encodeAbiParameters([{ type: 'uint64' }], [expiresAt]),
+          }
+        : {
+            topics: encodeEventTopics({
+              abi: ENTITY_EVENTS_ABI,
+              eventName: 'EntityCreated',
+              args: { entityKey, owner: account.address },
+            }),
+            data: encodeAbiParameters([{ type: 'uint64' }, { type: 'uint8' }], [3700n, 1]),
+          };
     return {
       status: 'success',
       transactionHash: keccak256(raw),
@@ -241,6 +253,7 @@ function writerFixture(
   });
   vi.spyOn(reader, 'getEntity').mockImplementation(async () => {
     if (!readbackAvailable) throw new Error('Readback unavailable');
+    if (deleted) throw new NoEntityFoundError(entityKey);
     const db = new DatabaseSync(path),
       plan = db.prepare('SELECT ciphertext,body FROM arkiv_writes LIMIT 1').get()!;
     db.close();
@@ -313,6 +326,87 @@ it('journals signed bytes before forwarding and reconciles a lost reply without 
     expect(canonicalJSON(await f.archive.read(ref))).toBe(canonicalJSON(record()));
     await f.archive.put(record());
     expect(f.sends).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+
+it('deletes only a community publication, reconciles a lost reply and never resends its deletion', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    const quote = await f.archive.quoteCommunityDeletion(ref.entityKey as Hex);
+    expect(BigInt(quote.maximumFeeWei)).toBeGreaterThan(0n);
+    expect(f.sends).toBe(1);
+    f.receipt(false);
+    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow(
+      'could not be confirmed',
+    );
+    expect(f.sends).toBe(2);
+    f.receipt(true);
+    const deleted = await f.archive.deleteCommunityEntity(ref.entityKey as Hex);
+    expect(deleted.entityKey).toBe(ref.entityKey);
+    expect(f.sends).toBe(2);
+    await expect(f.reader.getEntity(ref.entityKey as Hex)).rejects.toBeInstanceOf(
+      NoEntityFoundError,
+    );
+    expect(await f.archive.deleteCommunityEntity(ref.entityKey as Hex)).toEqual(deleted);
+    expect(f.sends).toBe(2);
+  } finally {
+    f.close();
+  }
+});
+
+it('denies campaign deletion and unfunded community cleanup before signing', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    const original = vi.mocked(f.reader.getEntity).getMockImplementation()!;
+    vi.mocked(f.reader.getEntity).mockImplementation(
+      async (...args) => ({ ...(await original(...args)), category: str('campaign') }) as never,
+    );
+    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow(
+      'Only community',
+    );
+    expect(f.sends).toBe(1);
+    vi.mocked(f.reader.getEntity).mockImplementation(original);
+    vi.spyOn(f.reader, 'getBalance').mockResolvedValue(0n);
+    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow('budget');
+    expect(f.sends).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+
+it('keeps a deletion receipt confirmed during an RPC outage and finishes readback without another send', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    const ref = await f.archive.put(record());
+    const receipt = vi.mocked(f.reader.getTransactionReceipt).getMockImplementation()!;
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(async (...args) => {
+      const result = await receipt(...args);
+      f.readback(false);
+      return result;
+    });
+    await expect(f.archive.deleteCommunityEntity(ref.entityKey as Hex)).rejects.toThrow(
+      'could not be confirmed',
+    );
+    expect(f.sends).toBe(2);
+    const db = new DatabaseSync(f.path);
+    expect(
+      db.prepare("SELECT phase FROM arkiv_writes WHERE operation LIKE 'delete-community:%'").get()
+        ?.phase,
+    ).toBe('receipt_confirmed');
+    db.close();
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(receipt);
+    f.readback(true);
+    expect((await f.archive.deleteCommunityEntity(ref.entityKey as Hex)).entityKey).toBe(
+      ref.entityKey,
+    );
+    expect(f.sends).toBe(2);
   } finally {
     f.close();
   }

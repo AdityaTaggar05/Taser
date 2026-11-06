@@ -15,6 +15,7 @@ import {
   createWalletClient,
   ExpirationTime,
   ENTITY_EVENTS_ABI,
+  NoEntityFoundError,
   type TxParams,
   type WalletArkivClient,
 } from '@arkiv-network/sdk';
@@ -67,6 +68,7 @@ interface ExtensionIntent {
   expiresAt: string;
 }
 const isExtension = (plan: Plan) => plan.operation.startsWith('heart:');
+const isCommunityDeletion = (plan: Plan) => plan.operation.startsWith('delete-community:');
 const NATIVE = '0x4400000000000000000000000000000000000044';
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 interface Plan {
@@ -389,6 +391,11 @@ export class ArkivArchive implements LevelArchive {
     return task;
   }
   private invoke(wallet: WalletArkivClient, plan: Plan, params?: TxParams) {
+    if (isCommunityDeletion(plan))
+      return wallet.deleteEntity(
+        { entityKey: (JSON.parse(plan.body) as { entityKey: Hex }).entityKey },
+        params,
+      );
     if (isExtension(plan)) {
       const intent = JSON.parse(plan.body) as ExtensionIntent;
       return wallet.extendEntity(
@@ -400,6 +407,107 @@ export class ArkivArchive implements LevelArchive {
       );
     }
     return this.createPublication(wallet, plan, params);
+  }
+
+  /** Operator-only maintenance, scoped to this publisher and namespace. */
+  async communityDeletionInventory() {
+    await this.identity();
+    const entries: Array<{ entityKey: Hex; id: string; revision: number; expiresAt: string }> = [];
+    let last: Hex | undefined;
+    for (let page = 0; page < 100; page++) {
+      const scope = and(eq('namespace', this.options.namespace), eq('category', 'community'));
+      const result = await this.reader
+        .select({ $key: true, $owner: true, record_id: true, revision: true, $expiresAt: true })
+        .from(LevelEntities, { onMismatch: 'throw' })
+        .createdBy(this.account.address)
+        .where(last ? and(scope, gt('$key', key(last))) : scope)
+        .orderBy(asc('$key'))
+        .limit(100)
+        .fetch();
+      for (const row of result.entities) {
+        if (row.$owner.toLowerCase() !== this.signer.toLowerCase())
+          throw new ArchiveError(
+            409,
+            'A community publication has a different owner. Cleanup stopped.',
+          );
+        entries.push({
+          entityKey: row.$key,
+          id: row.record_id.value,
+          revision: Number(row.revision.value),
+          expiresAt: row.$expiresAt.toString(),
+        });
+      }
+      if (result.entities.length < 100) return entries;
+      const next = result.entities.at(-1)!.$key;
+      if (last && next <= last) throw new ArchiveError(503, 'Community inventory did not advance.');
+      last = next;
+    }
+    throw new ArchiveError(503, 'Community inventory exceeds the bounded cleanup scan.');
+  }
+
+  private async prepareCommunityDeletion(entityKey: Hex) {
+    if (!/^0x[a-fA-F0-9]{64}$/.test(entityKey))
+      throw new ArchiveError(400, 'Invalid community entity key.');
+    const operation = `delete-community:${entityKey.toLowerCase()}`;
+    const existing = this.plan(operation);
+    if (existing) return existing;
+    await this.reconcilePending();
+    const row = await this.entity(entityKey);
+    this.trusted(row);
+    if (row.category.value !== 'community')
+      throw new ArchiveError(400, 'Only community publications may be deleted by this command.');
+    const body = JSON.stringify({
+      entityKey: row.$key,
+      category: 'community',
+      namespace: this.options.namespace,
+    });
+    const genesis = await this.identity();
+    this.db
+      .prepare(
+        "INSERT INTO arkiv_writes(operation,input_hash,body,salt,ciphertext,phase,genesis) VALUES(?,?,?,'0','','prepared',?)",
+      )
+      .run(operation, hash(body), body, genesis);
+    return this.plan(operation)!;
+  }
+
+  async quoteCommunityDeletion(entityKey: Hex) {
+    const plan = await this.prepareCommunityDeletion(entityKey);
+    if (plan.phase !== 'prepared')
+      throw new ArchiveError(
+        409,
+        'This deletion already has a journaled result. Reconcile it first.',
+      );
+    const { estimate } = await this.estimate(plan);
+    const gas = estimate * 2n > 1_000_000n ? estimate * 2n : 1_000_000n;
+    return {
+      gas: gas.toString(),
+      maximumFeeWei: (gas * (await getGasPrice(this.reader))).toString(),
+    };
+  }
+
+  deleteCommunityEntity(entityKey: Hex): Promise<ArchiveRef> {
+    const task = this.queue.then(async () => {
+      try {
+        const plan = await this.prepareCommunityDeletion(entityKey);
+        if (plan.phase === 'verified')
+          return { entityKey: plan.entity_key!, txHash: plan.tx_hash!, expiresAt: '0' };
+        if (plan.phase !== 'prepared') return await this.reconcile(plan);
+        // Recheck scope and ownership immediately before admitting a new signature.
+        const live = await this.entity(entityKey);
+        this.trusted(live);
+        if (live.category.value !== 'community')
+          throw new ArchiveError(400, 'Not a community publication.');
+        await this.reconcilePending();
+        return await this.submit(plan);
+      } catch (error) {
+        throw this.safe(
+          error,
+          'Community deletion could not be confirmed. Reconcile the original journal entry before retrying.',
+        );
+      }
+    });
+    this.queue = task.catch(() => {});
+    return task;
   }
   async list(): Promise<ArchivedLevel[]> {
     try {
@@ -830,6 +938,56 @@ export class ArkivArchive implements LevelArchive {
         503,
         'Arkiv transaction reverted. Automatic retries are disabled; reconcile it before further writes.',
       );
+    }
+    if (isCommunityDeletion(plan)) {
+      const intent = JSON.parse(plan.body) as {
+        entityKey: Hex;
+        category: string;
+        namespace: string;
+      };
+      const deletions = receipt.logs
+        .filter((log) => log.address.toLowerCase() === NATIVE.toLowerCase())
+        .flatMap((log) => {
+          try {
+            const event = decodeEventLog({
+              abi: ENTITY_EVENTS_ABI,
+              data: log.data,
+              topics: log.topics,
+            });
+            return event.eventName === 'EntityDeleted' ? [event.args] : [];
+          } catch {
+            return [];
+          }
+        });
+      if (
+        intent.category !== 'community' ||
+        intent.namespace !== this.options.namespace ||
+        deletions.length !== 1 ||
+        deletions[0].entityKey.toLowerCase() !== intent.entityKey.toLowerCase() ||
+        deletions[0].owner.toLowerCase() !== this.signer.toLowerCase()
+      )
+        throw new Error();
+      this.db
+        .prepare(
+          "UPDATE arkiv_writes SET phase='receipt_confirmed',entity_key=?,expires_at='0' WHERE operation=?",
+        )
+        .run(intent.entityKey, plan.operation);
+      let missing = false;
+      try {
+        await this.reader.getEntity(intent.entityKey);
+      } catch (error) {
+        if (error instanceof NoEntityFoundError) missing = true;
+        else throw error;
+      }
+      if (!missing)
+        throw new ArchiveError(
+          503,
+          'Deletion receipt is confirmed but the entity still appears in a fresh read.',
+        );
+      this.db
+        .prepare("UPDATE arkiv_writes SET phase='verified' WHERE operation=?")
+        .run(plan.operation);
+      return { entityKey: intent.entityKey, txHash, expiresAt: '0' };
     }
     const events = receipt.logs
       .filter((log) => log.address.toLowerCase() === NATIVE.toLowerCase())
