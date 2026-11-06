@@ -6,6 +6,7 @@ import {environments,type EnvironmentPack,type AssetRole} from '../render/enviro
 import {registeredThemes} from '../assets/catalog';
 import {applySprite,spriteElement} from '../assets/dom';
 import type {PlayerProfile} from '../auth/types';
+import {verificationLabel} from '../certification/model';
 import {EditorModel,blankLevel} from './EditorModel';
 import {verifySolution} from './solution';
 import {LevelClient} from './LevelClient';
@@ -460,9 +461,12 @@ export class EditorScreen {
     const banner=this.el('.creator-certification');banner.hidden=!certification;
     if(certification){
       banner.querySelector<HTMLInputElement>('.creator-submission-id')!.value=certification.id;
-      banner.querySelector('span')!.textContent=`${certification.mode==='simulation'?'CRE simulation · ':certification.mode==='don'?'CRE · ':''}${certification.message}`;
-      const proof=banner.querySelector<HTMLAnchorElement>('a')!;proof.hidden=!certification.proof||certification.mode==='test';
-      if(certification.proof)proof.href=`https://sepolia.etherscan.io/address/${certification.proof.registry}`;
+      const complete=['approved','published'].includes(certification.status);
+      banner.querySelector('span')!.textContent=`${certification.mode==='cli-simulation'?(complete?'CRE simulation verified · ':'CRE CLI simulation · '):certification.mode==='simulation'?'CRE simulation · Sepolia · ':certification.mode==='don'?'CRE DON · ':''}${certification.message}`;
+      const proof=banner.querySelector<HTMLAnchorElement>('a')!,receipt=certification.proof;proof.hidden=!receipt||receipt.mode==='test'||receipt.mode==='cli-simulation';
+      if(receipt&&receipt.mode!=='cli-simulation')proof.href=`https://sepolia.etherscan.io/address/${receipt.registry}`;
+      let detail=banner.querySelector<HTMLElement>('.creator-receipt');if(!detail){detail=document.createElement('small');detail.className='creator-receipt';banner.querySelector('details label')!.append(detail);}detail.hidden=receipt?.mode!=='cli-simulation';
+      if(receipt?.mode==='cli-simulation')detail.textContent=`Local execution receipt: ${receipt.receiptId}. Workflow: ${receipt.workflowHash}. Verified by this server using the CRE CLI.`;
       banner.querySelector<HTMLButtonElement>('[data-editor=show-publication]')!.hidden=certification.status!=='published';
       banner.querySelector<HTMLButtonElement>('button')!.disabled=this.busy||certification.status==='published'||certification.status==='rejected';
     }
@@ -568,6 +572,7 @@ export class EditorScreen {
 
   private showPublication(){
     const published=this.stored;if(!published?.publication)return;
+    this.el('#creator-published .home-kicker').textContent=verificationLabel(published.verification)+' · ENCRYPTED ON ARKIV';
     this.el<HTMLInputElement>('#creator-share-link').value=new URL(`#play/${published.id}`,location.href).href;this.el('.creator-copy-status').textContent='';const proof=this.el('.creator-archive-proof');proof.replaceChildren();if(published.publication){const ref=published.publication;const a=document.createElement('a');a.textContent='View encrypted entity on Arkiv ↗';a.href=`https://rabdi.explorer.arkiv.network/entity/${ref.entityKey}`;a.target='_blank';a.rel='noopener noreferrer';proof.append(a,document.createTextNode(` · ${ref.category} · expiry block ${ref.expiresAt}`));}this.el<HTMLDialogElement>('#creator-published').showModal();
   }
 

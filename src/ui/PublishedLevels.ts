@@ -1,6 +1,7 @@
 import './published.css';
 import type {LevelClient} from '../editor/LevelClient';
 import type {LevelSummary} from '../editor/types';
+import {verificationLabel} from '../certification/model';
 import {INVITE_LENGTH,INVITE_PATTERN,normalizeInviteCode} from '../network/invite';
 export class PublishedLevels {
   readonly root=document.createElement('main');private request=0;
@@ -65,7 +66,7 @@ export class PublishedLevels {
   }
   private card(level:LevelSummary,parent:Element,href:string){
     const card=document.createElement('article');card.className='archive-card';
-    for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / ${level.verification==='simulation'?'CRE SIMULATION':level.verification==='don'?'CRE VERIFIED':'LEGACY · SERVER VERIFIED'}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
+    for(const [tag,text,css] of [['p',`${level.width} × ${level.height} / ${level.totalSteps} TURNS / ${verificationLabel(level.verification)}`,'archive-kicker'],['h2',level.name,''],['p',level.subtitle,'archive-subtitle'],['p','By '+level.ownerName,'archive-author']]){const el=document.createElement(tag);el.textContent=text;el.className=css;card.append(el);}
     const play=document.createElement('a');play.href=href;play.className='archive-play';play.textContent='Choose P1 / P2 ↗';card.append(play);parent.append(card);
   }
   destroy(){this.request++;this.root.remove();}
