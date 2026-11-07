@@ -524,7 +524,7 @@ class ChamberScene extends Phaser.Scene {
     const id = playtestEngine.level.environment ?? 'foundry';
     const environment = Object.hasOwn(environments, id) ? environments[id] : environments.foundry;
     this.title?.clear();
-    this.cameras.main.setBackgroundColor(environment.palette.background);
+    this.cameras.main.setBackgroundColor('#f3efe5');
     const stage = editor.root.querySelector('.creator-stage');
     if (!stage) return;
     const rect = stage.getBoundingClientRect();

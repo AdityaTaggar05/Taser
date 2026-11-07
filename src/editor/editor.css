@@ -666,9 +666,9 @@ body[data-screen='creator'] #hud {
 #creator.playtesting .creator-sidebar,
 #creator.playtesting .creator-stage-top,
 #creator.playtesting .creator-stage-caption,
-#creator.playtesting .creator-test {
+#creator.playtesting .creator-test,
+#creator.playtesting .creator-certification {
   pointer-events: auto;
-  background: #142023;
 }
 #creator.playtesting .creator-stage {
   background: transparent !important;
@@ -987,4 +987,9 @@ body[data-screen='creator'] #hud {
   margin-top: 10px;
   overflow-wrap: anywhere;
   color: #a8bdb7;
+}
+
+/* Playtest passes board input through the shell; modal controls remain interactive. */
+#creator dialog {
+  pointer-events: auto;
 }
