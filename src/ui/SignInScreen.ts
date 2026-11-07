@@ -1,3 +1,4 @@
+import { timelineArt } from './TimelineArt';
 import { icon } from './icons';
 import { brandLogo } from './brand';
 import type { AuthClient } from '../auth/AuthClient';
@@ -20,23 +21,13 @@ export class SignInScreen {
           WELDPOINT
           <span>Meet in the middle of time.</span>
         </h1>
-        <figure class="landing-art" aria-label="Two opposing timelines meet at a central weld">
-          <img
-            class="convergence-art"
-            src="/illustrations/convergence.png"
-            alt=""
-            width="1952"
-            height="488"
-          />
-          <img class="clock-art clock-forward" src="/illustrations/clock-forward.png" alt="" />
-          <img class="clock-art clock-reverse" src="/illustrations/clock-reverse.png" alt="" />
-        </figure>
+        ${timelineArt('landing-timeline')}
         <button class="ink-button landing-enter" type="button">Sign in ${icon('arrow')}</button>
       </section>
       <section class="signin-panel" hidden aria-labelledby="signin-title">
         <button class="signin-back text-button" type="button">← Back</button>
         <h1 id="signin-title">Sign in.</h1>
-        <img class="signin-art" src="/illustrations/home.png" alt="" width="900" height="300" />
+        ${timelineArt('signin-timeline')}
 
         <button class="signin-wallet home-play" type="button">
           <span>Sign in with Ethereum</span>

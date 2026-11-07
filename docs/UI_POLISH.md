@@ -1,6 +1,6 @@
 # WeldPoint UI polish
 
-The existing editorial identity remains: warm paper, graphite, serif headings, teal actions and vermilion accents. The supplied `public/brand/weldpoint-logo.svg` is authoritative; game environment packs cannot replace it.
+The existing editorial identity remains: warm paper, graphite, serif headings, teal actions and vermilion accents. The supplied `public/brand/weldpoint-mark.svg` is authoritative; game environment packs cannot replace it.
 
 ## Composition and shared controls
 
@@ -21,3 +21,5 @@ The implementation carries the generated paper and timeline illustration assets.
 12ui's URL-capture adapter rejected its managed browser on this host despite a successful prototype runtime check. Final target kits for welcome and home instead used CUA screenshots and the unchanged source LayerDocs. These are unanchored plans, not an automated fidelity score. Manual comparison and browser checks confirmed the composition and actual interactions.
 
 Checks cover sign-in, development account entry, setup role selection, archive search and level selection, visible mobile Play controls, shared logo loading, existing sprite reuse, and absence of horizontal/window overflow on the checked 1280×720 and 390×844 entry/archive layouts. The isolated preview uses explicit mock data and performs no wallet signing, CRE execution or Arkiv writes. Build, formatting and the 214-test suite accompany the change.
+
+The final illustration uses a shared code-native SVG timeline with the actual selected-pack player, crate and pressure-plate sprites, replacing the proposal’s pawn models at the user’s request. Hover hit areas remain fixed; only the trailing action arrow moves. The latest supplied mark is `public/brand/weldpoint-mark.svg`.

@@ -2328,8 +2328,7 @@ button {
 button:active:not(:disabled) {
   transform: translateY(1px) scale(0.98);
 }
-.segmented button[aria-pressed='true'],
-.objective-options > button:hover {
+.segmented button[aria-pressed='true'] {
   animation: menu-select 180ms ease-out;
 }
 @keyframes menu-select {
