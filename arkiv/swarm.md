@@ -88,6 +88,6 @@ Public gateway responses did not give us the postage batch ID or funding-wallet 
 - **Postage batch ID:** awaiting the gateway operator; not inferred from a content hash. Both release evidence files currently record `postageBatchId: null`.
 - **Postage supplier/funder:** the recorded supplier is Swarm Foundation public gateway; confirm the batch attribution and who supplied it or which wallet funded it with the operator.
 - **Retention/service limits:** awaiting the operator; no permanent-storage guarantee is claimed.
-- **Demo video and timestamp:** not supplied. Record opening a theme, show the Arkiv pointer response and Swarm asset requests, and capture `data-asset-source="swarm"`; insert the exact video timestamp here.
+- **Demo video timestamp:** Swarm is demonstrated at **3:15**.
 
 Only public, unencrypted Swarm references are published in Arkiv. Puzzle solutions stay in the separate encrypted Arkiv archive. An encrypted Swarm reference includes its key and must not be published as plaintext; this integration does not use encrypted Swarm references. [Prize requirements](https://ethglobal.com/events/mumbai/prizes/arkiv).
