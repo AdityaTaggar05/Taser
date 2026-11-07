@@ -13,7 +13,7 @@ WeldPoint / Taser is a temporal co-op puzzle game with encrypted community level
 | Entity definitions | [schema.md](schema.md) | Both schemas, indexed/encrypted fields, owner, lifetime, and predicates. |
 | Arkiv + Swarm bonus | [swarm.md](swarm.md) | Current entity/reference pairs, upload/read commands, files, and outstanding postage/video evidence. |
 
-The [main README](../README.md#arkiv-submission-and-runnable-query) contains the publisher wallet and a runnable native Arkiv query. [Public repository](https://github.com/AdityaTaggar05/WeldPoint).
+The [schema guide](schema.md#runnable-theme-query) contains the publisher wallet and a runnable native Arkiv query. [Public repository](https://github.com/AdityaTaggar05/WeldPoint).
 
 ## Audit findings and verification
 
@@ -24,10 +24,14 @@ This documentation audit on **2026-11-07 UTC** checked claims against the implem
 - Corrected expiry: new levels start with two hours and hearts add one hour; runs and moves have two-day lifetimes, including moves from failed attempts.
 - Distinguished native Arkiv queries from local SQL projections and encrypted fields that cannot be filtered natively.
 - Replaced stale Swarm 1.0.0 evidence with both active 1.1.0 deployments, each with 29 PNGs, and documented the current local-artwork fallback.
-- Ran the README's theme-query payload with the configured access key: four publications returned, including both current 1.1.0 pointers. The keyless query encountered HTTP 429.
+- Ran the schema guide's theme-query payload with the configured access key: four publications returned, including both current 1.1.0 pointers. The keyless query encountered HTTP 429.
 - Read both Swarm releases/manifests and checked recorded hashes, plus one PNG's size/hash per theme. Earlier full-file verification remains in linked release evidence.
 
 No transaction was sent, no content was republished, and no deployment is implied by this audit. Source/test links show how behavior is covered; they do not imply a new full application test run.
+
+## AI-use disclosure
+
+Codex was used to audit the implementation, consult Arkiv documentation, check live public metadata, and revise these documents. This records the documentation-audit role; the team still needs to add other AI use in implementation, design, or artwork.
 
 ## Submission details still needed
 
@@ -38,7 +42,7 @@ No transaction was sent, no content was republished, and no deployment is implie
 | Public play URL | Not supplied in the repository. Add a reachable Node/WebSocket deployment URL to [reach.md](reach.md). |
 | Demo video | Add the video link and exact moment showing Swarm reads to [swarm.md](swarm.md). |
 | Swarm postage attribution | The gateway supplier is recorded, but batch ID and specific funding-wallet/operator confirmation remain missing. Request these from the operator. |
-| AI-use disclosure | The main README records Codex's documentation-audit role. Complete it with any other AI use in implementation, design, or artwork. |
+| AI-use disclosure | The disclosure above records Codex's documentation-audit role. Complete it with any other AI use in implementation, design, or artwork. |
 | Event eligibility | The team must confirm from-scratch work and event-rule compliance. This audit does not independently establish event provenance. |
 | Operational availability | Recheck short-lived levels and both theme endpoints before judging. Arkiv expiry and Swarm retention are separate. |
 

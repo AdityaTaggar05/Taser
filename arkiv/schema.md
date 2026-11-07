@@ -54,7 +54,40 @@ One confirmed heart per account/publication sets the new deadline to the live ex
 
 ## Queries judges can run
 
-The [README](../README.md#arkiv-submission-and-runnable-query) contains a complete JSON-RPC command for the recorded publisher's public theme metadata, without our encryption key. On **2026-11-07 UTC**, it returned four records, including both current 1.1.0 publications. Availability/counts can change with expiration or deletion.
+### Runnable theme query
+
+Run this read-only JSON-RPC command for the recorded publisher's public theme metadata. Set `ARKIV_ACCESS_KEY` in your shell for a keyed RPC; leaving it unset uses the heavily rate-limited public endpoint. No signing or encryption key is needed. The quoted heredoc preserves the literal `$creator` field.
+
+```sh
+curl --fail-with-body --silent --show-error \
+  "https://rpc.rabdi.db-chain.testnet.arkiv.network/${ARKIV_ACCESS_KEY:-}" \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "arkiv_query",
+  "params": [
+    "arkiv.schema = str('taser_themes_v1') AND $creator = addr(0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca)",
+    {
+      "select": {
+        "key": true,
+        "creator": true,
+        "expiresAt": true,
+        "creationFlags": true,
+        "attributes": { "theme_id": true, "version": true, "swarm_reference": true },
+        "count": true
+      },
+      "limit": "0xa"
+    }
+  ]
+}
+JSON
+```
+
+During the **2026-11-07 UTC** documentation audit, this payload returned four records, including both current 1.1.0 publications. Availability/counts can change with expiration or deletion.
+
+### Campaign and record predicates
 
 For campaign publications, pass this predicate to `arkiv_query` with `select` fields for `key`, `creator`, `expiresAt`, and `attributes`:
 
@@ -77,4 +110,4 @@ AND revision = u64(1)
 
 Place those conditions before `ORDER BY`. For another catalog page, add `$key > key(0x...)` using the previous page's last key. Move retrieval combines `category = str('move')` with an `OR` over requested record IDs, then checks decrypted records against the authorized session's expected contents. Current-state pagination is not a snapshot.
 
-Native queries cannot search encrypted names, roles, scores, or directions. The in-game SQL presets use [a local metadata index](../server/arkiv/explorer.ts); the committed-move feed separately executes [native Arkiv queries](../server/arkiv/ArkivArchive.ts). Neither is a native SQL join.
+Native queries cannot search encrypted names, roles, scores, or directions. Replay discovery and rankings use [local level projections](../server/levels/LevelStore.ts); the committed-move feed separately executes [native Arkiv queries](../server/arkiv/ArkivArchive.ts). These local projections are not native Arkiv SQL joins.

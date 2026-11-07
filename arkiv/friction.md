@@ -49,7 +49,7 @@ The [documented query language](https://docs.arkiv.network/reference/query-langu
 
 These are capability requests, not claims that `JOIN` or `GROUP BY` currently works. The [read API](https://docs.arkiv.network/json-rpc/querying-data/) documents the pagination behavior we work around. Arkiv already supports atomic native-operation batches; the constraint request is additional to that functionality.
 
-There is a privacy tradeoff: our run-to-level relationship, role, player identity, and scores are inside encrypted payloads. Joins cannot inspect those fields as stored today. Using richer native queries would also require deliberately exposing suitable public indexes or maintaining privacy-preserving projections. Current leaderboards and [explorer SQL presets](../server/arkiv/explorer.ts) execute in local SQLite.
+There is a privacy tradeoff: our run-to-level relationship, role, player identity, and scores are inside encrypted payloads. Joins cannot inspect those fields as stored today. Using richer native queries would also require deliberately exposing suitable public indexes or maintaining privacy-preserving projections. Current [leaderboard projections](../server/levels/LevelStore.ts) execute in local SQLite.
 
 ## 4. Make expiration extensions and relationships easier to use
 
@@ -85,6 +85,6 @@ An access key, the wallet used to obtain it, and the wallet signing application 
 
 During this documentation audit on **2026-11-07 UTC**, the public RPC answered chain ID and head reads, but our theme query returned **HTTP 429**. The same query succeeded using the configured access key and returned four theme publications, including both current 1.1.0 releases. This is one observed outcome, not a reliability or throughput benchmark.
 
-**Reproduce:** run the keyless version of the [README query](../README.md#arkiv-submission-and-runnable-query). Throttling depends on current traffic and may not repeat. Obtain an access key and repeat using its keyed RPC URL.
+**Reproduce:** run the keyless version of the [theme query](schema.md#runnable-theme-query). Throttling depends on current traffic and may not repeat. Obtain an access key and repeat using its keyed RPC URL.
 
 **Request:** document rate-limit scope, provide useful backoff guidance and response metadata, and make the public-to-keyed RPC transition prominent in onboarding.

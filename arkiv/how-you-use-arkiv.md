@@ -22,7 +22,7 @@ The [archive adapter](../server/arkiv/ArkivArchive.ts), [level store](../server/
 
 Every catalog/move query also scopes the creator to the configured signer. Copied schema tags do not make another wallet's data trustworthy. Readback verifies readonly flags and encrypted routing, validates bounded game data, and replays published witnesses.
 
-The only indexed level attributes are `namespace`, `record_id`, `revision`, and `category`. Player names/IDs, level names, run-to-level relationships, roles, scores, layouts, and moves are encrypted. We do not query those fields natively. Replay discovery, access checks, rankings, and explorer SQL presets use local projections; selected publications and replays are validated against Arkiv. Theme queries use indexed `namespace`, `theme_id`, and `version`.
+The only indexed level attributes are `namespace`, `record_id`, `revision`, and `category`. Player names/IDs, level names, run-to-level relationships, roles, scores, layouts, and moves are encrypted. We do not query those fields natively. Replay discovery, access checks, and rankings use local projections; selected publications and replays are validated against Arkiv. Theme queries use indexed `namespace`, `theme_id`, and `version`.
 
 Catalog traversal uses pages of 100, `ORDER BY $key ASC`, and a `$key` cursor, capped at 100 pages. It fails rather than accepting an incomplete scan. This is a current-state traversal, not a snapshot. See [query feedback](friction.md#3-stronger-queries-would-reduce-our-local-sql-dependency).
 
