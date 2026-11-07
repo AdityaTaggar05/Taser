@@ -287,3 +287,36 @@ it('keeps verifier endpoints separate from sessions and exposes no witness throu
     vi.unstubAllEnvs();
   }
 });
+
+it('keeps missing certificates out of discovery and play without blocking other catalog entries', async () => {
+  const archive = new MemoryArchive(),
+    registry = new Registry();
+  const store = new LevelStore(':memory:', archive, registry);
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    await store.seed([levels[0]]);
+    const draft = await store.save('alice', 'Alice', levels[0]);
+    await store.publish('alice', draft.id, 1);
+    registry.valid = true;
+    await store.flushCertifications();
+    expect(store.community()).toHaveLength(1);
+    registry.valid = undefined;
+    await store.hydrate();
+    expect(store.community()).toEqual([]);
+    expect(store.forPlay(draft.id)).toBeNull();
+    expect(store.campaign()).toHaveLength(1);
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('restore its private receipt database'),
+    );
+    registry.valid = true;
+    await store.hydrate();
+    expect(store.community()).toHaveLength(1);
+    registry.valid = false;
+    await expect(store.hydrate()).rejects.toThrow('Could not confirm');
+    registry.unavailable = true;
+    await expect(store.hydrate()).rejects.toThrow();
+  } finally {
+    store.close();
+    warning.mockRestore();
+  }
+});

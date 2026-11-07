@@ -278,12 +278,21 @@ export class LevelStore {
 
   async hydrate() {
     // Only replace the public projection after a complete successful trusted remote traversal.
-    const entries = await this.archive.list();
-    for (const { record } of entries)
+    const discovered = await this.archive.list();
+    const entries: ArchivedLevel[] = [];
+    let unavailable = 0;
+    for (const entry of discovered) {
+      const { record } = entry;
       if (record.certification) {
         const { proof, salt } = record.certification;
         checkInput({ request: proof.request, level: record.level, salt });
         const observed = await this.registry.read(proof.request);
+        // A fresh host may lack local receipts or have no verifier configured.
+        // Never promote the archived assertion alone into a playable publication.
+        if (!observed) {
+          unavailable++;
+          continue;
+        }
         const identityMatches =
           observed &&
           observed.mode === proof.mode &&
@@ -299,6 +308,12 @@ export class LevelStore {
             'Could not confirm an archived CRE verification. Check verification configuration and the private receipts.',
           );
       }
+      entries.push(entry);
+    }
+    if (unavailable)
+      console.warn(
+        `${unavailable} archived CRE publication(s) unavailable: configure the matching verifier and restore its private receipt database. Other verified levels remain available.`,
+      );
     for (const row of this.db.prepare('SELECT account_id,entity_key FROM level_wins').all())
       this.recordWin([String(row.account_id)], String(row.entity_key));
     this.db.exec('BEGIN IMMEDIATE');

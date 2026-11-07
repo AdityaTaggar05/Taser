@@ -1,0 +1,17 @@
+.git
+.agents
+node_modules
+**/node_modules
+dist
+.data
+**/.data
+.env
+.env.*
+*.local
+**/cre.yaml
+**/context.yaml
+**/verifier-secrets.yaml
+output
+tests
+scripts/browser
+*.log

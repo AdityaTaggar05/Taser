@@ -1,0 +1,22 @@
+services:
+  weldpoint:
+    build: .
+    init: true
+    restart: unless-stopped
+    env_file: .env.local
+    environment:
+      PORT: '5173'
+      AUTH_DB_PATH: /app/.data/accounts.sqlite
+      ARKIV_JOURNAL_PATH: /app/.data/arkiv.sqlite
+      CRE_CLI_RECEIPTS_PATH: /app/.data/cre/cli-receipts.sqlite
+      CRE_API_BASE: http://127.0.0.1:5173
+      CRE_BIN: /usr/local/bin/cre
+    ports:
+      - '127.0.0.1:5173:5173'
+    volumes:
+      - game-data:/app/.data
+      - cre-session:/home/node/.cre
+    stop_grace_period: 60s
+volumes:
+  game-data:
+  cre-session:

@@ -251,3 +251,8 @@ Stop the application server before using the dedicated Arkiv signer. `npm run ar
 The approved per-transaction and UTC daily limits remain enforced. Pending or uncertain writes reserve their full maximum gas fee. Authenticated canonical receipts settle that reservation to the actual fee, including reverted transactions; unused gas no longer consumes the daily allowance. Older journal entries are settled from receipts on demand, retaining the full reservation when evidence is unavailable. The journal migration preserves existing signing and reconciliation records. Admission errors identify the per-transaction budget, daily budget, signer balance or safe block gas limit separately. Daily allowance resets at 00:00 UTC.
 
 The product is named **WeldPoint**. Historical `taser-*` commitment domains, Arkiv schema/release identifiers and the configured verifier-secret binding remain unchanged for compatibility with existing public records; they are not display names.
+
+### Docker hosting
+
+See [Docker setup and CRE login](docs/DOCKER.md) for container builds, persistent
+storage, browser authentication, and HTTPS hosting.
