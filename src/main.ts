@@ -36,6 +36,7 @@ import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
 import './ui/editorial.css';
+import './ui/polish.css';
 
 let connectingParty = false;
 

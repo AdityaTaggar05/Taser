@@ -1,3 +1,4 @@
+import { icon } from './icons';
 import { brandLogo } from './brand';
 import './home.css';
 import { profileLabel } from '../auth/AuthClient';
@@ -24,14 +25,14 @@ export class HomeScreen {
   constructor(private actions: HomeActions) {
     this.root.id = 'home';
     this.root.innerHTML = `<header class="paper-header"><button class="text-button" data-home-action="back">← Back</button><a href="#" class="home-brand"><span class="brand-mark">${brandLogo()}</span> WELDPOINT</a><span class="folio">THE TEMPORAL CO-OP PUZZLE</span></header>
-      <section class="setup-page"><section class="home-welcome" hidden><h1>WeldPoint</h1><button class="ink-button" data-home-action="begin">Continue</button></section><div class="section-heading"><p class="folio">02 / CONFIGURE YOUR TIMELINE</p><h1>Choose your perspective.</h1></div>
-      <form class="mode-form"><fieldset><legend><span>01</span> Players</legend><div class="segmented"><button type="button" data-choice="players" data-value="solo">Solo </button><button type="button" data-choice="players" data-value="coop">Co-op </button></div></fieldset>
-      <fieldset><legend><span>02</span> Collection</legend><div class="segmented"><button type="button" data-choice="collection" data-value="campaign">Campaign </button><button type="button" data-choice="collection" data-value="community">Community </button></div></fieldset>
-      <fieldset><legend><span>03</span> Your role</legend><div class="segmented mode-roles"><button type="button" data-choice="role" data-value="1" data-player="1">Forward </button><button type="button" data-choice="role" data-value="2" data-player="2">Reverse </button></div></fieldset>
-      <button class="ink-button mode-submit" type="submit">Select level <span>↗</span></button></form>
-      <section class="objective-picker" hidden><p class="folio">01 / CHOOSE YOUR OBJECTIVE</p><h1>What brings you here?</h1><div class="objective-options"><button data-home-action="browse"><span class="objective-symbol">↔</span><b>Play a level</b><span>01 ↗</span></button><button data-home-action="create"><span class="objective-symbol">⊞</span><b>Create a level</b><span>02 ↗</span></button></div></section>
-      <div class="setup-bottom"><button class="text-button" data-home-action="guide">How to play ↗</button><button class="text-button" data-home-action="leaderboard">Leaderboard ↗</button><form class="join-code-form"><label for="home-invite">Have a co-op code?</label><input id="home-invite" required pattern="${INVITE_PATTERN}" maxlength="6" minlength="6" placeholder="6-character code" aria-label="Co-op invite code"><button type="submit">Join →</button></form></div></section>
-      <footer class="paper-footer"><span>ETHGLOBAL / MUMBAI 2026</span><span>YOUR PAST. THEIR WAY FORWARD.</span></footer>`;
+      <section class="setup-page"><section class="home-welcome" hidden><h1>WeldPoint</h1><button class="ink-button" data-home-action="begin">Continue</button></section><div class="section-heading"><h1>Set up your session.</h1></div>
+      <form class="mode-form"><fieldset><legend> Players</legend><div class="segmented"><button type="button" data-choice="players" data-value="solo">Solo </button><button type="button" data-choice="players" data-value="coop">Co-op </button></div><div class="configuration-operators" aria-hidden="true"><span data-player="1"></span>${icon('arrow')}<span data-player="2"></span></div></fieldset>
+      <fieldset><legend> Collection</legend><div class="segmented"><button type="button" data-choice="collection" data-value="campaign">Campaign </button><button type="button" data-choice="collection" data-value="community">Community </button></div><img class="configuration-art" src="/illustrations/collection.png" alt="" width="400" height="230" /></fieldset>
+      <fieldset><legend> Your role</legend><div class="segmented mode-roles"><button type="button" data-choice="role" data-value="1" data-player="1">Forward P1</button><button type="button" data-choice="role" data-value="2" data-player="2">Reverse P2</button></div><img class="configuration-art" src="/illustrations/roles.png" alt="" width="400" height="230" /></fieldset>
+      <button class="ink-button mode-submit" type="submit">Select level ${icon('arrow')}</button></form>
+      <section class="objective-picker" hidden><h1>Your next move.</h1><div class="objective-options"><button data-home-action="browse"><span class="objective-symbol">${icon('play')}</span><b>Play</b><span>${icon('arrow')}</span></button><img class="home-art" src="/illustrations/home.png" alt="" width="600" height="300" /><button data-home-action="create"><span class="objective-symbol">${icon('create')}</span><b>Create</b><span>${icon('arrow')}</span></button></div></section>
+      <div class="setup-bottom"><button class="text-button" data-home-action="guide">${icon('book')} How to play</button><button class="text-button" data-home-action="leaderboard">${icon('trophy')} Leaderboard</button><form class="join-code-form"><label for="home-invite">Join a party</label><input id="home-invite" required pattern="${INVITE_PATTERN}" maxlength="6" minlength="6" placeholder="6-character code" aria-label="Co-op invite code"><button type="submit">Join ${icon('arrow')}</button></form></div></section>
+      <footer class="paper-footer"><span>YOUR PAST. THEIR WAY FORWARD.</span></footer>`;
     document.body.append(this.root);
     this.account.id = 'home-profile';
     this.account.className = 'paper-dialog profile-dialog';

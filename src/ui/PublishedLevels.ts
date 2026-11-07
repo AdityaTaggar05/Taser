@@ -36,7 +36,6 @@ export class PublishedLevels {
         <button data-menu="fullscreen" aria-label="Fullscreen">⛶</button>
       </header>
       <section class="published-content">
-        <p class="archive-kicker">TWO PERSPECTIVES · ONE TIMELINE</p>
         <h1></h1>
         <p class="archive-intro"></p>
         <div class="menu-body"></div>

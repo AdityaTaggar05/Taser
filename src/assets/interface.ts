@@ -48,7 +48,9 @@ export function applyThemeInterface(
     } else applySprite(el, pack, id);
   });
   document
-    .querySelectorAll<HTMLElement>('.role-options [data-player],.mode-roles [data-player]')
+    .querySelectorAll<HTMLElement>(
+      '.role-options [data-player],.mode-roles [data-player],.configuration-operators [data-player]',
+    )
     .forEach((button) => {
       const id = `player.p${button.dataset.player}.idle.south.0`;
       let el = button.querySelector<HTMLElement>('.theme-role-operator');
