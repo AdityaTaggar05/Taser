@@ -1,3 +1,4 @@
+import { icon } from '../ui/icons';
 import type { PlayerProfile } from '../auth/types';
 import { applyThemeVariables, type ThemePack } from './catalog';
 import { applySprite, spriteElement } from './dom';
@@ -9,9 +10,13 @@ export function applyThemeInterface(
   partnerReady = false,
 ) {
   applyThemeVariables(pack);
-  document.querySelectorAll<HTMLElement>('.home-brand>span,.wordmark>.mark').forEach((el) => {
-    el.textContent = '';
-    applySprite(el, pack, 'ui.emblem');
+  document
+    .querySelectorAll<HTMLButtonElement>('button[aria-label="Fullscreen"]')
+    .forEach((button) => {
+      if (!button.querySelector('svg')) button.innerHTML = icon('fullscreen');
+    });
+  document.querySelectorAll<HTMLElement>('[data-art-sprite]').forEach((el) => {
+    applySprite(el, pack, el.dataset.artSprite!);
   });
   const avatar =
     user?.kind === 'demo'
@@ -45,14 +50,18 @@ export function applyThemeInterface(
       button.prepend(el);
     } else applySprite(el, pack, id);
   });
-  document.querySelectorAll<HTMLElement>('.role-options [data-player]').forEach((button) => {
-    const id = `player.p${button.dataset.player}.idle.south.0`;
-    let el = button.querySelector<HTMLElement>('.theme-role-operator');
-    if (!el) {
-      el = spriteElement(pack, id, 'theme-role-operator');
-      button.prepend(el);
-    } else applySprite(el, pack, id);
-  });
+  document
+    .querySelectorAll<HTMLElement>(
+      '.role-options [data-player],.mode-roles [data-player],.configuration-operators [data-player]',
+    )
+    .forEach((button) => {
+      const id = `player.p${button.dataset.player}.idle.south.0`;
+      let el = button.querySelector<HTMLElement>('.theme-role-operator');
+      if (!el) {
+        el = spriteElement(pack, id, 'theme-role-operator');
+        button.prepend(el);
+      } else applySprite(el, pack, id);
+    });
   document.querySelectorAll<HTMLElement>('.party-members [data-party-player]').forEach((card) => {
     const id = `player.p${card.dataset.partyPlayer}.idle.south.0`;
     let el = card.querySelector<HTMLElement>('.theme-party-operator');

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "taser-level-verification",
+      "name": "weldpoint-level-verification",
       "dependencies": {
         "@chainlink/cre-sdk": "^1.22.0",
       },

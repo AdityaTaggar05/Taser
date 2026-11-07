@@ -42,7 +42,7 @@ async function main() {
   }
   if (!process.env.SWARM_BEE_URL || !process.env.SWARM_POSTAGE_BATCH_ID)
     throw new Error(
-      'Set SWARM_BEE_URL and SWARM_POSTAGE_BATCH_ID in Taser/.env.local. No upload was attempted.',
+      'Set SWARM_BEE_URL and SWARM_POSTAGE_BATCH_ID in WeldPoint/.env.local. No upload was attempted.',
     );
   const config: SwarmConfig = validateSwarmConfig({
     bee: process.env.SWARM_BEE_URL,
@@ -97,7 +97,7 @@ async function main() {
     uploadService: new URL(config.bee).origin,
   });
   console.log(
-    'All uploaded sprite bytes verified. Taser now resolves artwork through Swarm. Rebuild/restart the app.',
+    'All uploaded sprite bytes verified. WeldPoint now resolves artwork through Swarm. Rebuild/restart the app.',
   );
 }
 main().catch((error) => {

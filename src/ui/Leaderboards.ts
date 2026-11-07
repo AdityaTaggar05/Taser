@@ -1,4 +1,5 @@
 import './published.css';
+import { playOptions } from './preferences';
 import type { LevelClient } from '../editor/LevelClient';
 import type {
   GlobalPlayer,
@@ -27,6 +28,7 @@ export class Leaderboards {
   private generation = 0;
   private loading = false;
   private page = 0;
+  private community = false;
   private mode: 'coop' | 'solo' = 'coop';
   private id: string | undefined;
   private board: LevelLeaderboard | undefined;
@@ -57,11 +59,12 @@ export class Leaderboards {
       return;
     }
     this.id = /^#leaderboard\/([a-f0-9-]{36})$/.exec(hash)?.[1];
+    this.community = false;
     this.page = 0;
     this.mode = 'coop';
     this.root.innerHTML = /* HTML */ `
       <header class="published-header">
-        <button data-board="home">← Home</button>
+        <button data-board="home">← Back</button>
         <span>WELDPOINT / LEADERBOARDS</span>
         <button data-board="fullscreen" aria-label="Fullscreen">⛶</button>
       </header>
@@ -74,9 +77,9 @@ export class Leaderboards {
           <a href="#coop/community">Browse chambers ↗</a>
         </nav>
         <div class="level-lifetime" hidden>
-          <p class="expiry-clock"></p>
-          <p class="expiry-block"></p>
-          <button data-board="heart">♡ Heart · add 1 hour</button>
+          <p class="expiry-clock" hidden></p>
+          <p class="expiry-block" hidden></p>
+          <button data-board="heart">♡ Like</button>
           <span class="heart-count"></span>
         </div>
         <div class="archive-tabs" hidden>
@@ -94,7 +97,10 @@ export class Leaderboards {
         <p class="archive-status" role="status" aria-live="polite"></p>
       </section>
     `;
-    this.root.querySelector('[data-board=home]')!.addEventListener('click', this.actions.home);
+    this.root.querySelector('[data-board=home]')!.addEventListener('click', () => {
+      if (this.id) location.hash = `${playOptions.players}/${playOptions.collection}`;
+      else this.actions.home();
+    });
     this.root
       .querySelector('[data-board=fullscreen]')!
       .addEventListener('click', this.actions.fullscreen);
@@ -137,6 +143,20 @@ export class Leaderboards {
         void this.load();
       };
     });
+    if (this.id) {
+      const generation = this.generation;
+      void this.api
+        .catalog()
+        .then((catalog) => {
+          if (generation !== this.generation) return;
+          this.community = !catalog.campaign.some((level) => level.id === this.id);
+          this.root.querySelector<HTMLElement>('.expiry-clock')!.hidden = !this.community;
+          this.countdown();
+          if (this.board && !this.board.hearts.hearted)
+            this.button('heart').textContent = this.community ? '♡ Like · add 1 hour' : '♡ Like';
+        })
+        .catch(() => {});
+    }
     this.clock = setInterval(() => this.countdown(), 1000);
     void this.load();
   }
@@ -181,9 +201,11 @@ export class Leaderboards {
           ? '♥ Heart confirmed'
           : response.hearts.pending
             ? 'Retry heart confirmation'
-            : '♡ Heart · add 1 hour';
+            : this.community
+              ? '♡ Like · add 1 hour'
+              : '♡ Like';
         this.root.querySelector('.heart-count')!.textContent =
-          `${response.hearts.count} confirmed ${response.hearts.count === 1 ? 'heart' : 'hearts'} · one per operator per revision`;
+          `${response.hearts.count} ${response.hearts.count === 1 ? 'like' : 'likes'}`;
         this.countdown();
       } else scores = response;
       this.renderScores(scores);

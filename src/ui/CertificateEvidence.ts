@@ -56,7 +56,7 @@ export function certificateEvidence(certificate: PublicCertificate) {
       paragraph('Local CRE simulation result recorded on Sepolia. This is not DON verification.');
   } else if (certificate.mode === 'cli-simulation') {
     paragraph(
-      'Verified by the local CRE CLI. This receipt is stored by Taser; it has no Sepolia certificate.',
+      'Verified by the local CRE CLI. This receipt is stored by WeldPoint; it has no Sepolia certificate.',
     );
     field('Receipt ID', certificate.receiptId);
     field('Workflow hash', certificate.workflowHash);

@@ -1,9 +1,9 @@
 import solc from 'solc';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
-const source = readFileSync('contracts/TaserCertificationRegistry.sol', 'utf8');
+const source = readFileSync('contracts/WeldPointCertificationRegistry.sol', 'utf8');
 const input = {
   language: 'Solidity',
-  sources: { 'TaserCertificationRegistry.sol': { content: source } },
+  sources: { 'WeldPointCertificationRegistry.sol': { content: source } },
   settings: {
     evmVersion: 'cancun',
     optimizer: { enabled: true, runs: 200 },
@@ -13,7 +13,8 @@ const input = {
 const output = JSON.parse(solc.compile(JSON.stringify(input)));
 for (const error of output.errors ?? [])
   if (error.severity === 'error') throw new Error(error.formattedMessage);
-const contract = output.contracts['TaserCertificationRegistry.sol'].TaserCertificationRegistry;
+const contract =
+  output.contracts['WeldPointCertificationRegistry.sol'].WeldPointCertificationRegistry;
 mkdirSync('.data/cre', { recursive: true });
 writeFileSync(
   '.data/cre/registry.json',
@@ -21,4 +22,4 @@ writeFileSync(
     '\n',
   { mode: 0o600 },
 );
-console.log('Compiled TaserCertificationRegistry; no network transaction sent.');
+console.log('Compiled WeldPointCertificationRegistry; no network transaction sent.');

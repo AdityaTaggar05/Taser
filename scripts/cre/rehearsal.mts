@@ -76,7 +76,7 @@ server.listen(5185, '127.0.0.1', () => {
     JSON.stringify({ submissionId: id }) + '\n',
     { mode: 0o600 },
   );
-  console.log('Taser rehearsal gateway: http://127.0.0.1:5185');
+  console.log('WeldPoint rehearsal gateway: http://127.0.0.1:5185');
   console.log('Source: stored campaign snapshot ' + record.id + ' (read-only local projection).');
   console.log('Trigger: .data/cre/rehearsal-trigger.json');
   console.log('No Arkiv read/write, certificate, wallet operation, or publication occurs.');

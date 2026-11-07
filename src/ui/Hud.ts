@@ -1,3 +1,5 @@
+import { brandLogo } from './brand';
+import { icon } from './icons';
 import { isLive, type Direction } from '../core/types';
 import type { Player, SessionState } from '../network/protocol';
 import type { ConnectionStatus } from '../network/CoopClient';
@@ -17,11 +19,15 @@ export interface HudActions {
   home: () => void;
   party: () => void;
   perspective: () => void;
+  guide: (show: boolean) => void;
+  guideOpen: () => boolean;
 }
 const arrows: Record<Direction, string> = { U: '↑', D: '↓', L: '←', R: '→', W: '·' };
 export class Hud {
   readonly root = document.getElementById('hud')!;
-  helpOpen = false;
+  get helpOpen() {
+    return this.actions.guideOpen();
+  }
   private hintOpen = false;
   private player: Player = 1;
 
@@ -32,7 +38,7 @@ export class Hud {
     this.root.innerHTML = /* HTML */ `
       <header class="topbar">
         <div class="wordmark">
-          <span class="mark">⌁</span>
+          <span class="mark brand-mark">${brandLogo()}</span>
           WELDPOINT
           <span class="edition">TEMPORAL PINCER / ONLINE CO-OP</span>
         </div>
@@ -41,17 +47,12 @@ export class Hud {
           <span class="level-caption">CHAMBERS</span>
         </nav>
         <div class="utilities">
-          <button
-            data-action="home"
-            aria-label="Return to home"
-            title="Leave session and return home"
-          >
-            ⌂
+          <button data-action="home" aria-label="Back" title="Leave session and return home">
+            ${icon('back')}
           </button>
           <button data-action="sound" aria-label="Toggle sound" id="sound">SFX ON</button>
-          <button data-action="theme" aria-label="Change environment">◐</button>
-          <button data-action="help" aria-label="How to play">?</button>
-          <button data-action="fullscreen" aria-label="Fullscreen">⛶</button>
+          <button data-action="help" aria-label="How to play">${icon('help')}</button>
+          <button data-action="fullscreen" aria-label="Fullscreen">${icon('fullscreen')}</button>
         </div>
       </header>
       <section class="mission">
@@ -89,6 +90,12 @@ export class Hud {
           Other perspective
         </button>
       </section>
+      <nav class="mobile-inspect-toolbar" aria-label="Game data">
+        <button data-action="inspect-arkiv">Arkiv ↗</button>
+        <button data-action="inspect-moves">Move pairs ↗</button>
+      </nav>
+      <div class="game-stage" aria-label="Playable chamber"></div>
+      <aside class="move-dock" aria-label="Move pair explorer"></aside>
       <footer class="console">
         <div class="timeline-row">
           <div class="timeline-label">
@@ -105,7 +112,6 @@ export class Hud {
               ↺
               <span>Reset</span>
             </button>
-            <button data-action="hint">Reference route</button>
           </div>
         </div>
         <div class="controls-row">
@@ -131,48 +137,6 @@ export class Hud {
         <p id="outcome-message"></p>
         <div id="outcome-actions"></div>
       </div>
-      <div id="help" class="modal" hidden>
-        <section role="dialog" aria-modal="true" aria-labelledby="help-title">
-          <span class="eyebrow">OPERATOR FIELD GUIDE</span>
-          <h2 id="help-title">
-            Two operators.
-            <br />
-            Opposite ends of time.
-          </h2>
-          <p>
-            Co-op uses a private invitation: both operators confirm Ready, then the host starts.
-            Solo pairs you with a fixed creator or player replay. Its future moves stay hidden.
-            Before your first move, use Other perspective to study the opposite starting layout
-            without a time limit. Your first valid move locks the switch; Reset unlocks it.
-          </p>
-          <ol>
-            <li>
-              <strong id="help-write">WRITE · Turns 1–4</strong>
-              Coordinate box positions with your partner. A shove moves the box while you stay put.
-            </li>
-            <li>
-              <strong id="help-weld">WELD · Turn 4</strong>
-              Matching boxes must meet; some chambers also require unmarked fixed positions.
-            </li>
-            <li>
-              <strong id="help-replay">REPLAY · Turns 5–8</strong>
-              Boxes follow your partner’s history in reverse. Keep clear and reach both open exits
-              together before time expires.
-            </li>
-          </ol>
-          <p class="help-keys">
-            WASD or arrows: move · Space / Enter: wait
-            <br />
-            Both queued inputs commit a turn. Cancel or change yours before your partner commits.
-            <br />
-            Backspace / Z: shared undo · R: shared reset · F: fullscreen
-            <br />
-            Return Home to choose another challenge. Solo wins publish your run; only co-op wins
-            unlock progress and reference routes.
-          </p>
-          <button data-action="close-help" class="primary">Return to chamber ↗</button>
-        </section>
-      </div>
     `;
     this.root.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
@@ -192,6 +156,19 @@ export class Hud {
         return;
       }
       const action = b.dataset.action;
+      if (action === 'inspect-arkiv' || action === 'inspect-moves') {
+        const tab = action === 'inspect-arkiv' ? 'arkiv' : 'moves';
+        document.body.dataset.inspector = document.body.dataset.inspector === tab ? '' : tab;
+        this.root
+          .querySelectorAll<HTMLButtonElement>('.mobile-inspect-toolbar button')
+          .forEach((button) =>
+            button.setAttribute(
+              'aria-pressed',
+              String(button.dataset.action === 'inspect-' + document.body.dataset.inspector),
+            ),
+          );
+        return;
+      }
       if (action === 'help' || action === 'close-help') {
         this.toggleHelp();
         return;
@@ -261,10 +238,7 @@ export class Hud {
   }
 
   toggleHelp(force?: boolean) {
-    this.helpOpen = force ?? !this.helpOpen;
-    this.root.querySelector('#help')!.toggleAttribute('hidden', !this.helpOpen);
-    if (this.helpOpen)
-      this.root.querySelector<HTMLButtonElement>('[data-action="close-help"]')!.focus();
+    this.actions.guide(force ?? !this.helpOpen);
   }
 
   render(
@@ -347,12 +321,6 @@ export class Hud {
     this.root
       .querySelector('#peer-status')!
       .classList.toggle('ready', paired && !!session?.partnerReady);
-    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.disabled =
-      viewingOther || !session?.solutionAvailable;
-    this.root.querySelector<HTMLButtonElement>('[data-action="hint"]')!.title =
-      session?.solutionAvailable
-        ? 'View the verified reference route'
-        : 'Complete this revision to unlock its reference route';
     if (!view || !session) {
       this.root.querySelector('#outcome')!.setAttribute('hidden', '');
       return;
@@ -369,10 +337,10 @@ export class Hud {
     this.root.querySelector('.timeline-label span')!.textContent = `0 → ${l.totalSteps}`;
     this.root.querySelector<HTMLElement>('#timeline')!.style.overflowX =
       l.totalSteps > 12 ? 'auto' : '';
-    this.set('help-write', `WRITE · Turns 1–${l.weldStep}`);
-    this.set('help-weld', `WELD · Turn ${l.weldStep}`);
-    this.set('help-replay', `REPLAY · Turns ${l.weldStep + 1}–${l.totalSteps}`);
-    this.set('turn', String(s.step).padStart(2, '0'));
+    this.set(
+      'turn',
+      String(session.player === 2 ? l.totalSteps - s.step : s.step).padStart(2, '0'),
+    );
     this.set('turn-total', `/ ${String(l.totalSteps).padStart(2, '0')}`);
     this.set(
       'phase-name',
@@ -390,7 +358,7 @@ export class Hud {
         ? 'YOUR FIRST MOVE LOCKS THE VIEW'
         : s.step < l.weldStep
           ? `CONVERGE AT TURN ${l.weldStep}`
-          : `EXIT TOGETHER BY TURN ${l.totalSteps}`,
+          : `EXIT TOGETHER AT T${String(session.player === 2 ? 0 : l.totalSteps).padStart(2, '0')}`,
     );
     this.root.querySelector('#phase-led')!.className = s.status === 'WELD_SUCCESS' ? 'welded' : '';
     const publication =
@@ -414,7 +382,7 @@ export class Hud {
     this.root.querySelector('#timeline')!.innerHTML = Array.from(
       { length: l.totalSteps + 1 },
       (_, k) =>
-        `<button data-step="${k}" ${viewingOther || k >= session.history.length ? 'disabled' : ''} class="${k === s.step ? 'current ' : ''}${k === l.weldStep ? 'weld ' : ''}${k < s.step ? 'past' : ''}" aria-label="Review turn ${k}"><i></i><span>${k === l.weldStep ? 'WELD' : k}</span></button>`,
+        `<button data-step="${k}" ${viewingOther || k >= session.history.length ? 'disabled' : ''} class="${k === s.step ? 'current ' : ''}${k === l.weldStep ? 'weld ' : ''}${k < s.step ? 'past' : ''}" aria-label="Review time ${session.player === 2 ? l.totalSteps - k : k}"><i></i><span>${k === l.weldStep ? 'MID' : session.player === 2 ? l.totalSteps - k : k}</span></button>`,
     ).join('');
     const terminal = !isLive(s.status) && view.inspecting === null,
       victory = s.status === 'VICTORY';
@@ -439,9 +407,7 @@ export class Hud {
         'outcome-message',
         s.message +
           publication +
-          (session.mode === 'solo'
-            ? ' Solo practice does not unlock campaign progress or reference solutions.'
-            : ''),
+          (session.mode === 'solo' ? ' Solo practice does not unlock campaign progress.' : ''),
       );
       this.root.querySelector('#outcome-actions')!.innerHTML = /* HTML */ `
         ${!victory ? `<button data-action="undo" ${paired ? '' : 'disabled'}>↶ Undo turn</button>` : ''}

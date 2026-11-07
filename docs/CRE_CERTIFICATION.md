@@ -51,7 +51,7 @@ No command above deploys a contract, registers a request, broadcasts a report, o
 ### Automatic publication after a real CLI execution
 
 Install the generated workflow dependencies and WASM tooling, keep the CLI logged
-in, then run this from the Taser root:
+in, then run this from the WeldPoint root:
 
 ```sh
 npm run cre:local-mode
@@ -116,7 +116,7 @@ that minimum. From the generated workflow directory, `bun install` and
 `bunx cre-setup` install its dependencies and official WASM tooling.
 
 To verify the HTTP/replay path before any registry exists, start this command from
-the Taser root in one terminal:
+the WeldPoint root in one terminal:
 
 ```sh
 npm run cre:rehearsal
@@ -128,7 +128,7 @@ sends no transaction. Node consumes the existing `.env.local` opaquely; no key o
 token is displayed. This is a rehearsal of catalog data, not a pending publication
 or a fresh verification of the encrypted Arkiv bytes.
 
-From another terminal at the Taser root:
+From another terminal at the WeldPoint root:
 
 ```sh
 cd cre-project
@@ -149,7 +149,7 @@ Both commands completed through CRE CLI v1.39.0, with typechecking and default
 simulation limits enabled, and printed:
 
 ```text
-[USER LOG] Taser local-simulation: WINNING solution; 8 turns. No certificate or publication created.
+[USER LOG] WeldPoint local-simulation: WINNING solution; 8 turns. No certificate or publication created.
 ```
 
 These targets perform real authenticated HTTP reads, check the salted commitments

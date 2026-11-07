@@ -1,4 +1,4 @@
-# WeldPoint / Taser
+# WeldPoint
 
 A fullscreen temporal pincer puzzle built with Phaser 3, TypeScript and Vite, with mandatory sign-in and two modes. **Co-op** uses private two-person parties with invite links/codes, role assignment, Ready confirmations and host-controlled start. **Solo** pairs your chosen role with a fixed creator solution or a verified winning player run. Before your first valid move, an Other perspective switch lets you study the opposite role’s starting board for as long as you want. Your first valid selection locks the switch and returns you to your own board. Wallet sign-in and two development accounts are available; guest play is disabled.
 
@@ -249,3 +249,5 @@ Stop the application server before using the dedicated Arkiv signer. `npm run ar
 ### Arkiv fee accounting
 
 The approved per-transaction and UTC daily limits remain enforced. Pending or uncertain writes reserve their full maximum gas fee. Authenticated canonical receipts settle that reservation to the actual fee, including reverted transactions; unused gas no longer consumes the daily allowance. Older journal entries are settled from receipts on demand, retaining the full reservation when evidence is unavailable. The journal migration preserves existing signing and reconciliation records. Admission errors identify the per-transaction budget, daily budget, signer balance or safe block gas limit separately. Daily allowance resets at 00:00 UTC.
+
+The product is named **WeldPoint**. Historical `taser-*` commitment domains, Arkiv schema/release identifiers and the configured verifier-secret binding remain unchanged for compatibility with existing public records; they are not display names.

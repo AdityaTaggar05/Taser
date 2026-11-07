@@ -1,12 +1,12 @@
-# Taser level verification
+# WeldPoint level verification
 
 Created with the official `hello-world-ts` template using `cre init`. The entry
-point calls Taser's shared CRE verifier and deterministic game engine in this
+point calls WeldPoint's shared CRE verifier and deterministic game engine in this
 repository. The generic cron handler and examples have been replaced.
 
 ## Toolchain and dependencies
 
-The installed Chainlink skill requires Bun 1.2.21 or newer. Taser provides Bun
+The installed Chainlink skill requires Bun 1.2.21 or newer. WeldPoint provides Bun
 1.4.4 in its root development dependencies. From this workflow directory:
 
 ```sh
@@ -15,13 +15,13 @@ PATH="$PWD/../../node_modules/.bin:$PATH" bunx cre-setup
 ```
 
 The generated dependency range resolves to CRE SDK 1.23.0; `bun.lock` pins the
-installation. The entry point imports the existing Taser verifier, so this
-scaffold runs inside the Taser repository rather than as a standalone package.
+installation. The entry point imports the existing WeldPoint verifier, so this
+scaffold runs inside the WeldPoint repository rather than as a standalone package.
 
 ## Local rehearsal
 
 To verify actual newly submitted levels automatically, use `npm run cre:local-mode`
-from the Taser root and restart the game server. The server then runs this
+from the WeldPoint root and restart the game server. The server then runs this
 workflow's `local-simulation` target against its protected pending-submission API,
 with an isolated per-run config. It checks the final result against the frozen
 request, persists a private execution receipt, and publishes the approved level
@@ -32,7 +32,7 @@ No CRE signing key or Sepolia contract is needed for this publication mode.
 The standalone rehearsal below is separate: it uses a stored campaign snapshot
 and never creates a publication or execution receipt for an actual submission.
 
-From the Taser root, start:
+From the WeldPoint root, start:
 
 ```sh
 npm run cre:rehearsal
@@ -43,7 +43,7 @@ loopback port 5185, protected by the existing verifier token. It does not access
 Arkiv or use a wallet. Node and the CRE CLI consume `.env.local` without displaying
 it. No credentials are stored in this scaffold.
 
-In another terminal, from the Taser root:
+In another terminal, from the WeldPoint root:
 
 ```sh
 cd cre-project
@@ -63,7 +63,7 @@ PATH="$PWD/../node_modules/.bin:$PATH" cre workflow simulate level-verification 
 The workflow performs real authenticated HTTP calls to the rehearsal gateway,
 validates layout and salted witness commitments, and independently replays the
 submitted moves. Only the compact verdict enters consensus aggregation. A valid
-witness logs `Taser local-simulation: WINNING solution; ... turns`.
+witness logs `WeldPoint local-simulation: WINNING solution; ... turns`.
 
 This rehearsal validates a stored local catalog snapshot. It does not validate a
 fresh Arkiv read, an onchain request, a DON execution or a certificate. The local

@@ -1,4 +1,5 @@
 import './published.css';
+import { LevelLibrary } from './LevelLibrary';
 import { explorerLink } from '../network/arkiv';
 import type { LevelClient } from '../editor/LevelClient';
 import type { LevelSummary } from '../editor/types';
@@ -8,6 +9,7 @@ import { INVITE_LENGTH, INVITE_PATTERN, normalizeInviteCode } from '../network/i
 export class PublishedLevels {
   readonly root = document.createElement('main');
   private request = 0;
+  private database?: LevelLibrary;
 
   constructor(
     private api: LevelClient,
@@ -19,6 +21,8 @@ export class PublishedLevels {
   }
 
   show(visible: boolean, hash = '') {
+    this.database?.destroy();
+    this.database = undefined;
     this.root.hidden = !visible;
     const request = ++this.request;
     if (!visible) {
@@ -27,19 +31,22 @@ export class PublishedLevels {
     }
     this.root.innerHTML = /* HTML */ `
       <header class="published-header">
-        <button data-menu="home">← Home</button>
+        <button data-menu="home">← Back</button>
         <span>WELDPOINT / CHALLENGES</span>
         <button data-menu="fullscreen" aria-label="Fullscreen">⛶</button>
       </header>
       <section class="published-content">
-        <p class="archive-kicker">TWO PERSPECTIVES · ONE TIMELINE</p>
         <h1></h1>
         <p class="archive-intro"></p>
         <div class="menu-body"></div>
         <p class="archive-status" role="status"></p>
       </section>
     `;
-    this.root.querySelector('[data-menu=home]')!.addEventListener('click', this.actions.home);
+    this.root.querySelector('[data-menu=home]')!.addEventListener('click', () => {
+      if (/\/runs$/.test(hash)) location.hash = hash.replace(/\/runs$/, '');
+      else if (/\/p[12]$/.test(hash)) location.hash = hash.replace(/\/[a-f0-9-]{36}\/p[12]$/, '');
+      else this.actions.home();
+    });
     this.root
       .querySelector('[data-menu=fullscreen]')!
       .addEventListener('click', this.actions.fullscreen);
@@ -147,9 +154,7 @@ export class PublishedLevels {
         body.append(choices);
         link('Creator solution →', hash + '/creator', choices, 'run-choice');
         link('Player runs →', hash + '/runs', choices, 'run-choice');
-        status(
-          'Solo wins automatically publish your human run. Only co-op wins unlock campaign progress and reference solutions.',
-        );
+        status('');
       } else {
         const list = document.createElement('div');
         body.append(list);
@@ -164,11 +169,7 @@ export class PublishedLevels {
           .runs(selected, role === '1' ? 2 : 1)
           .then((runs) => {
             if (this.request !== request) return;
-            status(
-              runs.length
-                ? 'Verified winning runs for this exact chamber revision. Available for about 48 hours.'
-                : 'No matching player runs yet. Try the creator solution first.',
-            );
+            status(runs.length ? 'Verified winning runs.' : 'No player runs yet.');
             for (const run of runs) {
               const row = document.createElement('article');
               row.className = 'run-entry';
@@ -186,36 +187,14 @@ export class PublishedLevels {
       }
       return;
     }
-    title.textContent = category === 'campaign' ? 'Campaign challenges' : 'Community challenges';
+    title.textContent = 'The chamber archive.';
     intro.textContent =
-      category === 'community'
-        ? 'Verified community chambers start with 2 hours. Each operator’s heart adds 1 hour.'
-        : 'Choose a campaign chamber.';
-    const grid = document.createElement('div');
-    grid.className = 'archive-grid';
-    body.append(grid);
-    const refresh = document.createElement('button');
-    refresh.textContent = 'Refresh ↻';
-    refresh.className = 'archive-refresh';
-    refresh.onclick = () => this.show(true, hash);
-    body.prepend(refresh);
-    status('Loading confirmed publications…');
-    void (
-      category === 'campaign' ? this.api.catalog().then((c) => c.campaign) : this.api.community()
-    )
-      .then((entries) => {
-        if (this.request !== request) return;
-        status(
-          entries.length
-            ? `${entries.length} published ${entries.length === 1 ? 'chamber' : 'chambers'} · winning solutions verified`
-            : 'No community chambers yet. Publish a winning level in Level creator.',
-        );
-        for (const level of entries)
-          this.card(level, grid, '#' + mode + '/' + category + '/' + level.id);
-        link('← Challenge collections', '#' + mode);
-      })
-      .catch((error) => status((error as Error).message + ' Use Refresh to retry.'));
+      category === 'campaign'
+        ? 'Original puzzles. A shared way forward.'
+        : 'Built by operators. Kept alive by the community.';
+    this.database = new LevelLibrary(body, this.api, mode, category, status);
   }
+
   private proof(ref: { entityKey?: string; txHash?: string; storage?: string }, parent: Element) {
     if (ref.storage !== 'arkiv') return;
     const links = document.createElement('div');
@@ -271,6 +250,7 @@ export class PublishedLevels {
   }
 
   destroy() {
+    this.database?.destroy();
     this.request++;
     this.root.remove();
   }

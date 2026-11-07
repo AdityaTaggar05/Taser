@@ -1,3 +1,6 @@
+import { timelineArt } from './TimelineArt';
+import { icon } from './icons';
+import { brandLogo } from './brand';
 import type { AuthClient } from '../auth/AuthClient';
 import './auth.css';
 export class SignInScreen {
@@ -8,56 +11,56 @@ export class SignInScreen {
     this.root.id = 'signin';
     this.root.innerHTML = /* HTML */ `
       <a class="home-brand signin-brand" href="#">
-        <span>⌁</span>
+        <span class="brand-mark">${brandLogo()}</span>
         WELDPOINT
       </a>
-      <section class="signin-panel" aria-labelledby="signin-title">
-        <div class="home-kicker">
-          <span></span>
-          TWO OPERATORS. ONE TIMELINE.
-        </div>
-        <h1 id="signin-title">
-          Every timeline
-          <br />
-          starts with you.
+      <section class="landing-panel">
+        <button class="landing-back text-button" type="button">← Back</button>
+
+        <h1>
+          WELDPOINT
+          <span>Meet in the middle of time.</span>
         </h1>
-        <p class="signin-intro">
-          Sign in to enter the chambers.
-          <br />
-          Your progress stays with your account.
-        </p>
+        ${timelineArt('landing-timeline')}
+        <button class="ink-button landing-enter" type="button">Sign in ${icon('arrow')}</button>
+      </section>
+      <section class="signin-panel" hidden aria-labelledby="signin-title">
+        <button class="signin-back text-button" type="button">← Back</button>
+        <h1 id="signin-title">Sign in.</h1>
+        ${timelineArt('signin-timeline')}
+
         <button class="signin-wallet home-play" type="button">
-          <span>
-            <small>YOUR WALLET. YOUR OPERATOR.</small>
-            Sign in with Ethereum
-          </span>
-          <span aria-hidden="true">↗</span>
+          <span>Sign in with Ethereum</span>
+          ${icon('arrow')}
         </button>
         <p class="signin-wallet-note">A signature to sign in. No transaction or gas required.</p>
         <form class="demo-form" hidden>
           <div class="signin-divider">DEVELOPMENT ACCOUNTS</div>
           <div class="demo-choices">
-            <button type="button" data-demo="atlas">Use Atlas</button>
-            <button type="button" data-demo="nova">Use Nova</button>
+            <button type="button" data-demo="atlas">Atlas</button>
+            <button type="button" data-demo="nova">Nova</button>
           </div>
-          <label for="demo-username">Username</label>
-          <input
-            id="demo-username"
-            name="username"
-            autocomplete="username"
-            required
-            maxlength="50"
-          />
-          <label for="demo-password">Password</label>
-          <input
-            id="demo-password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            maxlength="200"
-          />
-          <button class="home-dialog-primary" type="submit">Sign in ↗</button>
+          <details class="demo-credentials">
+            <summary>Use account credentials</summary>
+            <label for="demo-username">Username</label>
+            <input
+              id="demo-username"
+              name="username"
+              autocomplete="username"
+              required
+              maxlength="50"
+            />
+            <label for="demo-password">Password</label>
+            <input
+              id="demo-password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="200"
+            />
+            <button class="home-dialog-primary" type="submit">Sign in ${icon('arrow')}</button>
+          </details>
         </form>
         <p class="signin-status" role="status" aria-live="polite"></p>
         <button class="signin-retry" type="button" hidden>Retry connection ↗</button>
@@ -65,6 +68,18 @@ export class SignInScreen {
       <footer class="signin-footer">COOPERATE ACROSS TIME</footer>
     `;
     document.body.append(this.root);
+    const landingBack = this.root.querySelector<HTMLButtonElement>('.landing-back')!;
+    landingBack.disabled = history.length <= 1;
+    landingBack.onclick = () => history.back();
+    this.root.querySelector('.signin-back')!.addEventListener('click', () => {
+      this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = false;
+      this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = true;
+    });
+    this.root.querySelector('.landing-enter')!.addEventListener('click', () => this.onboarding());
+    this.root.querySelector('.signin-brand')!.addEventListener('click', () => {
+      this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = false;
+      this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = true;
+    });
     this.root
       .querySelector('.signin-wallet')!
       .addEventListener('click', () => void this.run(() => auth.wallet()));
@@ -80,12 +95,15 @@ export class SignInScreen {
     this.root.querySelectorAll<HTMLButtonElement>('[data-demo]').forEach((button) =>
       button.addEventListener('click', () => {
         const name = button.dataset.demo!;
-        (this.root.querySelector('#demo-username') as HTMLInputElement).value = name;
-        (this.root.querySelector('#demo-password') as HTMLInputElement).value =
-          name === 'atlas' ? 'Atlas@WeldPoint26!' : 'Nova@WeldPoint26!';
-        this.root.querySelector<HTMLInputElement>('#demo-password')!.focus();
+        const password = name === 'atlas' ? 'Atlas@WeldPoint26!' : 'Nova@WeldPoint26!';
+        void this.run(() => auth.demo(name, password));
       }),
     );
+  }
+
+  private onboarding() {
+    this.root.querySelector<HTMLElement>('.landing-panel')!.hidden = true;
+    this.root.querySelector<HTMLElement>('.signin-panel')!.hidden = false;
   }
 
   private async run(action: () => Promise<void>) {
@@ -118,11 +136,12 @@ export class SignInScreen {
 
   private disable() {
     this.root
-      .querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input')
+      .querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not(.landing-back),input')
       .forEach((el) => (el.disabled = this.busy || !this.auth.ready));
   }
 
   update() {
+    if (location.hash === '#onboarding') this.onboarding();
     this.root.hidden = !!this.auth.user;
     (this.root.querySelector('form') as HTMLFormElement).hidden = !this.auth.state.demoEnabled;
     (this.root.querySelector('.signin-retry') as HTMLButtonElement).hidden = !this.auth.error;

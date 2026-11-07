@@ -491,6 +491,38 @@ it('releases unused confirmed gas reservations while retaining the approved dail
   }
 });
 
+it('settles confirmed fees and backfills older reservations only from authenticated receipts', async () => {
+  const f = writerFixture();
+  try {
+    f.receipt(true);
+    await f.archive.put(record());
+    const fees = () =>
+      (f.archive as unknown as { dailyFees(day: string): Promise<bigint> }).dailyFees(
+        new Date().toISOString().slice(0, 10),
+      );
+    expect(await fees()).toBe(300_000_000_000_000n);
+    const db = new DatabaseSync(f.path);
+    db.prepare('UPDATE arkiv_writes SET actual_cost=NULL').run();
+    const receipt = vi.mocked(f.reader.getTransactionReceipt).getMockImplementation()!;
+    vi.mocked(f.reader.getTransactionReceipt).mockRejectedValue(new Error('Unavailable'));
+    expect(await fees()).toBe(1_000_000_000_000_000n);
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(async (args) => ({
+      ...(await receipt(args)),
+      effectiveGasPrice: 0n,
+    }));
+    expect(await fees()).toBe(1_000_000_000_000_000n);
+    vi.mocked(f.reader.getTransactionReceipt).mockImplementation(receipt);
+    expect(await fees()).toBe(300_000_000_000_000n);
+    expect(db.prepare('SELECT actual_cost FROM arkiv_writes').get()?.actual_cost).toBe(
+      '300000000000000',
+    );
+    expect(f.sends).toBe(1);
+    db.close();
+  } finally {
+    f.close();
+  }
+});
+
 it('retains historical reservations when receipts are unavailable or inconsistent', async () => {
   for (const unavailable of [true, false]) {
     const f = writerFixture({ dailyBudget: '0.0014' });

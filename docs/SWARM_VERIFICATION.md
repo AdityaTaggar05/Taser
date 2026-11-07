@@ -12,7 +12,7 @@
 
 Live references and reproducible commands: [Arkiv + Swarm evidence](../arkiv/swarm.md). Per-file hashes: [release evidence](theme-release.json). Screenshot: [Swarm gameplay](screenshots/swarm-gameplay.png).
 
-Remaining submission information: operator-supplied postage batch ID and attribution, confirmed retention/service limits, and the demo-video timestamp. These are not inferred from the content reference. Taser is verified locally; this check does not claim that its multiplayer backend has been deployed to an external host.
+Remaining submission information: operator-supplied postage batch ID and attribution, confirmed retention/service limits, and the demo-video timestamp. These are not inferred from the content reference. WeldPoint is verified locally; this check does not claim that its multiplayer backend has been deployed to an external host.
 
 ## Diwali release
 

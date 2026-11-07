@@ -16,6 +16,8 @@ export class MoveSequence {
   private sessionId = '';
   private sequences: number[] = [];
   private selected = 0;
+  private player = 1;
+  private totalSteps = 8;
   private feed: MoveSequenceFeed | null = null;
   private visible = () => {
     if (!document.hidden && this.scope) {
@@ -36,7 +38,19 @@ export class MoveSequence {
       '<div class="move-sequence-heading"><strong>MOVE PAIRS <span>P1 | P2</span></strong><span class="move-query-status" role="status"></span></div><ol class="move-pairs" aria-label="Committed move pairs"></ol>';
     this.list = this.root.querySelector('ol')!;
     this.status = this.root.querySelector('.move-query-status')!;
-    parent.insertBefore(this.root, parent.querySelector('.history-actions'));
+    const nav = document.createElement('nav');
+    nav.className = 'move-card-nav';
+    nav.setAttribute('aria-label', 'Move pair history');
+    nav.innerHTML =
+      '<button aria-label="Previous move pair">← Previous</button><span>COMMITTED TOGETHER</span><button aria-label="Next move pair">Next →</button>';
+    nav.querySelector('button')!.onclick = () => {
+      if (this.selected > 1) this.inspect(this.selected - 1);
+    };
+    nav.querySelectorAll('button')[1].onclick = () => {
+      if (this.selected < this.sequences.length) this.inspect(this.selected + 1);
+    };
+    this.root.append(nav);
+    parent.append(this.root);
     document.addEventListener('visibilitychange', this.visible);
     this.root.addEventListener('keydown', (event) => event.stopPropagation());
   }
@@ -46,9 +60,13 @@ export class MoveSequence {
     sequences: number[],
     selected: number,
     visible: boolean,
+    player = 1,
+    totalSteps = 8,
   ) {
     const scope = visible && user && sessionId ? JSON.stringify([user, sessionId, sequences]) : '';
     this.selected = selected;
+    this.player = player;
+    this.totalSteps = totalSteps;
     if (scope === this.scope) {
       this.highlight();
       return;
@@ -65,7 +83,7 @@ export class MoveSequence {
     }
     this.sessionId = sessionId!;
     this.sequences = [...sequences];
-    this.status.textContent = 'Querying…';
+    this.status.textContent = 'Syncing receipts…';
     this.render();
     if (!sameSession) this.list.scrollLeft = 0;
     void this.poll(this.generation);
@@ -80,13 +98,13 @@ export class MoveSequence {
       this.render();
       this.status.textContent =
         feed.storage === 'test'
-          ? 'TEST · 3s refresh'
+          ? 'TEST · auto sync'
           : feed.storage === 'unconfigured'
             ? 'Archive not configured'
-            : 'Database queried · 3s refresh';
+            : 'Live receipts · auto sync';
     } catch {
       if (generation !== this.generation) return;
-      this.status.textContent = 'Query failed · retrying';
+      this.status.textContent = 'Signal interrupted · retrying';
       this.root.dataset.stale = 'true';
     }
     if (generation === this.generation)
@@ -117,7 +135,7 @@ export class MoveSequence {
       button.onclick = () => this.inspect(index + 1);
       const label = document.createElement('span');
       label.className = 'move-pair-turn';
-      label.textContent = `T${index + 1}`;
+      label.textContent = `T${String(this.player === 2 ? this.totalSteps - index - 1 : index + 1).padStart(2, '0')}`;
       const cells = document.createElement('span');
       cells.className = 'move-pair-cells';
       for (const player of [1, 2]) {
@@ -165,6 +183,18 @@ export class MoveSequence {
         ?.focus({ preventScroll: true });
   }
   private highlight() {
+    const nav = this.root.querySelectorAll<HTMLButtonElement>('.move-card-nav button');
+    nav[0].disabled = this.selected <= 1;
+    nav[1].disabled = this.selected >= this.sequences.length;
+    this.root.dataset.empty = String(this.selected === 0 || !this.sequences.length);
+    let initial = this.list.querySelector<HTMLElement>('.move-initial');
+    if (!initial) {
+      initial = document.createElement('li');
+      initial.className = 'move-initial';
+      initial.textContent = 'Initial state · no move pair.';
+      this.list.append(initial);
+    }
+    initial.hidden = this.selected !== 0 || !this.sequences.length;
     this.list.querySelectorAll<HTMLElement>('[data-turn]').forEach((row) => {
       const current = Number(row.dataset.turn) === this.selected;
       row.classList.toggle('current', current);

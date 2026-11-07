@@ -12,6 +12,7 @@ import {
 } from './render/environment';
 import { KEY_MOVES } from './input/TurnBuffer';
 import { Hud } from './ui/Hud';
+import { BoxExplorer } from './ui/BoxExplorer';
 import { GameAudio } from './ui/audio';
 import { HomeScreen } from './ui/HomeScreen';
 import { PartyLobby } from './ui/PartyLobby';
@@ -41,6 +42,9 @@ import {
 import { applyThemeInterface } from './assets/interface';
 import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
+import './ui/editorial.css';
+import './ui/polish.css';
+import './ui/arkiv.css';
 
 let connectingParty = false;
 
@@ -113,13 +117,26 @@ function refresh() {
     !!client?.canStudy,
     !!client?.otherPerspective,
   );
-  explorer.context(client?.state?.publicationKey);
+  explorer.show(
+    !!auth.user && (!home.root.hidden || (playing && !inLobby && !!client?.state?.level)),
+    auth.user?.id ?? null,
+    playing && !inLobby,
+    home.archiveSlot,
+  );
+  explorer.context(
+    client?.state?.publicationKey,
+    playing && !inLobby ? (client?.state ?? undefined) : undefined,
+    inspection ?? client?.state?.history.at(-1)?.step ?? 0,
+  );
+  boxExplorer.update(client?.state ?? null, inspection);
   moveSequence.context(
     auth.user?.id ?? null,
     client?.state?.party?.id,
     client?.state?.moveSequences ?? [],
     inspection ?? client?.state?.history.at(-1)?.step ?? 0,
     playing && !inLobby,
+    client?.state?.player,
+    client?.state?.level?.totalSteps,
   );
   const displayedTheme = availableTheme(pack);
   home.update(
@@ -133,7 +150,14 @@ function refresh() {
 }
 function queue(direction: Direction) {
   const session = client?.state;
-  if (!session || !client?.playable || !scene?.artworkReady || hud.helpOpen || inspection !== null)
+  if (
+    !session ||
+    !client?.playable ||
+    !scene?.artworkReady ||
+    hud.helpOpen ||
+    home.dialogOpen ||
+    inspection !== null
+  )
     return;
   const error = session.moveErrors[direction];
   if (error) {
@@ -182,6 +206,8 @@ function toggleSound() {
   refresh();
 }
 const hud = new Hud(levels, {
+  guide: (show) => home.openGuide(show),
+  guideOpen: () => home.dialogOpen,
   solution: () => {
     void revealSolution();
   },
@@ -205,6 +231,7 @@ const hud = new Hud(levels, {
   inspect: (step) => {
     inspection = step === (client?.state?.history.length ?? 0) - 1 ? null : step;
     scene?.redraw();
+    refresh();
   },
   theme: toggleTheme,
   sound: toggleSound,
@@ -215,6 +242,11 @@ const hud = new Hud(levels, {
   },
 });
 hud.setSound(audio.enabled);
+const boxExplorer = new BoxExplorer(hud.root.querySelector('.console')!, (step) => {
+  inspection = step;
+  scene?.redraw();
+  refresh();
+});
 const auth = new AuthClient(() => {
   completed.clear();
   auth.user?.completed.forEach((id) => completed.add(id));
@@ -250,16 +282,16 @@ const home = new HomeScreen({
   },
 });
 const levelApi = new LevelClient(auth);
-const explorer = new ArkivPanel(levelApi);
-const moveSequence = new MoveSequence(
-  levelApi,
-  hud.root.querySelector('.timeline-row')!,
-  (step) => {
-    inspection = step;
-    scene?.redraw();
-    refresh();
-  },
-);
+const explorer = new ArkivPanel(levelApi, (step) => {
+  inspection = step === (client?.state?.history.at(-1)?.step ?? 0) ? null : step;
+  scene?.redraw();
+  refresh();
+});
+const moveSequence = new MoveSequence(levelApi, hud.root.querySelector('.move-dock')!, (step) => {
+  inspection = step;
+  scene?.redraw();
+  refresh();
+});
 const library = new PublishedLevels(levelApi, {
   home: () => {
     location.hash = '';
@@ -369,7 +401,6 @@ function syncScreen() {
         : auth.user
           ? 'home'
           : 'signin';
-  explorer.show(!!auth.user && (editing || browsing), auth.user?.id ?? null);
   connectingParty =
     intent?.kind === 'invite' || (intent?.kind === 'create' && intent.mode === 'coop');
   if (playing && intent) {
@@ -535,7 +566,7 @@ class ChamberScene extends Phaser.Scene {
       Object.hasOwn(environments, id) ? environments[id] : environments.foundry,
     );
     this.title?.clear();
-    this.cameras.main.setBackgroundColor(environment.palette.background);
+    this.cameras.main.setBackgroundColor('#f3efe5');
     const stage = editor.root.querySelector('.creator-stage');
     if (!stage) return;
     const rect = stage.getBoundingClientRect();
@@ -563,13 +594,13 @@ class ChamberScene extends Phaser.Scene {
       this.board?.destroy();
       this.board = undefined;
       this.title?.clear();
-      this.cameras.main.setBackgroundColor(this.activeEnvironment().palette.background);
+      this.cameras.main.setBackgroundColor('#f3efe5');
       void this.prepareArtwork(this.activeEnvironment()).catch(() => {});
       return;
     }
     const environment = this.activeEnvironment();
     artworkStatus.remove();
-    this.cameras.main.setBackgroundColor(environment.palette.background);
+    this.cameras.main.setBackgroundColor('#f3efe5');
     document.body.dataset.environment = environment.id;
     if (editing) {
       if (playtestEngine) {
@@ -597,13 +628,10 @@ class ChamberScene extends Phaser.Scene {
         this.board?.destroy();
         this.board = new BoardView(this, index);
       }
-      const width = this.scale.width,
-        top = document.querySelector('.mission')!.getBoundingClientRect().bottom + 48;
-      const bottom = document.querySelector('.console')!.getBoundingClientRect().top - 10,
-        side = width < 700 ? 8 : 24;
+      const rect = hud.root.querySelector('.game-stage')!.getBoundingClientRect();
       this.board.render(
         study ? new OtherPerspectiveView(study.level) : current,
-        { x: side, y: top, width: width - side * 2, height: Math.max(130, bottom - top) },
+        { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
         environment,
         study ? undefined : previous,
         !study && animate,
@@ -616,7 +644,7 @@ class ChamberScene extends Phaser.Scene {
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  backgroundColor: '#151b1e',
+  backgroundColor: '#f3efe5',
   antialias: false,
   pixelArt: true,
   scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
@@ -640,10 +668,6 @@ window.addEventListener('keydown', (e) => {
       e.preventDefault();
       void fullscreen();
     }
-    if (e.code === 'Enter' && target.tagName !== 'BUTTON' && target.tagName !== 'A') {
-      e.preventDefault();
-      location.hash = 'coop';
-    }
     return;
   }
   if (!lobby.root.hidden) {
@@ -664,7 +688,7 @@ window.addEventListener('keydown', (e) => {
     if (!e.repeat) hud.toggleHelp();
     return;
   }
-  if (hud.helpOpen) return;
+  if (hud.helpOpen || home.dialogOpen) return;
   if (target.tagName === 'BUTTON' && (e.code === 'Enter' || e.code === 'Space')) return;
   if (KEY_MOVES[e.code]) {
     e.preventDefault();
@@ -702,7 +726,7 @@ if (import.meta.hot)
     library.destroy();
     leaderboards.destroy();
     lobby.destroy();
-    home.root.remove();
+    home.destroy();
     signin.root.remove();
     hud.root.remove();
     game.destroy(true);
