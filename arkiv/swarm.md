@@ -1,46 +1,93 @@
 # Arkiv + Swarm integration evidence
 
-The modern-gray theme is live on Swarm and linked from a verified readonly Arkiv Rabdi entity. Gameplay, home artwork, avatars, status icons and editor sprites use this pack.
+WeldPoint stores public artwork on Swarm and publishes its release references on Arkiv. The selectable **Modern Gray** and **Diwali** packs both use version **1.1.0**, with 29 PNGs, a semantic manifest, and a release index per pack. Gameplay, home artwork, avatars, status icons, and editor sprites use these assets.
 
-## Live references
+## Current publication evidence
 
-- Arkiv entity: [0x39a6f9a494b3d8f48355b53c8cf45b9892f5ba17dcac63089a12358c9ebdace9](https://rabdi.explorer.arkiv.network/entity/0x39a6f9a494b3d8f48355b53c8cf45b9892f5ba17dcac63089a12358c9ebdace9).
-- Publisher wallet: `0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca`.
-- Transaction: `0xfbef96480ab93717cd100c66bcd4bab61b8bfdf408ab0ec3d01d13e36041174a`.
-- Entity expiry block: `8170159`; the SDK maximum expiration was requested. Availability is rechecked on reads.
-- Swarm release index: [release.json](https://bzz.limo/bzz/ea2b39ea4e686a1059b530e3fe06a5f3b8a11ab35af2941b81820c7cf900ef8e/release.json).
-- Original source manifest: [manifest.json](https://bzz.limo/bzz/17b5663b9dc1a9b27de9a09a6184f8a266b67d284b060c53ccd2373e0eddc4fe/manifest.json).
-- Release SHA-256: `8f7b277aa8bdd5808c3f12cdd768871a2bc28552c1208ed7461261f8548145ff`.
-- Manifest SHA-256: `84509196f50524bbe12492bf2f30afc0004c16d99295718f206d9751daabd914`.
-- Upload service: `https://api.gateway.ethswarm.org` (Swarm Foundation public gateway).
-- Booth-recommended read gateway, with full byte verification: `https://bzz.limo`.
-- Verification time: `2026-11-06T09:36:34.550Z`.
+Both packs use **Rabdi, chain ID 7794095**, with publisher wallet **`0xaC4d639d5C2CAD6D8c1d9d3cd1470467324764Ca`**.
 
-## Storage split and feature
+| Evidence | Modern Gray 1.1.0 | Diwali 1.1.0 |
+| --- | --- | --- |
+| Arkiv entity key | [`0xa96d9463f43648df11ac8a002bfcffcf791a8dd00e2efd7e4f68d490f3565ca9`](https://rabdi.explorer.arkiv.network/entity/0xa96d9463f43648df11ac8a002bfcffcf791a8dd00e2efd7e4f68d490f3565ca9) | [`0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f`](https://rabdi.explorer.arkiv.network/entity/0xf970549a14bc3f6f509e4dcf2e48505d28d9f93cec92a59d4d29933afb7a826f) |
+| Publication transaction | [Receipt](https://rabdi.explorer.arkiv.network/tx/0xa262113a4f90d665ae0004ff5b37176ed7dd2f411ecc1857b861c1a16146ff70) | [Receipt](https://rabdi.explorer.arkiv.network/tx/0xff7d214ad5f52287116b674dc58442fce6a7523dd5d0a4d5c524e1783223984e) |
+| `swarm_reference` | `948e9c1809ead2e8784a706a1d533e0b5ca8c3d4086a2eb635598582e9e86e72` | `d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf` |
+| Open the release | [release.json](https://bzz.limo/bzz/948e9c1809ead2e8784a706a1d533e0b5ca8c3d4086a2eb635598582e9e86e72/release.json) | [release.json](https://bzz.limo/bzz/d3764188ca5a7c4f29fb0b95816f2f8cb2d6f4b48194e1f3206a48f65358acdf/release.json) |
+| Open the source manifest | [manifest.json](https://bzz.limo/bzz/01955cb7732b36cd9a5e50ade147ea7f41fa6d740b0ee3d4d1b591bef60ac5b0/manifest.json) | [manifest.json](https://bzz.limo/bzz/09fb587d8be79881791ad32c0d9121236905cd09acbd5ae94260a36f454e77d2/manifest.json) |
+| Recorded expiration block | `8178665` | `8178700` |
+| Full release evidence | [Hashes, sizes, references, and upload metadata](../docs/theme-release.json) | [Hashes, sizes, references, and upload metadata](../docs/themes/diwali-release.json) |
 
-Swarm holds all 28 approved original PNGs, the source semantic manifest and a small release index. Six PNG collections remain under 8 MB each; no source, credentials, databases or private game solutions are uploaded. The index maps each sheet to its collection reference and path. Hashes and per-file sizes are in [the release evidence](../docs/theme-release.json).
+The 1.1.0 evidence records `https://bzz.limo` as both upload service and read gateway, and **Swarm Foundation public gateway** as postage supplier. The earlier 1.0.0 Modern Gray upload used `https://api.gateway.ethswarm.org`; [historical releases](../docs/themes/history/) retain those references.
 
-Arkiv holds a separate public `taser_themes_v1` entity. Its `swarm_reference` field points to the release index, with `theme_id`, `version`, `manifest_sha256` and `release_sha256` fields. Level layouts and solutions remain in the separate encrypted level archive.
+On **2026-11-07 UTC**, a read-only Rabdi query returned both current entities with matching references and readonly flags. This audit also fetched both releases/manifests through `bzz.limo`, matched their recorded SHA-256 hashes, and checked the size/hash of `sheets/p1-idle.png` from each pack. Earlier complete per-file verification is recorded in [the release notes](../docs/SWARM_VERIFICATION.md) and evidence JSON. No upload or Arkiv write was performed during this documentation audit.
 
-On startup the browser requests `/api/themes/modern-gray`. The server reads the pinned Arkiv entity, validates the publisher, immutable flags and routing, and returns the public pointer. The browser fetches the Swarm release and source manifest, verifies both hashes and schema, then loads every sprite through the declared Swarm references. Failed reads show unavailable artwork; they do not silently select local sprites or assert expiry.
+## Storage split and visible feature
 
-## Reproduce
+Swarm holds public PNGs, the source semantic manifest, and a release index per pack. PNG collections remain under 8 MB each. The index maps sheets to collection references and paths. Source code, credentials, databases, and private puzzle solutions are excluded from uploads.
 
-1. Install dependencies and configure the existing server-only Arkiv environment; preserve the private journal and keys.
-2. `npm run assets:public:check` checks the original PNG allowlist and bounded plan without writes.
-3. `npm run assets:upload:public` performs one subsidised upload workflow. New uploads default to `https://bzz.limo`; resumed journals preserve their original service. `SWARM_PUBLIC_GATEWAY_URL` overrides the upload service, and `SWARM_GATEWAY_URL` selects a read endpoint. No batch purchase or private upload token is required in public mode.
-4. `npm run assets:verify:public` repeats exact readback with no new upload. Keep the ignored journal to resume safely; unknown POST outcomes block duplicate submission.
-5. Stop the running app to release its single signer. `npm run arkiv:theme:quote` estimates the public pointer write; `npm run arkiv:theme:publish` uses the existing durable journal and configured test-token fee limits, confirms the receipt and checks readback. An unchanged release reconciles its original transaction rather than sending another.
-6. `npm run build`, then run the app. Open `/api/themes/modern-gray` to see the live Arkiv pointer and inspect image requests to `https://bzz.limo/bzz/...`. Inspect the HTML root's `data-asset-source=swarm` attribute.
+Arkiv holds public `taser_themes_v1` entities. The **`swarm_reference`** field points to the release index; `theme_id`, `version`, `manifest_sha256`, and `release_sha256` describe the release. Level layouts and solutions remain in the separate encrypted Arkiv archive.
 
-Implementation: `scripts/swarm-public-assets.ts`, `scripts/lib/public-theme.ts`, `scripts/lib/swarm-theme.ts`, `scripts/arkiv-theme.ts`, `server/arkiv/ThemePublication.ts`, `server/arkiv/ArkivArchive.ts`, `server/assets/ThemeApi.ts`, `src/assets/remote.ts`, `src/assets/schema.ts` and both render adapters. See [theme pack guidelines](../docs/THEME_PACKS.md).
+On startup the browser requests `/api/themes/modern-gray` and `/api/themes/diwali`. The server reads the pinned entity, validates publisher/flags/routing, and returns the public pointer. The browser verifies the Swarm release/manifest hashes and schema, then resolves sprites through the declared collections. The upload verifier checks every uploaded file's size/hash; runtime validates metadata and uses the resulting content-addressed sprite references.
+
+Current fallback behavior matters for the demo: remote metadata or artwork failure triggers a bundled Modern Gray fallback after the configured eight-second stage timeout. Settings identify it as **Local**, and `document.documentElement.dataset.assetSource` becomes `local`. A successful Swarm demo must show `swarm` and actual remote image requests. Fallback artwork does not establish a successful remote read and never replaces unavailable game-level data.
+
+## Run an upload and a read
+
+Use Node.js 22.13+, installed dependencies, the checked-in public theme files, and gateway access. Public upload uses gateway-supplied postage; it does not buy a batch or require a private Bee token. Gateway availability and acceptance limits remain external dependencies.
+
+From the repository root:
+
+```sh
+# Validate the allowlist and bounded plan without network writes.
+npm run assets:public:check -- --theme modern-gray
+
+# Upload the frozen pack and verify every file through public readback.
+npm run assets:upload:public -- --theme modern-gray
+
+# Repeat readback using the local upload journal, without a new upload.
+npm run assets:verify:public -- --theme modern-gray
+```
+
+Expect collection references and per-file verification messages, followed by a deployment update. The ignored `.data/swarm-public-<theme>-<version>.json` journal supports resuming an accepted upload; unchanged confirmed parts are reused. An unknown previous POST outcome blocks automatic resubmission. Do not delete the journal to force another upload. Substitute `--theme diwali` for the other pack. `SWARM_PUBLIC_GATEWAY_URL` overrides the upload service; `SWARM_GATEWAY_URL` selects the read gateway.
+
+A fresh checkout can read the existing release without that private journal:
+
+```sh
+curl --fail --silent --show-error 'https://bzz.limo/bzz/948e9c1809ead2e8784a706a1d533e0b5ca8c3d4086a2eb635598582e9e86e72/release.json'
+```
+
+Expect JSON with `kind: "taser-theme-release"`, `id: "modern-gray"`, `version: "1.1.0"`, a manifest reference, and sheet mappings. Follow those references to read the actual artwork.
+
+To publish an uploaded pack's Arkiv pointer, configure server-only Arkiv keys/access key and approved tGLM budgets, then stop the server to release its exclusive signer:
+
+```sh
+npm run arkiv:theme:quote -- --theme modern-gray
+npm run arkiv:theme:publish -- --theme modern-gray
+```
+
+The quote is unsigned. Publication uses the durable journal, confirms the receipt, and verifies readback; an unchanged release reuses existing evidence. Run `npm run dev`, open `/api/themes/modern-gray`, and inspect the browser's `bzz.limo/bzz/...` requests and `data-asset-source="swarm"`. See [setup](../README.md#run-and-connect) and [theme-pack guidelines](../docs/THEME_PACKS.md).
+
+## Implementation files
+
+| Responsibility | Files |
+| --- | --- |
+| Upload planning, splitting, journal, and exact readback | [swarm-public-assets.ts](../scripts/swarm-public-assets.ts), [public-theme.ts](../scripts/lib/public-theme.ts), [swarm-theme.ts](../scripts/lib/swarm-theme.ts) |
+| Optional owned-Bee upload path | [swarm-assets.ts](../scripts/swarm-assets.ts) |
+| Arkiv pointer publication/validation | [arkiv-theme.ts](../scripts/arkiv-theme.ts), [ThemePublication.ts](../server/arkiv/ThemePublication.ts), [ArkivArchive.ts](../server/arkiv/ArkivArchive.ts) |
+| Server pointer reads | [ThemeApi.ts](../server/assets/ThemeApi.ts) |
+| Browser metadata reads, sprite URLs, and fallback | [remote.ts](../src/assets/remote.ts), [schema.ts](../src/assets/schema.ts), [catalog.ts](../src/assets/catalog.ts), [ArtworkLoader.ts](../src/assets/ArtworkLoader.ts) |
+| Registry and current deployment references | [sources.ts](../src/assets/sources.ts), [Modern Gray](../src/assets/deployment.json), [Diwali](../src/assets/diwali.deployment.json) |
+
+## Swarm friction
+
+The owned-Bee workflow assumes a known postage batch and private postage endpoints. A subsidised gateway needed a separate upload path. The public UI's stated 10 MB limit led us to split artwork into collections under 8 MB and publish a release index. We preserved original PNG bytes and used bounded concurrency for remote reads. Slow gateway responses also motivated loading progress, timeouts, and the labeled local fallback.
+
+Public gateway responses did not give us the postage batch ID or funding-wallet attribution recorded by an owned-Bee workflow. A metadata endpoint exposing supplied batch, provider, and retention policy would make integration evidence easier to collect.
 
 ## Remaining submission details
 
-- Public postage batch ID: awaiting the gateway operator; not fabricated or inferred from the content hash.
-- Postage supplier: Swarm Foundation public gateway; specific funding wallet/batch attribution awaiting confirmation.
-- Retention and service limits: awaiting the operator; no permanent-storage guarantee is claimed.
-- Demo-video timestamp: add after recording.
-- Friction: the normal Bee upload path assumes private postage endpoints. Subsidised gateways need a separate path; the public UI's published 10 MB limit prompted bounded collections and a release index. Original uploads used the standard public gateway before the booth supplied bzz.limo; all assets were independently verified through bzz.limo without re-uploading identical PNGs.
+- **Postage batch ID:** awaiting the gateway operator; not inferred from a content hash. Both release evidence files currently record `postageBatchId: null`.
+- **Postage supplier/funder:** the recorded supplier is Swarm Foundation public gateway; confirm the batch attribution and who supplied it or which wallet funded it with the operator.
+- **Retention/service limits:** awaiting the operator; no permanent-storage guarantee is claimed.
+- **Demo video and timestamp:** not supplied. Record opening a theme, show the Arkiv pointer response and Swarm asset requests, and capture `data-asset-source="swarm"`; insert the exact video timestamp here.
 
-Only public unencrypted asset references are published. Requirements: https://ethglobal.com/events/mumbai/prizes/arkiv.
+Only public, unencrypted Swarm references are published in Arkiv. Puzzle solutions stay in the separate encrypted Arkiv archive. An encrypted Swarm reference includes its key and must not be published as plaintext; this integration does not use encrypted Swarm references. [Prize requirements](https://ethglobal.com/events/mumbai/prizes/arkiv).
