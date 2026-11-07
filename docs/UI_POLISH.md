@@ -22,4 +22,6 @@ The implementation carries the generated paper and timeline illustration assets.
 
 Checks cover sign-in, development account entry, setup role selection, archive search and level selection, visible mobile Play controls, shared logo loading, existing sprite reuse, and absence of horizontal/window overflow on the checked 1280×720 and 390×844 entry/archive layouts. The isolated preview uses explicit mock data and performs no wallet signing, CRE execution or Arkiv writes. Build, formatting and the 214-test suite accompany the change.
 
-The final illustration uses a shared code-native SVG timeline with the actual selected-pack player, crate and pressure-plate sprites, replacing the proposal’s pawn models at the user’s request. Hover hit areas remain fixed; only the trailing action arrow moves. The latest supplied mark is `public/brand/weldpoint-mark.svg`.
+The final illustration uses a shared code-native SVG timeline with the actual selected-pack player sprites, replacing the proposal’s pawn models at the user’s request. Boxes and pressure plates are omitted from the decorative illustration; the characters and timeline have more room beside compact Play/Create actions. Hover hit areas remain fixed; only the trailing action arrow moves. The latest supplied mark is `public/brand/weldpoint-mark.svg`.
+
+Collection uses layered chamber maps; role uses forward/reverse operators around a shared clock. The archive and other menu screens share the entry screens’ paper texture.
