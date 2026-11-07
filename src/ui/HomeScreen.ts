@@ -20,6 +20,7 @@ interface HomeActions {
 }
 export class HomeScreen {
   readonly root = document.createElement('main');
+  readonly archiveSlot = document.createElement('div');
   private account = document.createElement('dialog');
   private profileButton = document.createElement('button');
   private guide = new Guide();
@@ -34,6 +35,8 @@ export class HomeScreen {
       <section class="objective-picker" hidden><h1>Your next move.</h1><div class="objective-options"><button data-home-action="browse"><span class="objective-symbol">${icon('play')}</span><b>Play</b><span>${icon('arrow')}</span></button>${timelineArt('home-timeline')}<button data-home-action="create"><span class="objective-symbol">${icon('create')}</span><b>Create</b><span>${icon('arrow')}</span></button></div></section>
       <div class="setup-bottom"><button class="text-button" data-home-action="guide">${icon('book')} How to play</button><button class="text-button" data-home-action="leaderboard">${icon('trophy')} Leaderboard</button><form class="join-code-form"><label for="home-invite">Join a party</label><input id="home-invite" required pattern="${INVITE_PATTERN}" maxlength="6" minlength="6" placeholder="6-character code" aria-label="Co-op invite code"><button type="submit">Join ${icon('arrow')}</button></form></div></section>
       <footer class="paper-footer"><span>YOUR PAST. THEIR WAY FORWARD.</span></footer>`;
+    this.archiveSlot.className = 'home-archive-slot';
+    this.root.querySelector('.paper-footer')!.before(this.archiveSlot);
     document.body.append(this.root);
     this.account.id = 'home-profile';
     this.account.className = 'paper-dialog profile-dialog';

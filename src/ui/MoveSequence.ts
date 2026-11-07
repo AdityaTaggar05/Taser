@@ -83,7 +83,7 @@ export class MoveSequence {
     }
     this.sessionId = sessionId!;
     this.sequences = [...sequences];
-    this.status.textContent = 'Querying…';
+    this.status.textContent = 'Syncing receipts…';
     this.render();
     if (!sameSession) this.list.scrollLeft = 0;
     void this.poll(this.generation);
@@ -98,13 +98,13 @@ export class MoveSequence {
       this.render();
       this.status.textContent =
         feed.storage === 'test'
-          ? 'TEST · 3s refresh'
+          ? 'TEST · auto sync'
           : feed.storage === 'unconfigured'
             ? 'Archive not configured'
-            : 'Database queried · 3s refresh';
+            : 'Live receipts · auto sync';
     } catch {
       if (generation !== this.generation) return;
-      this.status.textContent = 'Query failed · retrying';
+      this.status.textContent = 'Signal interrupted · retrying';
       this.root.dataset.stale = 'true';
     }
     if (generation === this.generation)

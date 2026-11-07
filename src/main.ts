@@ -37,6 +37,7 @@ import './assets/theme.css';
 import { ArtworkLoader, artworkKey } from './assets/ArtworkLoader';
 import './ui/editorial.css';
 import './ui/polish.css';
+import './ui/arkiv.css';
 
 let connectingParty = false;
 
@@ -109,9 +110,17 @@ function refresh() {
     !!client?.canStudy,
     !!client?.otherPerspective,
   );
-  explorer.show(!!auth.user && ((playing && !inLobby) || editing), auth.user?.id ?? null);
-  explorer.dock(playing && !inLobby);
-  explorer.context(client?.state?.publicationKey);
+  explorer.show(
+    !!auth.user && (!home.root.hidden || (playing && !inLobby && !!client?.state?.level)),
+    auth.user?.id ?? null,
+    playing && !inLobby,
+    home.archiveSlot,
+  );
+  explorer.context(
+    client?.state?.publicationKey,
+    playing && !inLobby ? (client?.state ?? undefined) : undefined,
+    inspection ?? client?.state?.history.at(-1)?.step ?? 0,
+  );
   boxExplorer.update(client?.state ?? null, inspection);
   moveSequence.context(
     auth.user?.id ?? null,
@@ -259,7 +268,11 @@ const home = new HomeScreen({
   },
 });
 const levelApi = new LevelClient(auth);
-const explorer = new ArkivPanel(levelApi);
+const explorer = new ArkivPanel(levelApi, (step) => {
+  inspection = step === (client?.state?.history.at(-1)?.step ?? 0) ? null : step;
+  scene?.redraw();
+  refresh();
+});
 const moveSequence = new MoveSequence(levelApi, hud.root.querySelector('.move-dock')!, (step) => {
   inspection = step;
   scene?.redraw();
@@ -374,7 +387,6 @@ function syncScreen() {
         : auth.user
           ? 'home'
           : 'signin';
-  explorer.show(!!auth.user && editing, auth.user?.id ?? null);
   connectingParty =
     intent?.kind === 'invite' || (intent?.kind === 'create' && intent.mode === 'coop');
   if (playing && intent) {
