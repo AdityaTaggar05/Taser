@@ -1,8 +1,10 @@
 # Reach
 
-WeldPoint is a browser-based 2D puzzle game for people who enjoy coordinating with a friend, learning unusual mechanics, and creating challenges for others. Two operators move through opposite timelines, arrange matching boxes at the midpoint, then navigate the consequences of each other's recorded actions. Communication is part of solving the puzzle.
+WeldPoint is a browser-based 2D puzzle game for people interested in Web3 and games who enjoy coordinating with a friend, learning unusual mechanics, and creating challenges for others. Two operators move through opposite timelines, arrange matching boxes at the midpoint, then navigate the consequences of each other's recorded actions. Communication is part of solving the puzzle.
 
-## Who it is for and why they would return
+## Who can play and why they would return
+
+People interested in Web3 and games can play WeldPoint, whether they want to solve puzzles with a friend, play solo, or create their own levels.
 
 | Audience | Reason to play | Arkiv-backed feature they use |
 | --- | --- | --- |
@@ -15,11 +17,11 @@ The community loop is concrete: someone publishes a solvable level, others compl
 
 ## Can someone try it today?
 
-The implementation is runnable locally. A public play URL has not been supplied in this repository; add it here before submission. This document does not claim a verified public deployment.
+Play WeldPoint at [https://weldpoint.gqvz.xyz/](https://weldpoint.gqvz.xyz/).
 
-Follow the [README setup](../README.md#run-and-connect) with Node.js 22.13+, a Rabdi access key, a funded application signer, an encryption key, and reviewed fee budgets. Reading the existing encrypted game catalog requires its original publisher/namespace/key configuration. A new installation can explicitly migrate the thirteen included campaign seeds into its own namespace. New creator publications also need the [CRE verification configuration](../docs/CRE_CERTIFICATION.md).
+To run the game locally, follow the [README setup](../README.md#run-and-connect) with Node.js 22.13+, a Rabdi access key, a funded application signer, an encryption key, and reviewed fee budgets. Reading the existing encrypted game catalog requires its original publisher/namespace/key configuration. A new installation can explicitly migrate the thirteen included campaign seeds into its own namespace. New creator publications also need the [CRE verification configuration](../docs/CRE_CERTIFICATION.md).
 
-A short playtest:
+A short local playtest:
 
 1. Run `npm run dev` and open the printed URL. Sign in with an injected Ethereum wallet, or use the documented Atlas/Nova development accounts in separate fresh tabs.
 2. Select **Play co-op**, choose a campaign chamber and role, and send the private party invite to the second account. Both players ready up; the host starts.
@@ -39,6 +41,6 @@ Gameplay requires no transaction signature per move. The server signs and pays b
 
 ## After Mumbai
 
-We want to add more levels, run playtests with people outside the team, and improve the game using their feedback. Continued development will depend on player interest. First priorities are publishing the public play URL, testing whether players understand the two timelines and replay selection, and learning whether creators want to publish more chambers.
+We want to add more levels, run playtests with people outside the team, and improve the game using their feedback. Continued development will depend on player interest. First priorities are testing whether players understand the two timelines and replay selection, and learning whether creators want to publish more chambers.
 
 We would then improve the creator and replay-discovery flows and define a sustainable renewal policy for campaign content. The two-hour base lifetime and community hearts make retention visible, but do not promise that every level stays available forever. We are not claiming a funded roadmap or ongoing production service.
