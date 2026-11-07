@@ -1,41 +1,31 @@
 # Why Arkiv
 
-Arkiv gives WeldPoint's shared content a public publication identity and a network-enforced lifetime. This matters because published puzzles must stay fixed for their replays to make sense, and community feedback decides which levels remain available.
+Arkiv gives WeldPoint's shared puzzles and replays a public publication identity and a network-enforced lifetime. Those properties support the game's core loop: creators publish challenges, players contribute winning replays, and community hearts keep popular levels available.
 
-## What users would lose with a plain Postgres replacement
+## What Arkiv adds
 
-**An externally inspectable publication record.** Levels, winning runs, and committed move pairs have Arkiv entity keys and transaction references. The UI links to their publication evidence. Public readers can inspect routing metadata, the signing wallet, immutable flags, and expiration without asking our private SQL server for those facts. A plain private Postgres deployment would put that evidence entirely under the game operator's control.
+**Public publication evidence.** Levels, winning runs, and committed move pairs have entity keys and transaction references that players can inspect through the game. Public metadata exposes the publisher, immutable flags, and expiration, making publication status independently checkable.
 
-**A network-enforced community retention rule.** New campaign and community levels start with two hours. Each distinct authenticated operator can heart a publication once, causing the owner signer to extend its actual Arkiv deadline by one hour. A confirmed heart changes how long a chamber remains available for new players. Postgres could reproduce the UI and schedule deletion, but the retention rule would be enforced solely by our service. Account uniqueness and heart eligibility are still application rules; Arkiv enforces the resulting ownership and expiration operation.
+**Community-driven availability.** New levels start with a two-hour lifetime. Each distinct authenticated operator can heart a publication once, prompting the owner signer to add one hour to its actual Arkiv deadline. Community feedback therefore changes how long a challenge remains available. The application checks heart eligibility; Arkiv enforces ownership and the resulting expiration.
 
-**Stable, immutable content identities for replay compatibility.** A winning run names the exact level entity key it was verified against. Published entities are readonly; changes require another publication. Solo mode reads the selected run from Arkiv and rejects a mismatch. Postgres can implement versioning too, but would need an additional public publication and integrity mechanism to preserve the same independently inspectable record.
+**Exact versions for reusable replays.** Published levels are immutable, and each winning run references the exact level entity key it was verified against. Solo mode retrieves a complementary replay from Arkiv and checks that it matches the selected revision. Updating a puzzle creates a new publication, preserving the identity of the original challenge.
 
-**Retrievable content outside one local catalog database.** With the same publisher, namespace, and encryption key, our server can rebuild its confirmed level catalog from live Arkiv entities. Public theme publications point to hash-checked Swarm manifests and artwork. Losing the local projection does not by itself erase live publications. This does not recover private accounts, completion history, encryption keys, or expired entities.
+**Shared content that can be rediscovered.** The server can rebuild its confirmed catalog from live Arkiv entities using the same publisher, namespace, and encryption key. Arkiv also holds trusted theme pointers to hash-checked Swarm manifests and artwork. Recovery covers live published content; private account data, lost keys, and expired entities require separate handling.
 
-The distinction is where these guarantees are enforced. Postgres can support a similar game with additional infrastructure; Arkiv supplies the publication, ownership, and lifetime surface we build on.
+Together, these features give WeldPoint a shared publication layer whose content identity, ownership, and lifetime can be inspected beyond the game server.
 
-## Where gameplay actually depends on Arkiv
+## Where players use it
 
-- Starting a published challenge validates the current Arkiv level entity before pinning the session snapshot.
-- Selecting a player replay reads and validates that run's exact-revision evidence from Arkiv.
-- Confirmed paired-turn reads supply the in-game transaction strip, rather than merely writing an unused log.
-- A heart extends the real entity deadline, which controls future discovery and starts.
-- Theme loading reads a trusted Arkiv pointer before retrieving the declared Swarm release.
+- Starting a published challenge validates its current Arkiv entity before the session begins.
+- Choosing a solo partner retrieves a winning replay for that exact level revision.
+- The in-game transaction strip displays confirmed paired-turn publication evidence.
+- Hearts extend level availability for future discovery and play.
+- Theme loading follows a trusted Arkiv pointer to its Swarm release.
+
+## Supporting application services
+
+Live coordination and simulation run on the application server so turns respond immediately; completed turns publish asynchronously. Private storage supports authentication, player progress, rankings, heart deduplication, and publication recovery. Swarm stores public artwork, while server configuration holds signing and encryption keys.
+
+Full level layouts and reference solutions live on Arkiv as encrypted payloads. The server controls solution access and owns the published entities. Player permissions and win verification remain application responsibilities, with verification performed by the deterministic engine and configured CRE path. Arkiv provides publication and lifecycle enforcement; encryption does not conceal legacy solutions already visible in source history.
 
 See [how we use Arkiv](how-you-use-arkiv.md), [schema and queries](schema.md), and [Swarm evidence](swarm.md).
-
-## What we keep off Arkiv, and why
-
-| Data or responsibility | Location | Reason |
-| --- | --- | --- |
-| Live parties, invites, ready states, queued inputs, and active simulation | Application-server memory | Players need immediate coordination; confirmation is outside turn processing. Completed turns are archived asynchronously. |
-| Accounts, SIWE challenges, demo password hashes, and session credentials | Private SQLite | Authentication and revocation need private, application-controlled state. |
-| Verified completion history, score tables, heart deduplication, and query projections | Private SQLite | Provide access checks, progress that survives content expiry, and relational queries not currently executed by Arkiv. |
-| Draft recovery, pending runs/moves, transaction journal, and fee accounting | Private SQLite | Recover after interruption and distinguish pending work from confirmed publication. |
-| PNGs, theme manifests, and release indexes | Swarm, with bundled artwork fallback | Large public assets belong in file storage. Arkiv carries their references and integrity hashes. |
-| Signing/encryption keys and verification-service credentials | Server-only configuration | These must never be published or bundled into browser code. |
-| Solution verification execution | Deterministic engine and configured CRE path | Arkiv stores the resulting encrypted publication; it does not independently execute or certify the puzzle solver. |
-
-Full layouts and reference solutions **do live on Arkiv as encrypted payloads**. Encryption happens before SDK encoding. Unlocked solutions are disclosed through the authenticated server's access rules. Arkiv is public storage, not a private database, and the operator holds the decryption key. The thirteen legacy seeds remain visible in source history; encryption cannot make those previously published solutions secret.
-
-The server wallet owns the entities. Player authorship, editing permissions, score correctness, and verification-label honesty remain application responsibilities. We do not claim user-wallet ownership of each puzzle, fully on-chain gameplay, public plaintext replay access, or independent Arkiv verification of a win.
