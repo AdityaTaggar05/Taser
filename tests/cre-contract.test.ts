@@ -14,7 +14,7 @@ import {
   zeroHash,
   type Hex,
 } from 'viem';
-const source = readFileSync('contracts/TaserCertificationRegistry.sol', 'utf8');
+const source = readFileSync('contracts/WeldPointCertificationRegistry.sol', 'utf8');
 const compiled = JSON.parse(
   solc.compile(
     JSON.stringify({
@@ -27,7 +27,7 @@ const compiled = JSON.parse(
     }),
   ),
 );
-const artifact = compiled.contracts?.['Registry.sol']?.TaserCertificationRegistry;
+const artifact = compiled.contracts?.['Registry.sol']?.WeldPointCertificationRegistry;
 if (!artifact) throw new Error(JSON.stringify(compiled.errors));
 async function fixture(simulation = true) {
   const vm = await createVM({ common: new Common({ chain: Sepolia, hardfork: Hardfork.Cancun }) });

@@ -1,3 +1,4 @@
+import { brandLogo } from './brand';
 import type { AuthClient } from '../auth/AuthClient';
 import './auth.css';
 export class SignInScreen {
@@ -8,13 +9,13 @@ export class SignInScreen {
     this.root.id = 'signin';
     this.root.innerHTML = /* HTML */ `
       <a class="home-brand signin-brand" href="#">
-        <span>⌁</span>
+        <span class="brand-mark">${brandLogo()}</span>
         WELDPOINT
       </a>
       <section class="landing-panel">
         <button class="landing-back text-button" type="button">← Back</button>
         <p class="folio">A TEMPORAL CO-OP PUZZLE</p>
-        <div class="landing-emblem" aria-hidden="true">↔</div>
+        <div class="landing-emblem" aria-hidden="true">${brandLogo()}</div>
         <h1>
           WELDPOINT
           <span>Meet in the middle of time.</span>

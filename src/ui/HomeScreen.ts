@@ -1,3 +1,4 @@
+import { brandLogo } from './brand';
 import './home.css';
 import { profileLabel } from '../auth/AuthClient';
 import type { PlayerProfile } from '../auth/types';
@@ -22,7 +23,7 @@ export class HomeScreen {
   private guide = new Guide();
   constructor(private actions: HomeActions) {
     this.root.id = 'home';
-    this.root.innerHTML = `<header class="paper-header"><button class="text-button" data-home-action="back">← Back</button><a href="#" class="home-brand"><span>⌁</span> WELDPOINT</a><span class="folio">THE TEMPORAL CO-OP PUZZLE</span></header>
+    this.root.innerHTML = `<header class="paper-header"><button class="text-button" data-home-action="back">← Back</button><a href="#" class="home-brand"><span class="brand-mark">${brandLogo()}</span> WELDPOINT</a><span class="folio">THE TEMPORAL CO-OP PUZZLE</span></header>
       <section class="setup-page"><section class="home-welcome" hidden><h1>WeldPoint</h1><button class="ink-button" data-home-action="begin">Continue</button></section><div class="section-heading"><p class="folio">02 / CONFIGURE YOUR TIMELINE</p><h1>Choose your perspective.</h1></div>
       <form class="mode-form"><fieldset><legend><span>01</span> Players</legend><div class="segmented"><button type="button" data-choice="players" data-value="solo">Solo </button><button type="button" data-choice="players" data-value="coop">Co-op </button></div></fieldset>
       <fieldset><legend><span>02</span> Collection</legend><div class="segmented"><button type="button" data-choice="collection" data-value="campaign">Campaign </button><button type="button" data-choice="collection" data-value="community">Community </button></div></fieldset>

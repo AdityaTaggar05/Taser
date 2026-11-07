@@ -1,3 +1,4 @@
+import { brandLogo } from './brand';
 import { icon } from './icons';
 import { isLive, type Direction } from '../core/types';
 import type { Player, SessionState } from '../network/protocol';
@@ -37,7 +38,7 @@ export class Hud {
     this.root.innerHTML = /* HTML */ `
       <header class="topbar">
         <div class="wordmark">
-          <span class="mark">⌁</span>
+          <span class="mark brand-mark">${brandLogo()}</span>
           WELDPOINT
           <span class="edition">TEMPORAL PINCER / ONLINE CO-OP</span>
         </div>

@@ -2912,3 +2912,35 @@ html[data-theme] .role-options [data-player]:hover,
     padding: 8px 10px;
   }
 }
+
+/* WeldPoint's supplied mark stays consistent across environment packs. */
+.home-brand > .brand-mark,
+.wordmark > .brand-mark {
+  display: inline-flex;
+  align-items: center;
+  width: 48px;
+  height: 24px;
+  flex: 0 0 48px;
+  background: none;
+}
+.weldpoint-logo {
+  display: block;
+  width: 48px;
+  height: auto;
+  object-fit: contain;
+}
+.landing-emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 144px;
+  height: 72px;
+  border: 0;
+  border-radius: 0;
+}
+.landing-emblem::before {
+  content: none;
+}
+.landing-emblem .weldpoint-logo {
+  width: 144px;
+}

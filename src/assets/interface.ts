@@ -15,10 +15,6 @@ export function applyThemeInterface(
     .forEach((button) => {
       if (!button.querySelector('svg')) button.innerHTML = icon('fullscreen');
     });
-  document.querySelectorAll<HTMLElement>('.home-brand>span,.wordmark>.mark').forEach((el) => {
-    el.textContent = '';
-    applySprite(el, pack, 'ui.emblem');
-  });
   const avatar =
     user?.kind === 'demo'
       ? user.displayName.toLowerCase() === 'nova'

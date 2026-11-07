@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 /// Immutable submissions and CRE results. Deploy a separate instance for simulation.
-contract TaserCertificationRegistry {
+contract WeldPointCertificationRegistry {
     struct Certificate {
         bytes32 commitment;
         bool valid;

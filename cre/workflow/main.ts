@@ -76,7 +76,7 @@ const handle = (runtime: Runtime<Config>, payload: HTTPPayload): string => {
         .result(),
     ) as { commitment: Hex; valid: boolean; steps: number };
     runtime.log(
-      'Taser local-simulation: ' +
+      'WeldPoint local-simulation: ' +
         (result.valid ? 'WINNING' : 'REJECTED') +
         ' solution; ' +
         result.steps +
